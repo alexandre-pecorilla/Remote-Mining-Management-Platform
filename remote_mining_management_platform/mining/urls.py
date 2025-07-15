@@ -15,6 +15,9 @@ urlpatterns = [
     path('miners/<int:pk>/edit/', views.MinerUpdateView.as_view(), name='miner_edit'),
     path('miners/<int:pk>/delete/', views.MinerDeleteView.as_view(), name='miner_delete'),
     
+    # API Data
+    path('api-data/', views.api_data_view, name='api_data'),
+    
     # Settings
     path('settings/', views.settings_view, name='settings'),
 ]

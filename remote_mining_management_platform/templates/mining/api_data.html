@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}API Data{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-chart-line"></i> API Data</h1>
+            <form method="post" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-sync-alt"></i> Fetch API Data
+                </button>
+            </form>
+        </div>
+
+        <!-- CoinMarketCap API Section -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-coins"></i> CoinMarketCap API
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>Bitcoin Price:</strong>
+                            <span class="fs-4 text-success">
+                                {% if api_data.bitcoin_price_usd %}
+                                    ${{ api_data.bitcoin_price_usd|floatformat:2|intcomma }}
+                                {% else %}
+                                    <span class="text-muted">No data</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- mempool.space API Section -->
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-network-wired"></i> mempool.space API
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <strong>Network Hashrate:</strong>
+                            <div class="fs-5">
+                                {% if api_data.network_hashrate_ehs %}
+                                    {{ api_data.network_hashrate_ehs|floatformat:3 }} EH/s
+                                {% else %}
+                                    <span class="text-muted">No data</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <strong>Network Difficulty:</strong>
+                            <div class="fs-5">
+                                {% if api_data.network_difficulty %}
+                                    {{ api_data.network_difficulty|floatformat:0 }}
+                                {% else %}
+                                    <span class="text-muted">No data</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if api_data.updated_at %}
+        <div class="text-center mt-3">
+            <small class="text-muted">
+                <i class="fas fa-clock"></i> Last updated: {{ api_data.updated_at|date:"M d, Y H:i" }}
+            </small>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

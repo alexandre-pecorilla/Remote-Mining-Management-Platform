@@ -81,6 +81,28 @@ class Miner(models.Model):
         return None
 
 
+class APIData(models.Model):
+    """API data from external sources - singleton model"""
+    bitcoin_price_usd = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, help_text="Bitcoin Price in USD")
+    network_hashrate_ehs = models.DecimalField(max_digits=15, decimal_places=3, blank=True, null=True, help_text="Network Hashrate in EH/s")
+    network_difficulty = models.BigIntegerField(blank=True, null=True, help_text="Network Difficulty")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "API Data"
+        verbose_name_plural = "API Data"
+
+    def __str__(self):
+        return "API Data"
+
+    @classmethod
+    def get_api_data(cls):
+        """Get or create singleton API data instance"""
+        api_data, created = cls.objects.get_or_create(pk=1)
+        return api_data
+
+
 class Settings(models.Model):
     """Global application settings - singleton model"""
     coinmarketcap_api_key = models.CharField(max_length=200, blank=True, null=True, help_text="CoinMarketCap API Key")

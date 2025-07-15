@@ -2,8 +2,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
-from .models import RemoteMiningPlatform, Miner, Settings
+from .models import RemoteMiningPlatform, Miner, Settings, APIData
 from .forms import RemoteMiningPlatformForm, MinerForm, SettingsForm
+from .api_utils import fetch_all_api_data
 
 
 class PlatformListView(ListView):
@@ -96,6 +97,30 @@ class MinerDeleteView(DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(request, "Miner deleted successfully!")
         return super().delete(request, *args, **kwargs)
+
+
+def api_data_view(request):
+    """API Data page view"""
+    api_data = APIData.get_api_data()
+    
+    if request.method == 'POST':
+        # Fetch API data when button is clicked
+        result = fetch_all_api_data()
+        
+        if result['success']:
+            # Update the API data in database
+            api_data.bitcoin_price_usd = result['bitcoin_price_usd']
+            api_data.network_hashrate_ehs = result['network_hashrate_ehs']
+            api_data.network_difficulty = result['network_difficulty']
+            api_data.save()
+            
+            messages.success(request, result['message'])
+        else:
+            messages.error(request, result['message'])
+            
+        return redirect('api_data')
+    
+    return render(request, 'mining/api_data.html', {'api_data': api_data})
 
 
 def settings_view(request):
