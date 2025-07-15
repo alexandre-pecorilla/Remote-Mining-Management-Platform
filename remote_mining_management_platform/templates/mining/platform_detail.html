@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ platform.name }} - Remote Mining Management Platform{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-server"></i> {{ platform.name }}</h1>
+    <div>
+        <a href="{% url 'platform_edit' platform.pk %}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> Edit
+        </a>
+        <a href="{% url 'platform_delete' platform.pk %}" class="btn btn-danger">
+            <i class="fas fa-trash"></i> Delete
+        </a>
+        <a href="{% url 'platform_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        {% if platform.logo %}
+            <img src="{{ platform.logo.url }}" class="img-fluid rounded" alt="{{ platform.name }}">
+        {% else %}
+            <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 300px;">
+                <i class="fas fa-server fa-5x text-muted"></i>
+            </div>
+        {% endif %}
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle"></i> Platform Details</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <td><strong>Name:</strong></td>
+                        <td>{{ platform.name }}</td>
+                    </tr>
+                    {% if platform.website_link %}
+                    <tr>
+                        <td><strong>Website:</strong></td>
+                        <td>
+                            <a href="{{ platform.website_link }}" target="_blank" class="text-decoration-none">
+                                {{ platform.website_link }} <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if platform.portal_url %}
+                    <tr>
+                        <td><strong>Portal:</strong></td>
+                        <td>
+                            <a href="{{ platform.portal_url }}" target="_blank" class="text-decoration-none">
+                                {{ platform.portal_url }} <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if platform.energy_price %}
+                    <tr>
+                        <td><strong>Energy Price:</strong></td>
+                        <td><span class="energy-price">{{ platform.formatted_energy_price }}</span></td>
+                    </tr>
+                    {% endif %}
+                    {% if platform.point_of_contact_name %}
+                    <tr>
+                        <td><strong>Contact Name:</strong></td>
+                        <td>{{ platform.point_of_contact_name }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if platform.point_of_contact_email %}
+                    <tr>
+                        <td><strong>Contact Email:</strong></td>
+                        <td>
+                            <a href="mailto:{{ platform.point_of_contact_email }}">
+                                {{ platform.point_of_contact_email }}
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if platform.point_of_contact_phone %}
+                    <tr>
+                        <td><strong>Contact Phone:</strong></td>
+                        <td>
+                            <a href="tel:{{ platform.point_of_contact_phone }}">
+                                {{ platform.point_of_contact_phone }}
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if platform.point_of_contact_telegram %}
+                    <tr>
+                        <td><strong>Telegram:</strong></td>
+                        <td>{{ platform.point_of_contact_telegram }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
