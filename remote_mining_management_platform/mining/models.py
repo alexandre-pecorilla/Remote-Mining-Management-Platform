@@ -81,6 +81,38 @@ class Miner(models.Model):
         return None
 
 
+class Payout(models.Model):
+    """Mining payout record"""
+    payout_date = models.DateField(help_text="Date of the payout")
+    payout_amount = models.DecimalField(max_digits=12, decimal_places=8, help_text="Payout amount in BTC")
+    platform = models.ForeignKey(RemoteMiningPlatform, on_delete=models.SET_NULL, blank=True, null=True, related_name='payouts')
+    transaction_id = models.CharField(max_length=100, blank=True, null=True, help_text="Bitcoin transaction ID")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Payout"
+        verbose_name_plural = "Payouts"
+        ordering = ['-payout_date']
+
+    def __str__(self):
+        return f"Payout {self.payout_amount} BTC on {self.payout_date}"
+
+    @property
+    def current_market_value(self):
+        """Calculate current market value in USD using Bitcoin price from API data"""
+        from .models import APIData
+        api_data = APIData.get_api_data()
+        if api_data.bitcoin_price_usd:
+            return float(self.payout_amount) * float(api_data.bitcoin_price_usd)
+        return None
+
+    @property
+    def mempool_link(self):
+        """Generate mempool.space link for transaction ID"""
+        return f"https://mempool.space/tx/{self.transaction_id}"
+
+
 class APIData(models.Model):
     """API data from external sources - singleton model"""
     bitcoin_price_usd = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, help_text="Bitcoin Price in USD")

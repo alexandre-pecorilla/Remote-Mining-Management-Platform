@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if payout.pk %}Edit Payout{% else %}Add Payout{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-coins"></i> 
+                {% if payout.pk %}Edit Payout{% else %}Add New Payout{% endif %}
+            </h1>
+            <a href="{% url 'payout_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-list"></i> Back to List
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.payout_date.id_for_label }}" class="form-label">
+                                    {{ form.payout_date.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.payout_date }}
+                                {% if form.payout_date.errors %}
+                                    <div class="text-danger small">{{ form.payout_date.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.payout_amount.id_for_label }}" class="form-label">
+                                    {{ form.payout_amount.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.payout_amount }}
+                                {% if form.payout_amount.errors %}
+                                    <div class="text-danger small">{{ form.payout_amount.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.platform.id_for_label }}" class="form-label">
+                            {{ form.platform.label }}
+                        </label>
+                        {{ form.platform }}
+                        {% if form.platform.errors %}
+                            <div class="text-danger small">{{ form.platform.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.transaction_id.id_for_label }}" class="form-label">
+                            {{ form.transaction_id.label }}
+                        </label>
+                        {{ form.transaction_id }}
+                        {% if form.transaction_id.errors %}
+                            <div class="text-danger small">{{ form.transaction_id.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    {% if payout.pk and payout.current_market_value %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Current Market Value:</strong> ${{ payout.current_market_value|floatformat:2 }}
+                        <br><small>This value is automatically calculated based on the current Bitcoin price from API data.</small>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'payout_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> 
+                            {% if payout.pk %}Update Payout{% else %}Save Payout{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

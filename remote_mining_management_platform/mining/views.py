@@ -2,8 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
-from .models import RemoteMiningPlatform, Miner, Settings, APIData
-from .forms import RemoteMiningPlatformForm, MinerForm, SettingsForm
+from .models import RemoteMiningPlatform, Miner, Settings, APIData, Payout
+from .forms import RemoteMiningPlatformForm, MinerForm, SettingsForm, PayoutForm
 from .api_utils import fetch_all_api_data
 
 
@@ -96,6 +96,53 @@ class MinerDeleteView(DeleteView):
 
     def delete(self, request, *args, **kwargs):
         messages.success(request, "Miner deleted successfully!")
+        return super().delete(request, *args, **kwargs)
+
+
+# Payout Views
+class PayoutListView(ListView):
+    model = Payout
+    template_name = 'mining/payout_list.html'
+    context_object_name = 'payouts'
+    paginate_by = 10
+
+
+class PayoutDetailView(DetailView):
+    model = Payout
+    template_name = 'mining/payout_detail.html'
+    context_object_name = 'payout'
+
+
+class PayoutCreateView(CreateView):
+    model = Payout
+    form_class = PayoutForm
+    template_name = 'mining/payout_form.html'
+    success_url = reverse_lazy('payout_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Payout added successfully!')
+        return super().form_valid(form)
+
+
+class PayoutUpdateView(UpdateView):
+    model = Payout
+    form_class = PayoutForm
+    template_name = 'mining/payout_form.html'
+    success_url = reverse_lazy('payout_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Payout updated successfully!')
+        return super().form_valid(form)
+
+
+class PayoutDeleteView(DeleteView):
+    model = Payout
+    template_name = 'mining/payout_confirm_delete.html'
+    success_url = reverse_lazy('payout_list')
+    context_object_name = 'payout'
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, 'Payout deleted successfully!')
         return super().delete(request, *args, **kwargs)
 
 

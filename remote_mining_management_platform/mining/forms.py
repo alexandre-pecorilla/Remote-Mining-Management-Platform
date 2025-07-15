@@ -1,5 +1,5 @@
 from django import forms
-from .models import RemoteMiningPlatform, Miner, Settings
+from .models import RemoteMiningPlatform, Miner, Settings, Payout
 
 
 class RemoteMiningPlatformForm(forms.ModelForm):
@@ -62,7 +62,7 @@ class MinerForm(forms.ModelForm):
             'manufacturer': 'Manufacturer',
             'product_link': 'Product Link',
             'serial_number': 'Serial Number',
-            'platform': 'Remote Mining Platform',
+            'platform': 'Platform',
             'platform_internal_id': 'Platform ID',
             'hashrate': 'Hashrate (TH/s)',
             'power': 'Power (kW)',
@@ -71,6 +71,36 @@ class MinerForm(forms.ModelForm):
             'purchase_date': 'Purchase Date',
             'start_date': 'Start Date',
             'location': 'Location',
+        }
+
+
+class PayoutForm(forms.ModelForm):
+    class Meta:
+        model = Payout
+        fields = ['payout_date', 'payout_amount', 'platform', 'transaction_id']
+        widgets = {
+            'payout_date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control'
+            }),
+            'payout_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.00000001',
+                'min': '0'
+            }),
+            'platform': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'transaction_id': forms.TextInput(attrs={
+                'class': 'form-control',
+                'maxlength': '100'
+            }),
+        }
+        labels = {
+            'payout_date': 'Payout Date',
+            'payout_amount': 'Payout Amount (BTC)',
+            'platform': 'Platform',
+            'transaction_id': 'Transaction ID',
         }
 
 

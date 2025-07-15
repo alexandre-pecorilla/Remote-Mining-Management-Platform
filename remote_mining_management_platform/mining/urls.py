@@ -15,6 +15,13 @@ urlpatterns = [
     path('miners/<int:pk>/edit/', views.MinerUpdateView.as_view(), name='miner_edit'),
     path('miners/<int:pk>/delete/', views.MinerDeleteView.as_view(), name='miner_delete'),
     
+    # Payout URLs
+    path('payouts/', views.PayoutListView.as_view(), name='payout_list'),
+    path('payouts/<int:pk>/', views.PayoutDetailView.as_view(), name='payout_detail'),
+    path('payouts/add/', views.PayoutCreateView.as_view(), name='payout_add'),
+    path('payouts/<int:pk>/edit/', views.PayoutUpdateView.as_view(), name='payout_edit'),
+    path('payouts/<int:pk>/delete/', views.PayoutDeleteView.as_view(), name='payout_delete'),
+    
     # API Data
     path('api-data/', views.api_data_view, name='api_data'),
     
