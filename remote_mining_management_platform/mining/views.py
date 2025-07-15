@@ -2,8 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
-from .models import RemoteMiningPlatform, Miner
-from .forms import RemoteMiningPlatformForm, MinerForm
+from .models import RemoteMiningPlatform, Miner, Settings
+from .forms import RemoteMiningPlatformForm, MinerForm, SettingsForm
 
 
 class PlatformListView(ListView):
@@ -96,3 +96,19 @@ class MinerDeleteView(DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(request, "Miner deleted successfully!")
         return super().delete(request, *args, **kwargs)
+
+
+def settings_view(request):
+    """Settings page view"""
+    settings = Settings.get_settings()
+    
+    if request.method == 'POST':
+        form = SettingsForm(request.POST, instance=settings)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Settings saved successfully!')
+            return redirect('settings')
+    else:
+        form = SettingsForm(instance=settings)
+    
+    return render(request, 'mining/settings.html', {'form': form})

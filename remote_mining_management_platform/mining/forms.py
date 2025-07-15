@@ -1,5 +1,5 @@
 from django import forms
-from .models import RemoteMiningPlatform, Miner
+from .models import RemoteMiningPlatform, Miner, Settings
 
 
 class RemoteMiningPlatformForm(forms.ModelForm):
@@ -71,4 +71,18 @@ class MinerForm(forms.ModelForm):
             'purchase_date': 'Purchase Date',
             'start_date': 'Start Date',
             'location': 'Location',
+        }
+
+
+class SettingsForm(forms.ModelForm):
+    class Meta:
+        model = Settings
+        fields = ['coinmarketcap_api_key']
+        widgets = {
+            'coinmarketcap_api_key': forms.PasswordInput(attrs={
+                'class': 'form-control'
+            }, render_value=True),
+        }
+        labels = {
+            'coinmarketcap_api_key': 'CoinMarketCap API Key',
         }

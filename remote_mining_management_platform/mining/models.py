@@ -79,3 +79,23 @@ class Miner(models.Model):
             else:
                 return f"{self.hashrate:.3f}".rstrip('0').rstrip('.')
         return None
+
+
+class Settings(models.Model):
+    """Global application settings - singleton model"""
+    coinmarketcap_api_key = models.CharField(max_length=200, blank=True, null=True, help_text="CoinMarketCap API Key")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Settings"
+        verbose_name_plural = "Settings"
+
+    def __str__(self):
+        return "Application Settings"
+
+    @classmethod
+    def get_settings(cls):
+        """Get or create singleton settings instance"""
+        settings, created = cls.objects.get_or_create(pk=1)
+        return settings

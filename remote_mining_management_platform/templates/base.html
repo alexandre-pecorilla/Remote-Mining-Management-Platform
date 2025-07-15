@@ -32,7 +32,7 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'platform_list' %}">
                             <i class="fas fa-server"></i> Platforms
@@ -41,6 +41,13 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'miner_list' %}">
                             <i class="fas fa-microchip"></i> Miners
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'settings' %}">
+                            <i class="fas fa-cog"></i> Settings
                         </a>
                     </li>
                 </ul>

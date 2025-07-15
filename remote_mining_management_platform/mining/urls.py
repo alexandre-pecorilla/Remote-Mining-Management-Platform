@@ -14,4 +14,7 @@ urlpatterns = [
     path('miners/<int:pk>/', views.MinerDetailView.as_view(), name='miner_detail'),
     path('miners/<int:pk>/edit/', views.MinerUpdateView.as_view(), name='miner_edit'),
     path('miners/<int:pk>/delete/', views.MinerDeleteView.as_view(), name='miner_delete'),
+    
+    # Settings
+    path('settings/', views.settings_view, name='settings'),
 ]
