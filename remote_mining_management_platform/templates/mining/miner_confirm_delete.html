@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Delete {{ miner.model }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> Delete Miner
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    {% if miner.image %}
+                        <img src="{{ miner.image.url }}" alt="{{ miner.model }}" class="img-thumbnail mb-3" style="max-width: 150px;">
+                    {% else %}
+                        <div class="mb-3">
+                            <i class="fas fa-microchip fa-4x text-muted"></i>
+                        </div>
+                    {% endif %}
+                    <h5>{{ miner.model }}</h5>
+                    {% if miner.manufacturer %}
+                        <p class="text-muted">{{ miner.manufacturer }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Warning:</strong> Are you sure you want to delete this miner? This action cannot be undone.
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'miner_detail' miner.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Yes, Delete Miner
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

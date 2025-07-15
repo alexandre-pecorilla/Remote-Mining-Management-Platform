@@ -1,5 +1,5 @@
 from django import forms
-from .models import RemoteMiningPlatform
+from .models import RemoteMiningPlatform, Miner
 
 
 class RemoteMiningPlatformForm(forms.ModelForm):
@@ -31,4 +31,44 @@ class RemoteMiningPlatformForm(forms.ModelForm):
             'point_of_contact_phone': 'Contact Phone',
             'point_of_contact_telegram': 'Telegram Username',
             'energy_price': 'Energy Price ($/kWh)',
+        }
+
+
+class MinerForm(forms.ModelForm):
+    class Meta:
+        model = Miner
+        fields = ['model', 'image', 'manufacturer', 'product_link', 'serial_number', 
+                 'platform', 'platform_internal_id', 'hashrate', 'power', 'efficiency', 
+                 'purchase_price', 'purchase_date', 'start_date', 'location']
+        widgets = {
+            'model': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
+            'image': forms.FileInput(attrs={'class': 'form-control'}),
+            'manufacturer': forms.TextInput(attrs={'class': 'form-control'}),
+            'product_link': forms.URLInput(attrs={'class': 'form-control'}),
+            'serial_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'platform': forms.Select(attrs={'class': 'form-control'}),
+            'platform_internal_id': forms.TextInput(attrs={'class': 'form-control'}),
+            'hashrate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'power': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.001'}),
+            'efficiency': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'purchase_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'purchase_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'location': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'model': 'Miner Model',
+            'image': 'Miner Image',
+            'manufacturer': 'Manufacturer',
+            'product_link': 'Product Link',
+            'serial_number': 'Serial Number',
+            'platform': 'Remote Mining Platform',
+            'platform_internal_id': 'Platform ID',
+            'hashrate': 'Hashrate (TH/s)',
+            'power': 'Power (kW)',
+            'efficiency': 'Efficiency (W/TH)',
+            'purchase_price': 'Purchase Price ($)',
+            'purchase_date': 'Purchase Date',
+            'start_date': 'Start Date',
+            'location': 'Location',
         }

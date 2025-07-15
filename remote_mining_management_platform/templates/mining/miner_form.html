@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}Edit Miner{% else %}Add New Miner{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-microchip"></i> 
+                    {% if object %}Edit Miner: {{ object.model }}{% else %}Add New Miner{% endif %}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.model.id_for_label }}" class="form-label">{{ form.model.label }} <span class="text-danger">*</span></label>
+                        {{ form.model }}
+                        {% if form.model.errors %}
+                            <div class="text-danger small">{{ form.model.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.image.id_for_label }}" class="form-label">{{ form.image.label }}</label>
+                        {{ form.image }}
+                        {% if form.image.errors %}
+                            <div class="text-danger small">{{ form.image.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.manufacturer.id_for_label }}" class="form-label">{{ form.manufacturer.label }}</label>
+                        {{ form.manufacturer }}
+                        {% if form.manufacturer.errors %}
+                            <div class="text-danger small">{{ form.manufacturer.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.product_link.id_for_label }}" class="form-label">{{ form.product_link.label }}</label>
+                        {{ form.product_link }}
+                        {% if form.product_link.errors %}
+                            <div class="text-danger small">{{ form.product_link.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.serial_number.id_for_label }}" class="form-label">{{ form.serial_number.label }}</label>
+                        {{ form.serial_number }}
+                        {% if form.serial_number.errors %}
+                            <div class="text-danger small">{{ form.serial_number.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.platform.id_for_label }}" class="form-label">{{ form.platform.label }}</label>
+                        {{ form.platform }}
+                        {% if form.platform.errors %}
+                            <div class="text-danger small">{{ form.platform.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.platform_internal_id.id_for_label }}" class="form-label">{{ form.platform_internal_id.label }}</label>
+                        {{ form.platform_internal_id }}
+                        {% if form.platform_internal_id.errors %}
+                            <div class="text-danger small">{{ form.platform_internal_id.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.hashrate.id_for_label }}" class="form-label">{{ form.hashrate.label }}</label>
+                                {{ form.hashrate }}
+                                {% if form.hashrate.errors %}
+                                    <div class="text-danger small">{{ form.hashrate.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.power.id_for_label }}" class="form-label">{{ form.power.label }}</label>
+                                {{ form.power }}
+                                {% if form.power.errors %}
+                                    <div class="text-danger small">{{ form.power.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.efficiency.id_for_label }}" class="form-label">{{ form.efficiency.label }}</label>
+                                {{ form.efficiency }}
+                                {% if form.efficiency.errors %}
+                                    <div class="text-danger small">{{ form.efficiency.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.purchase_price.id_for_label }}" class="form-label">{{ form.purchase_price.label }}</label>
+                        {{ form.purchase_price }}
+                        {% if form.purchase_price.errors %}
+                            <div class="text-danger small">{{ form.purchase_price.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.purchase_date.id_for_label }}" class="form-label">{{ form.purchase_date.label }}</label>
+                                {{ form.purchase_date }}
+                                {% if form.purchase_date.errors %}
+                                    <div class="text-danger small">{{ form.purchase_date.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.start_date.id_for_label }}" class="form-label">{{ form.start_date.label }}</label>
+                                {{ form.start_date }}
+                                {% if form.start_date.errors %}
+                                    <div class="text-danger small">{{ form.start_date.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.location.id_for_label }}" class="form-label">{{ form.location.label }}</label>
+                        {{ form.location }}
+                        {% if form.location.errors %}
+                            <div class="text-danger small">{{ form.location.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'miner_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> 
+                            {% if object %}Update Miner{% else %}Create Miner{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
