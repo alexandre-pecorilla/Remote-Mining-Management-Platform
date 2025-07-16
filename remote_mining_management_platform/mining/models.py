@@ -136,8 +136,9 @@ class APIData(models.Model):
 
 
 class Settings(models.Model):
-    """Global application settings - singleton model"""
-    coinmarketcap_api_key = models.CharField(max_length=200, blank=True, null=True, help_text="CoinMarketCap API Key")
+    """Application settings - singleton model"""
+    coinmarketcap_api_key = models.CharField(max_length=255, blank=True, null=True, help_text="CoinMarketCap API Key for Bitcoin price data")
+    dark_mode = models.BooleanField(default=False, help_text="Enable dark mode theme")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
