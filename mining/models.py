@@ -141,6 +141,7 @@ class Settings(models.Model):
     coinmarketcap_api_key = models.CharField(max_length=255, blank=True, null=True, help_text="CoinMarketCap API Key for Bitcoin price data")
     dark_mode = models.BooleanField(default=False, help_text="Enable dark mode theme")
     developer_mode = models.BooleanField(default=False, help_text="Enable developer mode to show database IDs")
+    pool_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=2.5, help_text="Pool fee percentage (e.g. 2.5 for 2.5%)")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -55,6 +55,16 @@
                         {% endif %}
                     </div>
                     
+                    <div class="mb-3">
+                        <label for="{{ form.pool_fee_percentage.id_for_label }}" class="form-label">
+                            {{ form.pool_fee_percentage.label }}
+                        </label>
+                        {{ form.pool_fee_percentage }}
+                        {% if form.pool_fee_percentage.errors %}
+                            <div class="text-danger small">{{ form.pool_fee_percentage.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
                     <div class="d-flex justify-content-between mt-4">
                         <a href="{% url 'platform_list' %}" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Back
