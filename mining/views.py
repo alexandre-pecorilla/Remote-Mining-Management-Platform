@@ -304,7 +304,7 @@ def overview_dashboard(request):
         # Fleet Data
         'miner_count': miner_count,
         'total_hashrate': total_hashrate,
-        'total_power': total_power,
+        'total_power': round(float(total_power) / 1000, 2),  # Convert watts to kW
         'total_capex': total_capex,
         
         # Efficiency Data
@@ -602,7 +602,7 @@ def export_overview_data(request):
     
     ws_summary.write(row, 0, 'Fleet Data')
     ws_summary.write(row, 1, 'Total Power')
-    ws_summary.write(row, 2, round(float(total_power), 2))
+    ws_summary.write(row, 2, round(float(total_power) / 1000, 2))  # Convert watts to kW
     ws_summary.write(row, 3, 'kW')
     row += 1
     
@@ -1111,3 +1111,383 @@ def forecasting_dashboard(request):
     }
     
     return render(request, 'mining/forecasting_dashboard.html', context)
+
+
+def export_forecasting_data(request):
+    """Export forecasting dashboard data to Excel file - EXACT COPY of dashboard calculations"""
+    from decimal import Decimal
+    from django.db.models import Sum, Avg
+    import xlwt
+    
+    wb = xlwt.Workbook()
+    
+    # EXACT COPY of forecasting_dashboard function logic
+    api_data = APIData.get_api_data()
+    settings = Settings.get_settings()
+    
+    # Get total hashrate (sum of all miners)
+    total_hashrate = Miner.objects.aggregate(total=Sum('hashrate'))['total'] or Decimal('0')
+    
+    # Get miner count
+    miner_count = Miner.objects.count()
+    
+    # Get total CAPEX (sum of all miners' purchase prices)
+    total_capex = Miner.objects.aggregate(total=Sum('purchase_price'))['total'] or Decimal('0')
+    
+    # Calculate hashrate weighted efficiency
+    hashrate_weighted_efficiency = 0
+    if total_hashrate > 0:
+        efficiency_sum = 0
+        for miner in Miner.objects.filter(hashrate__isnull=False, efficiency__isnull=False):
+            efficiency_sum += float(miner.hashrate) * float(miner.efficiency)
+        if efficiency_sum > 0:
+            hashrate_weighted_efficiency = efficiency_sum / float(total_hashrate)
+    
+    # Calculate weighted average energy cost
+    hashrate_weighted_energy_cost = 0
+    if total_hashrate > 0:
+        energy_cost_sum = 0
+        for miner in Miner.objects.filter(hashrate__isnull=False, platform__energy_price__isnull=False):
+            energy_cost_sum += float(miner.hashrate) * float(miner.platform.energy_price)
+        if energy_cost_sum > 0:
+            hashrate_weighted_energy_cost = energy_cost_sum / float(total_hashrate)
+    
+    # Get data from API and settings
+    network_difficulty = api_data.network_difficulty or 0
+    network_hashrate_ehs = float(api_data.network_hashrate_ehs or Decimal('0'))
+    avg_tx_fees = float(api_data.avg_block_fees_24h or Decimal('0'))
+    pool_fee = float(settings.pool_fee_percentage)
+    btc_price_usd = float(api_data.bitcoin_price_usd or Decimal('0'))
+    price_per_kwh = float(hashrate_weighted_energy_cost)
+    efficiency_w_th = float(hashrate_weighted_efficiency)
+    hardware_cost_usd = float(total_capex)
+    
+    # Check if we have required data
+    if not api_data:
+        ws = wb.add_sheet('Error')
+        ws.write(0, 0, 'Error: API data not available')
+    elif total_hashrate == 0:
+        ws = wb.add_sheet('Error')
+        ws.write(0, 0, 'Error: No miners with hashrate data available')
+    elif network_hashrate_ehs <= 0 or btc_price_usd <= 0:
+        ws = wb.add_sheet('Error')
+        ws.write(0, 0, 'Error: Invalid network or price data')
+    else:
+        # EXACT SAME CALCULATIONS AS DASHBOARD
+        # Convert hashrate to H/s
+        miner_hashrate_hs = float(total_hashrate) * 1e12  # TH/s to H/s
+        
+        # Use network hashrate directly from API data
+        network_hashrate_hs = network_hashrate_ehs * 1e18  # EH/s to H/s
+        
+        # Calculate hashrate share
+        hashrate_share = miner_hashrate_hs / network_hashrate_hs
+        hashrate_share_percent = hashrate_share * 100
+        
+        # Daily mining calculations
+        daily_blocks = 144
+        block_reward = 3.125 + avg_tx_fees
+        daily_btc_gross_before_fee = hashrate_share * daily_blocks * block_reward
+        pool_fee_btc = daily_btc_gross_before_fee * (pool_fee / 100)
+        daily_btc_after_fee = daily_btc_gross_before_fee - pool_fee_btc
+        
+        # Power and energy calculations
+        miner_hashrate_ths = miner_hashrate_hs / 1e12
+        power_watts = miner_hashrate_ths * efficiency_w_th
+        daily_energy_kwh = (power_watts * 24) / 1000
+        daily_electricity_cost_usd = daily_energy_kwh * price_per_kwh
+        daily_electricity_cost_btc = daily_electricity_cost_usd / btc_price_usd if btc_price_usd > 0 else 0
+        
+        # Calculate electricity cost as percentage of mined BTC
+        energy_cost_percentage = (daily_electricity_cost_btc / daily_btc_after_fee * 100) if daily_btc_after_fee > 0 else 0
+        
+        # USD calculations
+        daily_usd_gross = daily_btc_gross_before_fee * btc_price_usd
+        daily_usd_after_fee = daily_btc_after_fee * btc_price_usd
+        daily_usd_net = daily_usd_after_fee - daily_electricity_cost_usd
+        daily_btc_net = daily_usd_net / btc_price_usd if btc_price_usd > 0 else 0
+        
+        # Cost basis calculation
+        total_cost_usd = (pool_fee_btc * btc_price_usd) + daily_electricity_cost_usd
+        cost_basis_usd_per_btc = total_cost_usd / daily_btc_after_fee if daily_btc_after_fee > 0 else 0
+        discount_vs_market_pct = -1 * ((btc_price_usd - cost_basis_usd_per_btc) / btc_price_usd * 100) if btc_price_usd > 0 else 0
+        
+        # Net profit margin
+        margin = (daily_usd_net / daily_usd_gross * 100) if daily_usd_gross > 0 else 0
+        
+        # Time calculations (using BTC after pool fee but before electricity, matching original script)
+        days_to_mine_1_btc = 1 / daily_btc_after_fee if daily_btc_after_fee > 0 else float('inf')
+        days_to_mine_small_btc = 0.005 / daily_btc_after_fee if daily_btc_after_fee > 0 else float('inf')
+        
+        # ROI calculation
+        roi_data = None
+        if hardware_cost_usd > 0:
+            if daily_usd_net > 0:
+                days_to_roi = hardware_cost_usd / daily_usd_net
+                years_roi = days_to_roi / 365
+                months_roi = (years_roi - int(years_roi)) * 12
+                days_roi = (months_roi - int(months_roi)) * 30
+                roi_data = {
+                    'days_to_roi': days_to_roi,
+                    'time_breakdown': {
+                        'years': int(years_roi),
+                        'months': int(months_roi),
+                        'days': int(days_roi)
+                    }
+                }
+            else:
+                roi_data = {
+                    'days_to_roi': float('inf'),
+                    'time_breakdown': {
+                        'years': 0,
+                        'months': 0,
+                        'days': 0
+                    }
+                }
+        
+        # Time formatting function
+        def format_time_breakdown(days_total):
+            if days_total == float('inf'):
+                return 'Never (not profitable)'
+            years = int(days_total / 365)
+            months = int((days_total % 365) / 30)
+            remaining_days = int(days_total % 30)
+            return f"{years} years, {months} months, {remaining_days} days"
+        
+        time_to_mine_1_btc = format_time_breakdown(days_to_mine_1_btc)
+        time_to_mine_small_btc = format_time_breakdown(days_to_mine_small_btc)
+        
+        # Sheet 1: Forecasting Summary
+        ws_summary = wb.add_sheet('Forecasting Summary')
+        ws_summary.write(0, 0, 'Metric Category')
+        ws_summary.write(0, 1, 'Metric Name')
+        ws_summary.write(0, 2, 'Value')
+        ws_summary.write(0, 3, 'Unit')
+        
+        row = 1
+        
+        # Network Overview
+        ws_summary.write(row, 0, 'Network Overview')
+        ws_summary.write(row, 1, 'Network Difficulty')
+        ws_summary.write(row, 2, network_difficulty)
+        ws_summary.write(row, 3, '')
+        row += 1
+        
+        ws_summary.write(row, 0, 'Network Overview')
+        ws_summary.write(row, 1, 'Network Hashrate')
+        ws_summary.write(row, 2, network_hashrate_ehs)
+        ws_summary.write(row, 3, 'EH/s')
+        row += 1
+        
+        ws_summary.write(row, 0, 'Network Overview')
+        ws_summary.write(row, 1, 'Avg Block Fees (24h)')
+        ws_summary.write(row, 2, round(avg_tx_fees, 8))
+        ws_summary.write(row, 3, 'BTC')
+        row += 1
+        
+        ws_summary.write(row, 0, 'Network Overview')
+        ws_summary.write(row, 1, 'BTC Price')
+        ws_summary.write(row, 2, round(btc_price_usd, 2))
+        ws_summary.write(row, 3, 'USD')
+        row += 1
+        
+        # My Fleet Overview
+        ws_summary.write(row, 0, 'My Fleet Overview')
+        ws_summary.write(row, 1, 'My Hashrate')
+        ws_summary.write(row, 2, float(total_hashrate))
+        ws_summary.write(row, 3, 'TH/s')
+        row += 1
+        
+        ws_summary.write(row, 0, 'My Fleet Overview')
+        ws_summary.write(row, 1, 'Pool Fee')
+        ws_summary.write(row, 2, pool_fee)
+        ws_summary.write(row, 3, '%')
+        row += 1
+        
+        ws_summary.write(row, 0, 'My Fleet Overview')
+        ws_summary.write(row, 1, 'Power Consumption')
+        ws_summary.write(row, 2, round(power_watts / 1000, 2))
+        ws_summary.write(row, 3, 'kW')
+        row += 1
+        
+        ws_summary.write(row, 0, 'My Fleet Overview')
+        ws_summary.write(row, 1, 'Net Profit Margin')
+        ws_summary.write(row, 2, round(margin, 2))
+        ws_summary.write(row, 3, '%')
+        row += 1
+        
+        # Key Metrics
+        ws_summary.write(row, 0, 'Key Metrics')
+        ws_summary.write(row, 1, 'Time to mine 1 BTC')
+        ws_summary.write(row, 2, time_to_mine_1_btc)
+        ws_summary.write(row, 3, '')
+        row += 1
+        
+        ws_summary.write(row, 0, 'Key Metrics')
+        ws_summary.write(row, 1, 'Time to mine 0.005 BTC')
+        ws_summary.write(row, 2, time_to_mine_small_btc)
+        ws_summary.write(row, 3, '')
+        row += 1
+        
+        if roi_data:
+            roi_display = f"{roi_data['time_breakdown']['years']} years, {roi_data['time_breakdown']['months']} months, {roi_data['time_breakdown']['days']} days" if roi_data['days_to_roi'] != float('inf') else "Never (not profitable)"
+            ws_summary.write(row, 0, 'Key Metrics')
+            ws_summary.write(row, 1, 'ROI')
+            ws_summary.write(row, 2, roi_display)
+            ws_summary.write(row, 3, '')
+            row += 1
+        
+        # Sheet 2: Daily Projections
+        ws_daily = wb.add_sheet('Daily Projections')
+        ws_daily.write(0, 0, 'Projection Type')
+        ws_daily.write(0, 1, 'BTC Amount')
+        ws_daily.write(0, 2, 'USD Amount')
+        
+        row = 1
+        ws_daily.write(row, 0, 'Gross Payout (before pool fee)')
+        ws_daily.write(row, 1, round(daily_btc_gross_before_fee, 8))
+        ws_daily.write(row, 2, round(daily_usd_gross, 2))
+        row += 1
+        
+        ws_daily.write(row, 0, 'Pool Fee')
+        ws_daily.write(row, 1, round(pool_fee_btc, 8))
+        ws_daily.write(row, 2, round(pool_fee_btc * btc_price_usd, 2))
+        row += 1
+        
+        ws_daily.write(row, 0, 'After Pool Fee')
+        ws_daily.write(row, 1, round(daily_btc_after_fee, 8))
+        ws_daily.write(row, 2, round(daily_usd_after_fee, 2))
+        row += 1
+        
+        ws_daily.write(row, 0, 'Electricity Cost')
+        ws_daily.write(row, 1, round(daily_electricity_cost_usd / btc_price_usd, 8) if btc_price_usd > 0 else 0)
+        ws_daily.write(row, 2, round(daily_electricity_cost_usd, 2))
+        row += 1
+        
+        ws_daily.write(row, 0, 'Net Profit')
+        ws_daily.write(row, 1, round(daily_btc_net, 8))
+        ws_daily.write(row, 2, round(daily_usd_net, 2))
+        row += 1
+        
+        # Sheet 3: Monthly Projections
+        ws_monthly = wb.add_sheet('Monthly Projections')
+        ws_monthly.write(0, 0, 'Projection Type')
+        ws_monthly.write(0, 1, 'BTC Amount')
+        ws_monthly.write(0, 2, 'USD Amount')
+        
+        row = 1
+        ws_monthly.write(row, 0, 'Gross Payout (before pool fee)')
+        ws_monthly.write(row, 1, round(daily_btc_gross_before_fee * 30, 8))
+        ws_monthly.write(row, 2, round(daily_usd_gross * 30, 2))
+        row += 1
+        
+        ws_monthly.write(row, 0, 'Pool Fee')
+        ws_monthly.write(row, 1, round(pool_fee_btc * 30, 8))
+        ws_monthly.write(row, 2, round(pool_fee_btc * btc_price_usd * 30, 2))
+        row += 1
+        
+        ws_monthly.write(row, 0, 'After Pool Fee')
+        ws_monthly.write(row, 1, round(daily_btc_after_fee * 30, 8))
+        ws_monthly.write(row, 2, round(daily_usd_after_fee * 30, 2))
+        row += 1
+        
+        ws_monthly.write(row, 0, 'Electricity Cost')
+        ws_monthly.write(row, 1, round(daily_electricity_cost_usd / btc_price_usd * 30, 8) if btc_price_usd > 0 else 0)
+        ws_monthly.write(row, 2, round(daily_electricity_cost_usd * 30, 2))
+        row += 1
+        
+        ws_monthly.write(row, 0, 'Net Profit')
+        ws_monthly.write(row, 1, round(daily_btc_net * 30, 8))
+        ws_monthly.write(row, 2, round(daily_usd_net * 30, 2))
+        row += 1
+        
+        # Sheet 4: Yearly Projections
+        ws_yearly = wb.add_sheet('Yearly Projections')
+        ws_yearly.write(0, 0, 'Projection Type')
+        ws_yearly.write(0, 1, 'BTC Amount')
+        ws_yearly.write(0, 2, 'USD Amount')
+        
+        row = 1
+        ws_yearly.write(row, 0, 'Gross Payout (before pool fee)')
+        ws_yearly.write(row, 1, round(daily_btc_gross_before_fee * 365, 8))
+        ws_yearly.write(row, 2, round(daily_usd_gross * 365, 2))
+        row += 1
+        
+        ws_yearly.write(row, 0, 'Pool Fee')
+        ws_yearly.write(row, 1, round(pool_fee_btc * 365, 8))
+        ws_yearly.write(row, 2, round(pool_fee_btc * btc_price_usd * 365, 2))
+        row += 1
+        
+        ws_yearly.write(row, 0, 'After Pool Fee')
+        ws_yearly.write(row, 1, round(daily_btc_after_fee * 365, 8))
+        ws_yearly.write(row, 2, round(daily_usd_after_fee * 365, 2))
+        row += 1
+        
+        ws_yearly.write(row, 0, 'Electricity Cost')
+        ws_yearly.write(row, 1, round(daily_electricity_cost_usd / btc_price_usd * 365, 8) if btc_price_usd > 0 else 0)
+        ws_yearly.write(row, 2, round(daily_electricity_cost_usd * 365, 2))
+        row += 1
+        
+        ws_yearly.write(row, 0, 'Net Profit')
+        ws_yearly.write(row, 1, round(daily_btc_net * 365, 8))
+        ws_yearly.write(row, 2, round(daily_usd_net * 365, 2))
+        row += 1
+        
+        # Sheet 5: Cost Basis Analysis
+        ws_cost = wb.add_sheet('Cost Basis Analysis')
+        ws_cost.write(0, 0, 'Cost Analysis')
+        ws_cost.write(0, 1, 'Value')
+        ws_cost.write(0, 2, 'Unit')
+        
+        row = 1
+        ws_cost.write(row, 0, 'Market Price per BTC')
+        ws_cost.write(row, 1, round(btc_price_usd, 2))
+        ws_cost.write(row, 2, 'USD')
+        row += 1
+        
+        ws_cost.write(row, 0, 'My Cost Basis per BTC')
+        ws_cost.write(row, 1, round(cost_basis_usd_per_btc, 2))
+        ws_cost.write(row, 2, 'USD')
+        row += 1
+        
+        ws_cost.write(row, 0, 'Discount vs Market')
+        ws_cost.write(row, 1, round(discount_vs_market_pct, 2))
+        ws_cost.write(row, 2, '%')
+        row += 1
+        
+        # Sheet 6: Energy Metrics
+        ws_energy = wb.add_sheet('Energy Metrics')
+        ws_energy.write(0, 0, 'Energy Metric')
+        ws_energy.write(0, 1, 'Value')
+        ws_energy.write(0, 2, 'Unit')
+        
+        row = 1
+        ws_energy.write(row, 0, 'Power Consumption')
+        ws_energy.write(row, 1, round(power_watts / 1000, 2))
+        ws_energy.write(row, 2, 'kW')
+        row += 1
+        
+        ws_energy.write(row, 0, 'Daily Energy Usage')
+        ws_energy.write(row, 1, round(daily_energy_kwh, 2))
+        ws_energy.write(row, 2, 'kWh')
+        row += 1
+        
+        ws_energy.write(row, 0, 'Electricity Price')
+        ws_energy.write(row, 1, round(price_per_kwh, 5))
+        ws_energy.write(row, 2, '$/kWh')
+        row += 1
+        
+        ws_energy.write(row, 0, 'Mining Efficiency')
+        ws_energy.write(row, 1, round(efficiency_w_th, 2))
+        ws_energy.write(row, 2, 'W/TH')
+        row += 1
+        
+        ws_energy.write(row, 0, 'Energy to Mining Ratio')
+        ws_energy.write(row, 1, round(energy_cost_percentage, 2))
+        ws_energy.write(row, 2, '%')
+        row += 1
+    
+    response = HttpResponse(content_type='application/vnd.ms-excel')
+    response['Content-Disposition'] = 'attachment; filename="forecasting_dashboard_export.xls"'
+    wb.save(response)
+    return response
