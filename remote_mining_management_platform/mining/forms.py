@@ -107,7 +107,7 @@ class PayoutForm(forms.ModelForm):
 class SettingsForm(forms.ModelForm):
     class Meta:
         model = Settings
-        fields = ['coinmarketcap_api_key', 'dark_mode']
+        fields = ['coinmarketcap_api_key', 'dark_mode', 'developer_mode']
         widgets = {
             'coinmarketcap_api_key': forms.PasswordInput(attrs={
                 'class': 'form-control'
@@ -115,8 +115,12 @@ class SettingsForm(forms.ModelForm):
             'dark_mode': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
             }),
+            'developer_mode': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
         }
         labels = {
             'coinmarketcap_api_key': 'CoinMarketCap API Key',
             'dark_mode': 'Dark Mode',
+            'developer_mode': 'Developer Mode',
         }

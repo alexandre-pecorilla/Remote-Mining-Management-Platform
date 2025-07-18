@@ -43,6 +43,18 @@
                         {% endif %}
                     </div>
                     
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            {{ form.developer_mode }}
+                            <label class="form-check-label" for="{{ form.developer_mode.id_for_label }}">
+                                {{ form.developer_mode.label }}
+                            </label>
+                        </div>
+                        {% if form.developer_mode.errors %}
+                            <div class="text-danger small">{{ form.developer_mode.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
                     <div class="d-flex justify-content-between mt-4">
                         <a href="{% url 'platform_list' %}" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Back

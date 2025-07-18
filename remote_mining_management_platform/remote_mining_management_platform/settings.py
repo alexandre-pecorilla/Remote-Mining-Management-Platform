@@ -25,7 +25,7 @@ SECRET_KEY = '***REMOVED_SECRET_KEY***'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1'] + [f'192.168.1.{i}' for i in range(1, 255)]
 
 
 # Application definition

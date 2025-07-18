@@ -3,6 +3,12 @@
 {% block title %}{{ platform.name }} - Remote Mining Management Platform{% endblock %}
 
 {% block content %}
+{% if settings.developer_mode %}
+<div class="alert alert-info mb-3">
+    <i class="fas fa-database"></i> <strong>Database ID:</strong> {{ platform.pk }}
+</div>
+{% endif %}
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1><i class="fas fa-server"></i> {{ platform.name }}</h1>
     <div>
