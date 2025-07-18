@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Delete {{ miner.model }}{% endblock %}
+{% block title %}Delete {{ object.model }}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -14,16 +14,16 @@
             </div>
             <div class="card-body">
                 <div class="text-center mb-4">
-                    {% if miner.image %}
-                        <img src="{{ miner.image.url }}" alt="{{ miner.model }}" class="img-thumbnail mb-3" style="max-width: 150px;">
+                    {% if object.image %}
+                        <img src="{{ object.image.url }}" alt="{{ object.model }}" class="img-thumbnail mb-3" style="max-width: 150px;">
                     {% else %}
                         <div class="mb-3">
                             <i class="fas fa-microchip fa-4x text-muted"></i>
                         </div>
                     {% endif %}
-                    <h5>{{ miner.model }}</h5>
-                    {% if miner.manufacturer %}
-                        <p class="text-muted">{{ miner.manufacturer }}</p>
+                    <h5>{{ object.model }}</h5>
+                    {% if object.manufacturer %}
+                        <p class="text-muted">{{ object.manufacturer }}</p>
                     {% endif %}
                 </div>
                 
@@ -35,7 +35,7 @@
                 <form method="post">
                     {% csrf_token %}
                     <div class="d-flex justify-content-between">
-                        <a href="{% url 'miner_detail' miner.pk %}" class="btn btn-secondary">
+                        <a href="{% url 'miner_detail' object.pk %}" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Cancel
                         </a>
                         <button type="submit" class="btn btn-danger">

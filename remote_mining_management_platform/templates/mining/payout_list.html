@@ -11,6 +11,9 @@
         <a href="{% url 'download_payout_template' %}" class="btn btn-outline-info">
             <i class="fas fa-download"></i> Download Import Template
         </a>
+        <button type="button" class="btn btn-outline-warning" onclick="document.getElementById('payoutImportFile').click()">
+            <i class="fas fa-upload"></i> Import Data
+        </button>
         <a href="{% url 'payout_add' %}" class="btn btn-success">
             <i class="fas fa-plus"></i> Add New Payout
         </a>
@@ -117,5 +120,35 @@
     </div>
 {% endif %}
 
+<script>
+// Import functionality
+function showLoadingPopup() {
+    const popup = document.createElement('div');
+    popup.innerHTML = `
+        <div class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style="background: rgba(0,0,0,0.5); z-index: 9999;">
+            <div class="bg-white p-4 rounded text-center">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <h5>Importing data...</h5>
+                <p class="text-muted">Please wait while we process your file.</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(popup);
+}
+
+function handlePayoutImportFile() {
+    const file = document.getElementById('payoutImportFile').files[0];
+    if (file) {
+        showLoadingPopup();
+        document.getElementById('payoutImportForm').submit();
+    }
+}
+</script>
+
+<!-- Hidden import form -->
+<form id="payoutImportForm" method="post" action="{% url 'import_payout_data' %}" enctype="multipart/form-data" style="display: none;">
+    {% csrf_token %}
+    <input type="file" id="payoutImportFile" name="import_file" accept=".xls" onchange="handlePayoutImportFile()">
+</form>
 
 {% endblock %}

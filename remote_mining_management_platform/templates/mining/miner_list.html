@@ -18,6 +18,9 @@
         <a href="{% url 'download_miner_template' %}" class="btn btn-outline-info">
             <i class="fas fa-download"></i> Download Import Template
         </a>
+        <button type="button" class="btn btn-outline-warning" onclick="document.getElementById('minerImportFile').click()">
+            <i class="fas fa-upload"></i> Import Data
+        </button>
         <a href="{% url 'miner_create' %}" class="btn btn-success">
             <i class="fas fa-plus"></i> Add New Miner
         </a>
@@ -244,5 +247,35 @@ document.addEventListener('DOMContentLoaded', function() {
     const savedView = localStorage.getItem('minerListViewType') || 'card';
     switchView(savedView);
 });
+
+// Import functionality
+function showLoadingPopup() {
+    const popup = document.createElement('div');
+    popup.innerHTML = `
+        <div class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style="background: rgba(0,0,0,0.5); z-index: 9999;">
+            <div class="bg-white p-4 rounded text-center">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <h5>Importing data...</h5>
+                <p class="text-muted">Please wait while we process your file.</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(popup);
+}
+
+function handleMinerImportFile() {
+    const file = document.getElementById('minerImportFile').files[0];
+    if (file) {
+        showLoadingPopup();
+        document.getElementById('minerImportForm').submit();
+    }
+}
 </script>
+
+<!-- Hidden import form -->
+<form id="minerImportForm" method="post" action="{% url 'import_miner_data' %}" enctype="multipart/form-data" style="display: none;">
+    {% csrf_token %}
+    <input type="file" id="minerImportFile" name="import_file" accept=".xls" onchange="handleMinerImportFile()">
+</form>
+
 {% endblock %}

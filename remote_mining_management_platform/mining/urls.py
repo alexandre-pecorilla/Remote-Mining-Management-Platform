@@ -32,4 +32,9 @@ urlpatterns = [
     path('download-templates/platform/', views.download_platform_template, name='download_platform_template'),
     path('download-templates/miner/', views.download_miner_template, name='download_miner_template'),
     path('download-templates/payout/', views.download_payout_template, name='download_payout_template'),
+    
+    # Data Import
+    path('import-data/platform/', views.import_platform_data, name='import_platform_data'),
+    path('import-data/miner/', views.import_miner_data, name='import_miner_data'),
+    path('import-data/payout/', views.import_payout_data, name='import_payout_data'),
 ]

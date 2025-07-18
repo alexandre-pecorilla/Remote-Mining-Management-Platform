@@ -1,9 +1,13 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
+from django.http import HttpResponse
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
-from django.http import HttpResponse
-from openpyxl import Workbook
+import xlwt
+import xlrd
+from decimal import Decimal
+from datetime import datetime
+import json
 from .models import RemoteMiningPlatform, Miner, Settings, APIData, Payout
 from .forms import RemoteMiningPlatformForm, MinerForm, SettingsForm, PayoutForm
 from .api_utils import fetch_all_api_data
@@ -191,62 +195,258 @@ def settings_view(request):
 # Import Template Download Views
 def download_platform_template(request):
     """Download import template for Remote Mining Platforms"""
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Platform Import Template"
+    wb = xlwt.Workbook()
+    ws = wb.add_sheet('Platform Import Template')
     
     # Add headers based on form fields
     headers = ['name', 'website_link', 'portal_url', 'point_of_contact_name', 
                'point_of_contact_email', 'point_of_contact_phone', 'point_of_contact_telegram', 'energy_price']
     
-    for col, header in enumerate(headers, 1):
-        ws.cell(row=1, column=col, value=header)
+    for col, header in enumerate(headers):
+        ws.write(0, col, header)
     
     response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        content_type='application/vnd.ms-excel'
     )
-    response['Content-Disposition'] = 'attachment; filename="platform_import_template.xlsx"'
+    response['Content-Disposition'] = 'attachment; filename="platform_import_template.xls"'
     wb.save(response)
     return response
 
 
 def download_miner_template(request):
     """Download import template for Miners"""
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Miner Import Template"
+    wb = xlwt.Workbook()
+    ws = wb.add_sheet('Miner Import Template')
     
     # Add headers based on form fields (excluding image field for import)
     headers = ['model', 'manufacturer', 'product_link', 'serial_number', 
                'platform', 'platform_internal_id', 'hashrate', 'power', 'efficiency', 
                'purchase_price', 'purchase_date', 'start_date', 'location']
     
-    for col, header in enumerate(headers, 1):
-        ws.cell(row=1, column=col, value=header)
+    for col, header in enumerate(headers):
+        ws.write(0, col, header)
     
     response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        content_type='application/vnd.ms-excel'
     )
-    response['Content-Disposition'] = 'attachment; filename="miner_import_template.xlsx"'
+    response['Content-Disposition'] = 'attachment; filename="miner_import_template.xls"'
     wb.save(response)
     return response
 
 
 def download_payout_template(request):
     """Download import template for Payouts"""
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Payout Import Template"
+    wb = xlwt.Workbook()
+    ws = wb.add_sheet('Payout Import Template')
     
     # Add headers based on form fields
     headers = ['payout_date', 'payout_amount', 'platform', 'transaction_id']
     
-    for col, header in enumerate(headers, 1):
-        ws.cell(row=1, column=col, value=header)
+    for col, header in enumerate(headers):
+        ws.write(0, col, header)
     
     response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        content_type='application/vnd.ms-excel'
     )
-    response['Content-Disposition'] = 'attachment; filename="payout_import_template.xlsx"'
+    response['Content-Disposition'] = 'attachment; filename="payout_import_template.xls"'
     wb.save(response)
     return response
+
+
+# Data Import Views
+def import_platform_data(request):
+    """Import platform data from uploaded Excel file"""
+    if request.method == 'POST' and request.FILES.get('import_file'):
+        try:
+            file = request.FILES['import_file']
+            wb = xlrd.open_workbook(file_contents=file.read())
+            ws = wb.sheet_by_index(0)
+            
+            # Get headers from first row
+            headers = []
+            for col in range(ws.ncols):
+                header = ws.cell_value(0, col)
+                if header:
+                    headers.append(str(header).strip())
+            
+            # Process data rows
+            imported_count = 0
+            for row in range(1, ws.nrows):
+                row_data = {}
+                for col, header in enumerate(headers):
+                    if col < ws.ncols:
+                        cell_value = ws.cell_value(row, col)
+                        cell_type = ws.cell_type(row, col)
+                        if cell_value:
+                            # Handle different cell types
+                            if cell_type == 3:  # Date type
+                                # Convert Excel date serial number to Python date
+                                date_tuple = xlrd.xldate_as_tuple(cell_value, wb.datemode)
+                                row_data[header] = datetime(*date_tuple).date()
+                            elif cell_type == 2:  # Number type
+                                row_data[header] = cell_value
+                            else:  # Text type
+                                row_data[header] = str(cell_value).strip()
+                
+                if row_data:  # Skip empty rows
+                    # Create platform instance
+                    platform_data = {}
+                    for field, value in row_data.items():
+                        if hasattr(RemoteMiningPlatform, field) and value:
+                            if field == 'energy_price' and value:
+                                platform_data[field] = Decimal(str(value))
+                            else:
+                                platform_data[field] = value
+                    
+                    if platform_data:
+                        RemoteMiningPlatform.objects.create(**platform_data)
+                        imported_count += 1
+            
+            messages.success(request, f'Successfully imported {imported_count} platforms!')
+            return redirect('platform_list')
+            
+        except Exception as e:
+            messages.error(request, 'Wrong import file format or data. Please check your file and try again.')
+            return redirect('platform_list')
+    
+    return redirect('platform_list')
+
+
+def import_miner_data(request):
+    """Import miner data from uploaded Excel file"""
+    if request.method == 'POST' and request.FILES.get('import_file'):
+        try:
+            file = request.FILES['import_file']
+            wb = xlrd.open_workbook(file_contents=file.read())
+            ws = wb.sheet_by_index(0)
+            
+            # Get headers from first row
+            headers = []
+            for col in range(ws.ncols):
+                header = ws.cell_value(0, col)
+                if header:
+                    headers.append(str(header).strip())
+            
+            # Process data rows
+            imported_count = 0
+            for row in range(1, ws.nrows):
+                row_data = {}
+                for col, header in enumerate(headers):
+                    if col < ws.ncols:
+                        cell_value = ws.cell_value(row, col)
+                        cell_type = ws.cell_type(row, col)
+                        if cell_value:
+                            # Handle different cell types
+                            if cell_type == 3:  # Date type
+                                # Convert Excel date serial number to Python date
+                                date_tuple = xlrd.xldate_as_tuple(cell_value, wb.datemode)
+                                row_data[header] = datetime(*date_tuple).date()
+                            elif cell_type == 2:  # Number type
+                                row_data[header] = cell_value
+                            else:  # Text type
+                                row_data[header] = str(cell_value).strip()
+                
+                if row_data:  # Skip empty rows
+                    # Create miner instance
+                    miner_data = {}
+                    for field, value in row_data.items():
+                        if hasattr(Miner, field) and value:
+                            if field == 'platform':
+                                # Handle foreign key - expect platform ID
+                                try:
+                                    platform = RemoteMiningPlatform.objects.get(pk=int(float(value)))
+                                    miner_data[field] = platform
+                                except:
+                                    continue
+                            elif field in ['hashrate', 'power', 'efficiency', 'purchase_price'] and value:
+                                miner_data[field] = Decimal(str(value))
+                            elif field in ['purchase_date', 'start_date'] and value:
+                                if isinstance(value, str):
+                                    miner_data[field] = datetime.strptime(value, '%Y-%m-%d').date()
+                                else:
+                                    miner_data[field] = value
+                            else:
+                                miner_data[field] = value
+                    
+                    if miner_data:
+                        Miner.objects.create(**miner_data)
+                        imported_count += 1
+            
+            messages.success(request, f'Successfully imported {imported_count} miners!')
+            return redirect('miner_list')
+            
+        except Exception as e:
+            messages.error(request, 'Wrong import file format or data. Please check your file and try again.')
+            return redirect('miner_list')
+    
+    return redirect('miner_list')
+
+
+def import_payout_data(request):
+    """Import payout data from uploaded Excel file"""
+    if request.method == 'POST' and request.FILES.get('import_file'):
+        try:
+            file = request.FILES['import_file']
+            wb = xlrd.open_workbook(file_contents=file.read())
+            ws = wb.sheet_by_index(0)
+            
+            # Get headers from first row
+            headers = []
+            for col in range(ws.ncols):
+                header = ws.cell_value(0, col)
+                if header:
+                    headers.append(str(header).strip())
+            
+            # Process data rows
+            imported_count = 0
+            for row in range(1, ws.nrows):
+                row_data = {}
+                for col, header in enumerate(headers):
+                    if col < ws.ncols:
+                        cell_value = ws.cell_value(row, col)
+                        cell_type = ws.cell_type(row, col)
+                        if cell_value:
+                            # Handle different cell types
+                            if cell_type == 3:  # Date type
+                                # Convert Excel date serial number to Python date
+                                date_tuple = xlrd.xldate_as_tuple(cell_value, wb.datemode)
+                                row_data[header] = datetime(*date_tuple).date()
+                            elif cell_type == 2:  # Number type
+                                row_data[header] = cell_value
+                            else:  # Text type
+                                row_data[header] = str(cell_value).strip()
+                
+                if row_data:  # Skip empty rows
+                    # Create payout instance
+                    payout_data = {}
+                    for field, value in row_data.items():
+                        if hasattr(Payout, field) and value:
+                            if field == 'platform':
+                                # Handle foreign key - expect platform ID
+                                try:
+                                    platform = RemoteMiningPlatform.objects.get(pk=int(float(value)))
+                                    payout_data[field] = platform
+                                except:
+                                    continue
+                            elif field == 'payout_amount' and value:
+                                payout_data[field] = Decimal(str(value))
+                            elif field == 'payout_date' and value:
+                                if isinstance(value, str):
+                                    payout_data[field] = datetime.strptime(value, '%Y-%m-%d').date()
+                                else:
+                                    payout_data[field] = value
+                            else:
+                                payout_data[field] = value
+                    
+                    if payout_data:
+                        Payout.objects.create(**payout_data)
+                        imported_count += 1
+            
+            messages.success(request, f'Successfully imported {imported_count} payouts!')
+            return redirect('payout_list')
+            
+        except Exception as e:
+            messages.error(request, 'Wrong import file format or data. Please check your file and try again.')
+            return redirect('payout_list')
+    
+    return redirect('payout_list')

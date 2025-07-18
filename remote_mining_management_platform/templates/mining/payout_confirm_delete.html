@@ -29,12 +29,12 @@
                     <i class="fas fa-info-circle"></i>
                     <strong>Payout Details:</strong>
                     <ul class="mb-0 mt-2">
-                        <li><strong>Date:</strong> {{ payout.payout_date }}</li>
-                        <li><strong>Amount:</strong> {{ payout.payout_amount|floatformat:8 }} BTC</li>
-                        {% if payout.current_market_value %}
-                        <li><strong>Market Value:</strong> ${{ payout.current_market_value|floatformat:2|intcomma }}</li>
+                        <li><strong>Date:</strong> {{ object.payout_date }}</li>
+                        <li><strong>Amount:</strong> {{ object.payout_amount|floatformat:8 }} BTC</li>
+                        {% if object.current_market_value %}
+                        <li><strong>Market Value:</strong> ${{ object.current_market_value|floatformat:2|intcomma }}</li>
                         {% endif %}
-                        <li><strong>Transaction ID:</strong> {{ payout.transaction_id|truncatechars:32 }}...</li>
+                        <li><strong>Transaction ID:</strong> {{ object.transaction_id|truncatechars:32 }}...</li>
                     </ul>
                 </div>
 
@@ -46,7 +46,7 @@
                 <form method="post" class="mt-4">
                     {% csrf_token %}
                     <div class="d-flex justify-content-between">
-                        <a href="{% url 'payout_detail' payout.pk %}" class="btn btn-secondary">
+                        <a href="{% url 'payout_detail' object.pk %}" class="btn btn-secondary">
                             <i class="fas fa-times"></i> Cancel
                         </a>
                         <button type="submit" class="btn btn-danger">

@@ -17,6 +17,9 @@
         <a href="{% url 'download_platform_template' %}" class="btn btn-outline-info">
             <i class="fas fa-download"></i> Download Import Template
         </a>
+        <button type="button" class="btn btn-outline-warning" onclick="document.getElementById('platformImportFile').click()">
+            <i class="fas fa-upload"></i> Import Data
+        </button>
         <a href="{% url 'platform_create' %}" class="btn btn-success">
             <i class="fas fa-plus"></i> Add New Platform
         </a>
@@ -213,5 +216,35 @@ document.addEventListener('DOMContentLoaded', function() {
     const savedView = localStorage.getItem('listViewType') || 'card';
     switchView(savedView);
 });
+
+// Import functionality
+function showLoadingPopup() {
+    const popup = document.createElement('div');
+    popup.innerHTML = `
+        <div class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style="background: rgba(0,0,0,0.5); z-index: 9999;">
+            <div class="bg-white p-4 rounded text-center">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <h5>Importing data...</h5>
+                <p class="text-muted">Please wait while we process your file.</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(popup);
+}
+
+function handleImportFile() {
+    const file = document.getElementById('platformImportFile').files[0];
+    if (file) {
+        showLoadingPopup();
+        document.getElementById('platformImportForm').submit();
+    }
+}
 </script>
+
+<!-- Hidden import form -->
+<form id="platformImportForm" method="post" action="{% url 'import_platform_data' %}" enctype="multipart/form-data" style="display: none;">
+    {% csrf_token %}
+    <input type="file" id="platformImportFile" name="import_file" accept=".xls" onchange="handleImportFile()">
+</form>
+
 {% endblock %}
