@@ -6,6 +6,15 @@ __pycache__
 db.sqlite3
 media
 
+# Project specific files #
+launch_server
+*.xls
+*.xlsx
+venv/
+../venv/
+../launch_server
+../miner_import_template.xls
+
 # Backup files # 
 *.bak 
 
