@@ -909,3 +909,205 @@ def import_payout_data(request):
             return redirect('payout_list')
     
     return redirect('payout_list')
+
+
+def forecasting_dashboard(request):
+    """Forecasting Dashboard with BTC mining profitability calculations"""
+    from decimal import Decimal
+    from django.db.models import Sum
+    
+    # Gather all required data from database models
+    api_data = APIData.get_api_data()
+    settings = Settings.get_settings()
+    
+    # Get total hashrate (sum of all miners)
+    total_hashrate = Miner.objects.aggregate(total=Sum('hashrate'))['total'] or Decimal('0')
+    
+    # Get miner count
+    miner_count = Miner.objects.count()
+    
+    # Get total CAPEX (sum of all miner purchase prices)
+    total_capex = Miner.objects.aggregate(total=Sum('purchase_price'))['total'] or Decimal('0')
+    
+    # Calculate hashrate weighted average efficiency
+    hashrate_weighted_efficiency = Decimal('0')
+    if total_hashrate > 0:
+        total_weighted = Decimal('0')
+        for miner in Miner.objects.all():
+            if miner.hashrate and miner.efficiency:
+                total_weighted += miner.hashrate * miner.efficiency
+        hashrate_weighted_efficiency = total_weighted / total_hashrate if total_weighted > 0 else Decimal('0')
+    
+    # Calculate hashrate weighted average energy cost
+    hashrate_weighted_energy_cost = Decimal('0')
+    if total_hashrate > 0:
+        total_weighted = Decimal('0')
+        for miner in Miner.objects.all():
+            if miner.hashrate and miner.platform and miner.platform.energy_price:
+                total_weighted += miner.hashrate * miner.platform.energy_price
+        hashrate_weighted_energy_cost = total_weighted / total_hashrate if total_weighted > 0 else Decimal('0')
+    
+    # Get data from API and settings
+    network_difficulty = api_data.network_difficulty or 0
+    network_hashrate_ehs = float(api_data.network_hashrate_ehs or Decimal('0'))
+    avg_tx_fees = float(api_data.avg_block_fees_24h or Decimal('0'))
+    pool_fee = float(settings.pool_fee_percentage)
+    btc_price_usd = float(api_data.bitcoin_price_usd or Decimal('0'))
+    price_per_kwh = float(hashrate_weighted_energy_cost)
+    efficiency_w_th = float(hashrate_weighted_efficiency)
+    hardware_cost_usd = float(total_capex)
+    
+    # Perform calculations (using the same logic as the Python script)
+    results = None
+    if total_hashrate > 0 and network_hashrate_ehs > 0 and btc_price_usd > 0:
+        # Convert hashrate to H/s
+        miner_hashrate_hs = float(total_hashrate) * 1e12  # TH/s to H/s
+        
+        # Use network hashrate directly from API data
+        network_hashrate_hs = network_hashrate_ehs * 1e18  # EH/s to H/s
+        
+        # Calculate hashrate share
+        hashrate_share = miner_hashrate_hs / network_hashrate_hs
+        hashrate_share_percent = hashrate_share * 100
+        
+        # Daily mining calculations
+        daily_blocks = 144
+        block_reward = 3.125 + avg_tx_fees
+        daily_btc_gross_before_fee = hashrate_share * daily_blocks * block_reward
+        pool_fee_btc = daily_btc_gross_before_fee * (pool_fee / 100)
+        daily_btc_after_fee = daily_btc_gross_before_fee - pool_fee_btc
+        
+        # Power and energy calculations
+        miner_hashrate_ths = miner_hashrate_hs / 1e12
+        power_watts = miner_hashrate_ths * efficiency_w_th
+        daily_energy_kwh = (power_watts * 24) / 1000
+        daily_electricity_cost_usd = daily_energy_kwh * price_per_kwh
+        daily_electricity_cost_btc = daily_electricity_cost_usd / btc_price_usd if btc_price_usd > 0 else 0
+        
+        # Calculate electricity cost as percentage of mined BTC
+        energy_cost_percentage = (daily_electricity_cost_btc / daily_btc_after_fee * 100) if daily_btc_after_fee > 0 else 0
+        
+        # USD calculations
+        daily_usd_gross = daily_btc_gross_before_fee * btc_price_usd
+        daily_usd_after_fee = daily_btc_after_fee * btc_price_usd
+        daily_usd_net = daily_usd_after_fee - daily_electricity_cost_usd
+        daily_btc_net = daily_usd_net / btc_price_usd if btc_price_usd > 0 else 0
+        
+        # Cost basis calculation
+        total_cost_usd = (pool_fee_btc * btc_price_usd) + daily_electricity_cost_usd
+        cost_basis_usd_per_btc = total_cost_usd / daily_btc_after_fee if daily_btc_after_fee > 0 else 0
+        discount_vs_market_pct = -1 * ((btc_price_usd - cost_basis_usd_per_btc) / btc_price_usd * 100) if btc_price_usd > 0 else 0
+        
+        # Net profit margin
+        margin = (daily_usd_net / daily_usd_gross * 100) if daily_usd_gross > 0 else 0
+        
+        # Time calculations (using BTC after pool fee but before electricity, matching original script)
+        days_to_mine_1_btc = 1 / daily_btc_after_fee if daily_btc_after_fee > 0 else float('inf')
+        days_to_mine_small_btc = 0.005 / daily_btc_after_fee if daily_btc_after_fee > 0 else float('inf')
+        
+        # ROI calculation
+        roi_data = None
+        if hardware_cost_usd > 0:
+            if daily_usd_net > 0:
+                days_to_roi = hardware_cost_usd / daily_usd_net
+                years_roi = days_to_roi / 365
+                months_roi = (years_roi - int(years_roi)) * 12
+                days_roi = (months_roi - int(months_roi)) * 30
+                roi_data = {
+                    'days_to_roi': days_to_roi,
+                    'time_breakdown': {
+                        'years': int(years_roi),
+                        'months': int(months_roi),
+                        'days': int(days_roi)
+                    }
+                }
+            else:
+                roi_data = {
+                    'days_to_roi': float('inf'),
+                    'time_breakdown': {
+                        'years': 0,
+                        'months': 0,
+                        'days': 0
+                    }
+                }
+        
+        results = {
+            'network_hashrate_ehs': network_hashrate_ehs,
+            'hashrate_share_percent': hashrate_share_percent,
+            'power_consumption_watts': power_watts,
+            'power_consumption_kw': power_watts / 1000,
+            'daily_energy_kwh': daily_energy_kwh,
+            'energy_cost_percentage': energy_cost_percentage,
+            'margin': margin,
+            'days_to_mine_1_btc': days_to_mine_1_btc,
+            'time_to_mine_1_btc': {
+                'years': int(days_to_mine_1_btc / 365) if days_to_mine_1_btc != float('inf') else 0,
+                'months': int((days_to_mine_1_btc % 365) / 30) if days_to_mine_1_btc != float('inf') else 0,
+                'days': int(days_to_mine_1_btc % 30) if days_to_mine_1_btc != float('inf') else 0
+            },
+            'days_to_mine_small_btc': days_to_mine_small_btc,
+            'time_to_mine_small_btc': {
+                'years': int(days_to_mine_small_btc / 365) if days_to_mine_small_btc != float('inf') else 0,
+                'months': int((days_to_mine_small_btc % 365) / 30) if days_to_mine_small_btc != float('inf') else 0,
+                'days': int(days_to_mine_small_btc % 30) if days_to_mine_small_btc != float('inf') else 0
+            },
+            'roi_data': roi_data,
+            'daily': {
+                'btc_gross': daily_btc_gross_before_fee,
+                'btc_fee': pool_fee_btc,
+                'btc_after_fee': daily_btc_after_fee,
+                'btc_net': daily_btc_net,
+                'usd_gross': daily_usd_gross,
+                'usd_fee': daily_usd_gross - daily_usd_after_fee,
+                'usd_after_fee': daily_usd_after_fee,
+                'usd_net': daily_usd_net,
+                'electricity_cost_usd': daily_electricity_cost_usd,
+                'electricity_cost_btc': daily_electricity_cost_btc
+            },
+            'monthly': {
+                'btc_gross': daily_btc_gross_before_fee * 30,
+                'btc_fee': pool_fee_btc * 30,
+                'btc_after_fee': daily_btc_after_fee * 30,
+                'btc_net': daily_btc_net * 30,
+                'usd_gross': daily_usd_gross * 30,
+                'usd_fee': (daily_usd_gross - daily_usd_after_fee) * 30,
+                'usd_after_fee': daily_usd_after_fee * 30,
+                'usd_net': daily_usd_net * 30,
+                'electricity_cost_usd': daily_electricity_cost_usd * 30,
+                'electricity_cost_btc': daily_electricity_cost_btc * 30
+            },
+            'yearly': {
+                'btc_gross': daily_btc_gross_before_fee * 365,
+                'btc_fee': pool_fee_btc * 365,
+                'btc_after_fee': daily_btc_after_fee * 365,
+                'btc_net': daily_btc_net * 365,
+                'usd_gross': daily_usd_gross * 365,
+                'usd_fee': (daily_usd_gross - daily_usd_after_fee) * 365,
+                'usd_after_fee': daily_usd_after_fee * 365,
+                'usd_net': daily_usd_net * 365,
+                'electricity_cost_usd': daily_electricity_cost_usd * 365,
+                'electricity_cost_btc': daily_electricity_cost_btc * 365
+            },
+            'cost_basis': {
+                'cost_basis_usd_per_btc': cost_basis_usd_per_btc,
+                'discount_vs_market_pct': discount_vs_market_pct
+            }
+        }
+    
+    context = {
+        # Input parameters
+        'total_hashrate': total_hashrate,
+        'miner_count': miner_count,
+        'network_difficulty': network_difficulty,
+        'network_hashrate_ehs': network_hashrate_ehs,
+        'avg_tx_fees': avg_tx_fees,
+        'pool_fee': pool_fee,
+        'btc_price_usd': btc_price_usd,
+        'price_per_kwh': price_per_kwh,
+        'efficiency_w_th': efficiency_w_th,
+        'hardware_cost_usd': hardware_cost_usd,
+        # Calculation results
+        'results': results,
+    }
+    
+    return render(request, 'mining/forecasting_dashboard.html', context)

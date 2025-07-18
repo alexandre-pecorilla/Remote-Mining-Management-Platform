@@ -34,6 +34,7 @@ urlpatterns = [
     
     # Dashboards
     path('dashboard/overview/', views.overview_dashboard, name='overview_dashboard'),
+    path('dashboard/forecasting/', views.forecasting_dashboard, name='forecasting_dashboard'),
     
     # Import Template Downloads
     path('download-templates/platform/', views.download_platform_template, name='download_platform_template'),

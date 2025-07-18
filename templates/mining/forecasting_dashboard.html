@@ -1,0 +1,401 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Forecasting Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2"><i class="fas fa-chart-line text-primary"></i> Forecasting Dashboard</h1>
+    </div>
+
+    {% if not results %}
+    <div class="alert alert-warning" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Insufficient Data</strong> - Please ensure you have:
+        <ul class="mb-0 mt-2">
+            <li>At least one miner with hashrate and efficiency data</li>
+            <li>API data fetched (Bitcoin price, network difficulty, avg block fees)</li>
+            <li>Platform energy prices configured</li>
+        </ul>
+    </div>
+    {% else %}
+
+    <!-- Network Overview -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-chart-bar fa-2x text-info"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="small text-muted">Network Difficulty</div>
+                            <div class="fw-bold">{{ network_difficulty|floatformat:0 }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-network-wired fa-2x text-success"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="small text-muted">Network Hashrate</div>
+                            <div class="fw-bold">{{ results.network_hashrate_ehs|floatformat:2 }} EH/s</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-coins fa-2x text-warning"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="small text-muted">Avg TX Fees / Block</div>
+                            <div class="fw-bold">₿ {{ avg_tx_fees|floatformat:8 }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-dollar-sign fa-2x text-success"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="small text-muted">BTC Price</div>
+                            <div class="fw-bold">${{ btc_price_usd|floatformat:2 }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Fleet Overview -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-rocket fa-2x text-primary"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="small text-muted">My Hashrate</div>
+                            <div class="fw-bold">{{ total_hashrate|floatformat:0 }} TH/s</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-swimming-pool fa-2x text-info"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="small text-muted">Pool Fee</div>
+                            <div class="fw-bold">{{ pool_fee|floatformat:1 }}%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-bolt fa-2x text-warning"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="small text-muted">Power Consumption</div>
+                            <div class="fw-bold">{{ results.power_consumption_watts|floatformat:0 }} W</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-percentage fa-2x text-success"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="small text-muted">Net Profit Margin</div>
+                            <div class="fw-bold">{{ results.margin|floatformat:2 }}%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="row mb-4">
+        <div class="col-lg-4 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-clock text-primary"></i> Time to Mine 1 BTC</h5>
+                </div>
+                <div class="card-body">
+                    {% if results.days_to_mine_1_btc == inf %}
+                    <div class="text-danger">
+                        <i class="fas fa-infinity"></i> Not profitable
+                    </div>
+                    {% else %}
+                    <div class="fw-bold fs-5">
+                        {{ results.time_to_mine_1_btc.years }} years, {{ results.time_to_mine_1_btc.months }} months, {{ results.time_to_mine_1_btc.days }} days
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-hourglass-half text-warning"></i> Time to Mine 0.005 BTC</h5>
+                </div>
+                <div class="card-body">
+                    {% if results.days_to_mine_small_btc == inf %}
+                    <div class="text-danger">
+                        <i class="fas fa-infinity"></i> Not profitable
+                    </div>
+                    {% else %}
+                    <div class="fw-bold fs-5">
+                        {{ results.time_to_mine_small_btc.years }} years, {{ results.time_to_mine_small_btc.months }} months, {{ results.time_to_mine_small_btc.days }} days
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% if results.roi_data %}
+        <div class="col-lg-4 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-chart-line text-success"></i> Return on Investment</h5>
+                </div>
+                <div class="card-body">
+                    {% if results.roi_data.days_to_roi == inf %}
+                    <div class="text-danger">
+                        <i class="fas fa-infinity"></i> Never (not profitable)
+                    </div>
+                    {% else %}
+                    <div class="fw-bold fs-5">
+                        {{ results.roi_data.time_breakdown.years }} years, {{ results.roi_data.time_breakdown.months }} months, {{ results.roi_data.time_breakdown.days }} days
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Daily Projections -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-coins"></i> BTC Mining Projections</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Daily</th>
+                                    <th>Monthly</th>
+                                    <th>Yearly</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><small>Gross payout</small></td>
+                                    <td>₿ {{ results.daily.btc_gross|floatformat:8 }}</td>
+                                    <td>₿ {{ results.monthly.btc_gross|floatformat:8 }}</td>
+                                    <td>₿ {{ results.yearly.btc_gross|floatformat:8 }}</td>
+                                </tr>
+                                <tr>
+                                    <td><small>Pool fee</small></td>
+                                    <td class="text-warning">₿ {{ results.daily.btc_fee|floatformat:8 }}</td>
+                                    <td class="text-warning">₿ {{ results.monthly.btc_fee|floatformat:8 }}</td>
+                                    <td class="text-warning">₿ {{ results.yearly.btc_fee|floatformat:8 }}</td>
+                                </tr>
+                                <tr>
+                                    <td><small>After pool fee</small></td>
+                                    <td>₿ {{ results.daily.btc_after_fee|floatformat:8 }}</td>
+                                    <td>₿ {{ results.monthly.btc_after_fee|floatformat:8 }}</td>
+                                    <td>₿ {{ results.yearly.btc_after_fee|floatformat:8 }}</td>
+                                </tr>
+                                <tr>
+                                    <td><small>Electricity cost</small></td>
+                                    <td class="text-danger">₿ {{ results.daily.electricity_cost_btc|floatformat:8 }}</td>
+                                    <td class="text-danger">₿ {{ results.monthly.electricity_cost_btc|floatformat:8 }}</td>
+                                    <td class="text-danger">₿ {{ results.yearly.electricity_cost_btc|floatformat:8 }}</td>
+                                </tr>
+                                <tr class="border-top">
+                                    <td><strong>Net profit</strong></td>
+                                    <td class="fw-bold {% if results.daily.btc_net > 0 %}text-success{% else %}text-danger{% endif %}">
+                                        ₿ {{ results.daily.btc_net|floatformat:8 }}
+                                    </td>
+                                    <td class="fw-bold {% if results.monthly.btc_net > 0 %}text-success{% else %}text-danger{% endif %}">
+                                        ₿ {{ results.monthly.btc_net|floatformat:8 }}
+                                    </td>
+                                    <td class="fw-bold {% if results.yearly.btc_net > 0 %}text-success{% else %}text-danger{% endif %}">
+                                        ₿ {{ results.yearly.btc_net|floatformat:8 }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- USD Projections -->
+        <div class="col-md-6">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-dollar-sign"></i> USD Mining Projections</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Daily</th>
+                                    <th>Monthly</th>
+                                    <th>Yearly</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><small>Gross payout</small></td>
+                                    <td>${{ results.daily.usd_gross|floatformat:2|intcomma }}</td>
+                                    <td>${{ results.monthly.usd_gross|floatformat:2|intcomma }}</td>
+                                    <td>${{ results.yearly.usd_gross|floatformat:2|intcomma }}</td>
+                                </tr>
+                                <tr>
+                                    <td><small>Pool fee</small></td>
+                                    <td class="text-warning">${{ results.daily.usd_fee|floatformat:2|intcomma }}</td>
+                                    <td class="text-warning">${{ results.monthly.usd_fee|floatformat:2|intcomma }}</td>
+                                    <td class="text-warning">${{ results.yearly.usd_fee|floatformat:2|intcomma }}</td>
+                                </tr>
+                                <tr>
+                                    <td><small>After pool fee</small></td>
+                                    <td>${{ results.daily.usd_after_fee|floatformat:2|intcomma }}</td>
+                                    <td>${{ results.monthly.usd_after_fee|floatformat:2|intcomma }}</td>
+                                    <td>${{ results.yearly.usd_after_fee|floatformat:2|intcomma }}</td>
+                                </tr>
+                                <tr>
+                                    <td><small>Electricity cost</small></td>
+                                    <td class="text-danger">${{ results.daily.electricity_cost_usd|floatformat:2|intcomma }}</td>
+                                    <td class="text-danger">${{ results.monthly.electricity_cost_usd|floatformat:2|intcomma }}</td>
+                                    <td class="text-danger">${{ results.yearly.electricity_cost_usd|floatformat:2|intcomma }}</td>
+                                </tr>
+                                <tr class="border-top">
+                                    <td><strong>Net profit</strong></td>
+                                    <td class="fw-bold {% if results.daily.usd_net > 0 %}text-success{% else %}text-danger{% endif %}">
+                                        ${{ results.daily.usd_net|floatformat:2|intcomma }}
+                                    </td>
+                                    <td class="fw-bold {% if results.monthly.usd_net > 0 %}text-success{% else %}text-danger{% endif %}">
+                                        ${{ results.monthly.usd_net|floatformat:2|intcomma }}
+                                    </td>
+                                    <td class="fw-bold {% if results.yearly.usd_net > 0 %}text-success{% else %}text-danger{% endif %}">
+                                        ${{ results.yearly.usd_net|floatformat:2|intcomma }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cost Basis Analysis -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-calculator text-info"></i> BTC Acquisition Cost</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <td>Market Price per BTC</td>
+                                <td class="text-end fw-bold">${{ btc_price_usd|floatformat:2|intcomma }}</td>
+                            </tr>
+                            <tr>
+                                <td>My Cost Basis per BTC</td>
+                                <td class="text-end fw-bold">${{ results.cost_basis.cost_basis_usd_per_btc|floatformat:2|intcomma }}</td>
+                            </tr>
+                            <tr class="{% if results.cost_basis.discount_vs_market_pct < 0 %}table-success{% else %}table-danger{% endif %}">
+                                <td><strong>Discount vs Market</strong></td>
+                                <td class="text-end fw-bold">{{ results.cost_basis.discount_vs_market_pct|floatformat:2 }}%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-fire text-danger"></i> Energy Metrics</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <td>Power Consumption</td>
+                                <td class="text-end fw-bold">{{ results.power_consumption_watts|floatformat:0|intcomma }} W ({{ results.power_consumption_kw|floatformat:2 }} kW)</td>
+                            </tr>
+                            <tr>
+                                <td>Daily Energy Usage</td>
+                                <td class="text-end fw-bold">{{ results.daily_energy_kwh|floatformat:2|intcomma }} kWh</td>
+                            </tr>
+                            <tr>
+                                <td>Electricity Price</td>
+                                <td class="text-end fw-bold">${{ price_per_kwh|floatformat:5 }} / kWh</td>
+                            </tr>
+                            <tr>
+                                <td>Mining Efficiency</td>
+                                <td class="text-end fw-bold">{{ efficiency_w_th|floatformat:2 }} W/TH</td>
+                            </tr>
+                            <tr class="{% if results.energy_cost_percentage < 50 %}table-success{% elif results.energy_cost_percentage < 80 %}table-warning{% else %}table-danger{% endif %}">
+                                <td><strong>Energy to Mining Ratio</strong></td>
+                                <td class="text-end fw-bold">{{ results.energy_cost_percentage|floatformat:2 }}%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}
