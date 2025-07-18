@@ -972,7 +972,7 @@ def forecasting_dashboard(request):
         
         # Daily mining calculations
         daily_blocks = 144
-        block_reward = 3.125 + avg_tx_fees
+        block_reward = float(settings.block_reward) + avg_tx_fees
         daily_btc_gross_before_fee = hashrate_share * daily_blocks * block_reward
         pool_fee_btc = daily_btc_gross_before_fee * (pool_fee / 100)
         daily_btc_after_fee = daily_btc_gross_before_fee - pool_fee_btc
@@ -1186,7 +1186,7 @@ def export_forecasting_data(request):
         
         # Daily mining calculations
         daily_blocks = 144
-        block_reward = 3.125 + avg_tx_fees
+        block_reward = float(settings.block_reward) + avg_tx_fees
         daily_btc_gross_before_fee = hashrate_share * daily_blocks * block_reward
         pool_fee_btc = daily_btc_gross_before_fee * (pool_fee / 100)
         daily_btc_after_fee = daily_btc_gross_before_fee - pool_fee_btc
