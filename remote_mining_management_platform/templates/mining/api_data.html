@@ -56,7 +56,7 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
                             <strong>Network Hashrate:</strong>
                             <div class="fs-5">
@@ -68,12 +68,24 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="mb-3">
                             <strong>Network Difficulty:</strong>
                             <div class="fs-5">
                                 {% if api_data.network_difficulty %}
                                     {{ api_data.network_difficulty|floatformat:0 }}
+                                {% else %}
+                                    <span class="text-muted">No data</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <strong>24h Avg Block Fees:</strong>
+                            <div class="fs-5">
+                                {% if api_data.avg_block_fees_24h %}
+                                    {{ api_data.avg_block_fees_24h|floatformat:8 }} BTC
                                 {% else %}
                                     <span class="text-muted">No data</span>
                                 {% endif %}

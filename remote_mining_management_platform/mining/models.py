@@ -118,6 +118,7 @@ class APIData(models.Model):
     bitcoin_price_usd = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, help_text="Bitcoin Price in USD")
     network_hashrate_ehs = models.DecimalField(max_digits=15, decimal_places=3, blank=True, null=True, help_text="Network Hashrate in EH/s")
     network_difficulty = models.BigIntegerField(blank=True, null=True, help_text="Network Difficulty")
+    avg_block_fees_24h = models.DecimalField(max_digits=12, decimal_places=8, blank=True, null=True, help_text="24h Average Block Fees in BTC")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

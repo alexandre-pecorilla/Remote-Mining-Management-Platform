@@ -171,6 +171,7 @@ def api_data_view(request):
             api_data.bitcoin_price_usd = result['bitcoin_price_usd']
             api_data.network_hashrate_ehs = result['network_hashrate_ehs']
             api_data.network_difficulty = result['network_difficulty']
+            api_data.avg_block_fees_24h = result['avg_block_fees_24h']
             api_data.save()
             
             messages.success(request, result['message'])
@@ -211,6 +212,7 @@ def overview_dashboard(request):
     bitcoin_price = api_data.bitcoin_price_usd or 0
     network_hashrate = api_data.network_hashrate_ehs or 0
     network_difficulty = api_data.network_difficulty or 0
+    avg_block_fees_24h = api_data.avg_block_fees_24h or 0
     
     # FLEET DATA
     miners = Miner.objects.filter(hashrate__isnull=False, power__isnull=False)
@@ -297,6 +299,7 @@ def overview_dashboard(request):
         'bitcoin_price': bitcoin_price,
         'network_hashrate': network_hashrate,
         'network_difficulty': network_difficulty,
+        'avg_block_fees_24h': avg_block_fees_24h,
         
         # Fleet Data
         'miner_count': miner_count,

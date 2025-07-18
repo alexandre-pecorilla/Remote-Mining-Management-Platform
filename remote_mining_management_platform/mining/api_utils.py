@@ -17,7 +17,7 @@ def fetch_cmc_data(endpoint):
         'X-CMC_PRO_API_KEY': api_key
     }
     
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, timeout=30)
     response.raise_for_status()  # Raise an exception for bad status codes
     
     return response.json()
@@ -39,7 +39,7 @@ def get_bitcoin_hashrate_in_ehs():
     """
     url = 'https://mempool.space/api/v1/mining/hashrate/3d'
     
-    response = requests.get(url)
+    response = requests.get(url, timeout=30)
     response.raise_for_status()
     
     data = response.json()
@@ -59,7 +59,7 @@ def get_bitcoin_difficulty():
     """
     url = 'https://mempool.space/api/v1/mining/hashrate/3d'
     
-    response = requests.get(url)
+    response = requests.get(url, timeout=30)
     response.raise_for_status()
     
     data = response.json()
@@ -68,6 +68,26 @@ def get_bitcoin_difficulty():
     current_difficulty = data['currentDifficulty']
     
     return current_difficulty
+
+
+def get_24h_avg_block_fees():
+    """
+    Fetches the 24h average block fees from mempool.space.
+    
+    Returns:
+        float: The 24h average block fees in BTC, rounded to 8 decimal places.
+    """
+    url = 'https://mempool.space/api/v1/mining/blocks/fees/24h'
+    
+    response = requests.get(url, timeout=30)
+    response.raise_for_status()
+    
+    data = response.json()
+    
+    # Calculate average fees per block in BTC
+    avg_btc = sum(block['avgFees'] for block in data) / len(data) / 100_000_000
+    
+    return round(avg_btc, 8)
 
 
 def fetch_all_api_data():
@@ -84,11 +104,13 @@ def fetch_all_api_data():
         # Fetch mempool.space data
         hashrate = get_bitcoin_hashrate_in_ehs()
         difficulty = get_bitcoin_difficulty()
+        avg_block_fees = get_24h_avg_block_fees()
         
         return {
             'bitcoin_price_usd': btc_price,
             'network_hashrate_ehs': hashrate,
             'network_difficulty': difficulty,
+            'avg_block_fees_24h': avg_block_fees,
             'success': True,
             'message': 'API data fetched successfully!'
         }

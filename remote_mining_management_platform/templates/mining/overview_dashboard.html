@@ -18,25 +18,32 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-lg-4 col-md-6 mb-3">
+                    <div class="col-lg-3 col-md-6 mb-3">
                         <div class="text-center">
                             <i class="fab fa-bitcoin fa-2x text-warning mb-2"></i>
                             <h6 class="text-muted">Bitcoin Spot Price</h6>
                             <h4 class="text-warning">${{ bitcoin_price|floatformat:2|intcomma }}</h4>
                         </div>
                     </div>
-                    <div class="col-lg-4 col-md-6 mb-3">
+                    <div class="col-lg-3 col-md-6 mb-3">
                         <div class="text-center">
                             <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
                             <h6 class="text-muted">Total Network Hashrate</h6>
                             <h4 class="text-info">{{ network_hashrate|floatformat:2 }} EH/s</h4>
                         </div>
                     </div>
-                    <div class="col-lg-4 col-md-6 mb-3">
+                    <div class="col-lg-3 col-md-6 mb-3">
                         <div class="text-center">
                             <i class="fas fa-puzzle-piece fa-2x text-danger mb-2"></i>
                             <h6 class="text-muted">Network Difficulty</h6>
                             <h4 class="text-danger">{{ network_difficulty|intcomma }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-coins fa-2x text-success mb-2"></i>
+                            <h6 class="text-muted">24h Avg Block Fees</h6>
+                            <h4 class="text-success">{{ avg_block_fees_24h|floatformat:8 }} BTC</h4>
                         </div>
                     </div>
                 </div>
