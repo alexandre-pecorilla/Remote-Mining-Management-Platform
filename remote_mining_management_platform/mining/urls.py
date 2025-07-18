@@ -37,4 +37,9 @@ urlpatterns = [
     path('import-data/platform/', views.import_platform_data, name='import_platform_data'),
     path('import-data/miner/', views.import_miner_data, name='import_miner_data'),
     path('import-data/payout/', views.import_payout_data, name='import_payout_data'),
+    
+    # Data Export
+    path('export-data/platform/', views.export_platform_data, name='export_platform_data'),
+    path('export-data/miner/', views.export_miner_data, name='export_miner_data'),
+    path('export-data/payout/', views.export_payout_data, name='export_payout_data'),
 ]

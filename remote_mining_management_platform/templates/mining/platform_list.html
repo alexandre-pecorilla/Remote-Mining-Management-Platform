@@ -20,6 +20,9 @@
         <button type="button" class="btn btn-outline-warning" onclick="document.getElementById('platformImportFile').click()">
             <i class="fas fa-upload"></i> Import Data
         </button>
+        <a href="{% url 'export_platform_data' %}" class="btn btn-outline-success">
+            <i class="fas fa-file-export"></i> Export Data
+        </a>
         <a href="{% url 'platform_create' %}" class="btn btn-success">
             <i class="fas fa-plus"></i> Add New Platform
         </a>

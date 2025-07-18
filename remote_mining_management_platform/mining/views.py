@@ -253,6 +253,105 @@ def download_payout_template(request):
     return response
 
 
+# Data Export Views
+def export_platform_data(request):
+    """Export all platform data to Excel file"""
+    wb = xlwt.Workbook()
+    ws = wb.add_sheet('Platform Data')
+    
+    # Add headers
+    headers = ['name', 'website_link', 'portal_url', 'point_of_contact_name', 
+               'point_of_contact_email', 'point_of_contact_phone', 
+               'point_of_contact_telegram', 'energy_price']
+    
+    for col, header in enumerate(headers):
+        ws.write(0, col, header)
+    
+    # Add data rows
+    platforms = RemoteMiningPlatform.objects.all()
+    for row, platform in enumerate(platforms, start=1):
+        ws.write(row, 0, platform.name or '')
+        ws.write(row, 1, platform.website_link or '')
+        ws.write(row, 2, platform.portal_url or '')
+        ws.write(row, 3, platform.point_of_contact_name or '')
+        ws.write(row, 4, platform.point_of_contact_email or '')
+        ws.write(row, 5, platform.point_of_contact_phone or '')
+        ws.write(row, 6, platform.point_of_contact_telegram or '')
+        ws.write(row, 7, float(platform.energy_price) if platform.energy_price else '')
+    
+    response = HttpResponse(
+        content_type='application/vnd.ms-excel'
+    )
+    response['Content-Disposition'] = 'attachment; filename="platform_data_export.xls"'
+    wb.save(response)
+    return response
+
+
+def export_miner_data(request):
+    """Export all miner data to Excel file"""
+    wb = xlwt.Workbook()
+    ws = wb.add_sheet('Miner Data')
+    
+    # Add headers
+    headers = ['model', 'manufacturer', 'product_link', 'serial_number', 
+               'platform', 'platform_internal_id', 'hashrate', 'power', 'efficiency', 
+               'purchase_price', 'purchase_date', 'start_date', 'location']
+    
+    for col, header in enumerate(headers):
+        ws.write(0, col, header)
+    
+    # Add data rows
+    miners = Miner.objects.all()
+    for row, miner in enumerate(miners, start=1):
+        ws.write(row, 0, miner.model or '')
+        ws.write(row, 1, miner.manufacturer or '')
+        ws.write(row, 2, miner.product_link or '')
+        ws.write(row, 3, miner.serial_number or '')
+        ws.write(row, 4, miner.platform.pk if miner.platform else '')
+        ws.write(row, 5, miner.platform_internal_id or '')
+        ws.write(row, 6, float(miner.hashrate) if miner.hashrate else '')
+        ws.write(row, 7, float(miner.power) if miner.power else '')
+        ws.write(row, 8, float(miner.efficiency) if miner.efficiency else '')
+        ws.write(row, 9, float(miner.purchase_price) if miner.purchase_price else '')
+        ws.write(row, 10, miner.purchase_date.strftime('%Y-%m-%d') if miner.purchase_date else '')
+        ws.write(row, 11, miner.start_date.strftime('%Y-%m-%d') if miner.start_date else '')
+        ws.write(row, 12, miner.location or '')
+    
+    response = HttpResponse(
+        content_type='application/vnd.ms-excel'
+    )
+    response['Content-Disposition'] = 'attachment; filename="miner_data_export.xls"'
+    wb.save(response)
+    return response
+
+
+def export_payout_data(request):
+    """Export all payout data to Excel file"""
+    wb = xlwt.Workbook()
+    ws = wb.add_sheet('Payout Data')
+    
+    # Add headers
+    headers = ['payout_date', 'payout_amount', 'platform', 'transaction_id']
+    
+    for col, header in enumerate(headers):
+        ws.write(0, col, header)
+    
+    # Add data rows
+    payouts = Payout.objects.all()
+    for row, payout in enumerate(payouts, start=1):
+        ws.write(row, 0, payout.payout_date.strftime('%Y-%m-%d') if payout.payout_date else '')
+        ws.write(row, 1, float(payout.payout_amount) if payout.payout_amount else '')
+        ws.write(row, 2, payout.platform.pk if payout.platform else '')
+        ws.write(row, 3, payout.transaction_id or '')
+    
+    response = HttpResponse(
+        content_type='application/vnd.ms-excel'
+    )
+    response['Content-Disposition'] = 'attachment; filename="payout_data_export.xls"'
+    wb.save(response)
+    return response
+
+
 # Data Import Views
 def import_platform_data(request):
     """Import platform data from uploaded Excel file"""
