@@ -2,6 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.http import HttpResponse
+from openpyxl import Workbook
 from .models import RemoteMiningPlatform, Miner, Settings, APIData, Payout
 from .forms import RemoteMiningPlatformForm, MinerForm, SettingsForm, PayoutForm
 from .api_utils import fetch_all_api_data
@@ -184,3 +186,67 @@ def settings_view(request):
         form = SettingsForm(instance=settings)
     
     return render(request, 'mining/settings.html', {'form': form})
+
+
+# Import Template Download Views
+def download_platform_template(request):
+    """Download import template for Remote Mining Platforms"""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Platform Import Template"
+    
+    # Add headers based on form fields
+    headers = ['name', 'website_link', 'portal_url', 'point_of_contact_name', 
+               'point_of_contact_email', 'point_of_contact_phone', 'point_of_contact_telegram', 'energy_price']
+    
+    for col, header in enumerate(headers, 1):
+        ws.cell(row=1, column=col, value=header)
+    
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="platform_import_template.xlsx"'
+    wb.save(response)
+    return response
+
+
+def download_miner_template(request):
+    """Download import template for Miners"""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Miner Import Template"
+    
+    # Add headers based on form fields (excluding image field for import)
+    headers = ['model', 'manufacturer', 'product_link', 'serial_number', 
+               'platform', 'platform_internal_id', 'hashrate', 'power', 'efficiency', 
+               'purchase_price', 'purchase_date', 'start_date', 'location']
+    
+    for col, header in enumerate(headers, 1):
+        ws.cell(row=1, column=col, value=header)
+    
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="miner_import_template.xlsx"'
+    wb.save(response)
+    return response
+
+
+def download_payout_template(request):
+    """Download import template for Payouts"""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Payout Import Template"
+    
+    # Add headers based on form fields
+    headers = ['payout_date', 'payout_amount', 'platform', 'transaction_id']
+    
+    for col, header in enumerate(headers, 1):
+        ws.cell(row=1, column=col, value=header)
+    
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="payout_import_template.xlsx"'
+    wb.save(response)
+    return response
