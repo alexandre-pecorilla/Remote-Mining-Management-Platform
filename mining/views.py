@@ -491,6 +491,227 @@ def export_payout_data(request):
     return response
 
 
+def export_overview_data(request):
+    """Export overview dashboard data to Excel file"""
+    from django.db.models import Sum, Avg, Count
+    from decimal import Decimal
+    
+    wb = xlwt.Workbook()
+    
+    # Get API data
+    api_data = APIData.get_api_data()
+    
+    # NETWORK DATA
+    bitcoin_price = api_data.bitcoin_price_usd or 0
+    network_hashrate = api_data.network_hashrate_ehs or 0
+    network_difficulty = api_data.network_difficulty or 0
+    avg_block_fees_24h = api_data.avg_block_fees_24h or 0
+    
+    # FLEET DATA
+    miners = Miner.objects.filter(hashrate__isnull=False, power__isnull=False)
+    miner_count = miners.count()
+    total_hashrate = miners.aggregate(total=Sum('hashrate'))['total'] or 0
+    total_power = miners.aggregate(total=Sum('power'))['total'] or 0
+    total_capex = miners.aggregate(total=Sum('purchase_price'))['total'] or 0
+    
+    # EFFICIENCY DATA
+    avg_efficiency = miners.aggregate(avg=Avg('efficiency'))['avg'] or 0
+    if avg_efficiency:
+        avg_efficiency = round(float(avg_efficiency), 2)
+    
+    # Hashrate weighted average efficiency
+    hashrate_weighted_efficiency = 0
+    if total_hashrate > 0:
+        efficiency_sum = 0
+        for miner in miners.filter(efficiency__isnull=False):
+            efficiency_sum += float(miner.hashrate) * float(miner.efficiency)
+        hashrate_weighted_efficiency = round(efficiency_sum / float(total_hashrate), 2)
+    
+    # ENERGY DATA
+    miners_with_energy = miners.filter(platform__energy_price__isnull=False)
+    avg_energy_cost = miners_with_energy.aggregate(avg=Avg('platform__energy_price'))['avg'] or 0
+    if avg_energy_cost:
+        avg_energy_cost = round(float(avg_energy_cost), 6)
+    
+    # Hashrate weighted average energy cost
+    hashrate_weighted_energy_cost = 0
+    if total_hashrate > 0:
+        energy_cost_sum = 0
+        total_hashrate_with_energy = 0
+        for miner in miners_with_energy:
+            energy_cost_sum += float(miner.hashrate) * float(miner.platform.energy_price)
+            total_hashrate_with_energy += float(miner.hashrate)
+        if total_hashrate_with_energy > 0:
+            hashrate_weighted_energy_cost = round(energy_cost_sum / total_hashrate_with_energy, 6)
+    
+    # REVENUES DATA
+    payouts = Payout.objects.all()
+    total_btc_mined = payouts.aggregate(total=Sum('payout_amount'))['total'] or 0
+    current_gross_value = float(total_btc_mined) * float(bitcoin_price) if total_btc_mined and bitcoin_price else 0
+    total_payouts = payouts.count()
+    
+    # Sheet 1: Overview Summary
+    ws_summary = wb.add_sheet('Overview Summary')
+    
+    # Headers
+    ws_summary.write(0, 0, 'Metric Category')
+    ws_summary.write(0, 1, 'Metric Name')
+    ws_summary.write(0, 2, 'Value')
+    ws_summary.write(0, 3, 'Unit')
+    
+    # Data rows
+    row = 1
+    
+    # Network Data
+    ws_summary.write(row, 0, 'Network Data')
+    ws_summary.write(row, 1, 'Bitcoin Spot Price')
+    ws_summary.write(row, 2, float(bitcoin_price))
+    ws_summary.write(row, 3, 'USD')
+    row += 1
+    
+    ws_summary.write(row, 0, 'Network Data')
+    ws_summary.write(row, 1, 'Total Network Hashrate')
+    ws_summary.write(row, 2, float(network_hashrate))
+    ws_summary.write(row, 3, 'EH/s')
+    row += 1
+    
+    ws_summary.write(row, 0, 'Network Data')
+    ws_summary.write(row, 1, 'Network Difficulty')
+    ws_summary.write(row, 2, float(network_difficulty))
+    ws_summary.write(row, 3, '')
+    row += 1
+    
+    ws_summary.write(row, 0, 'Network Data')
+    ws_summary.write(row, 1, '24h Avg Block Fees')
+    ws_summary.write(row, 2, float(avg_block_fees_24h))
+    ws_summary.write(row, 3, 'BTC')
+    row += 1
+    
+    # Fleet Data
+    ws_summary.write(row, 0, 'Fleet Data')
+    ws_summary.write(row, 1, 'Miner Count')
+    ws_summary.write(row, 2, miner_count)
+    ws_summary.write(row, 3, 'units')
+    row += 1
+    
+    ws_summary.write(row, 0, 'Fleet Data')
+    ws_summary.write(row, 1, 'Total Hashrate')
+    ws_summary.write(row, 2, float(total_hashrate))
+    ws_summary.write(row, 3, 'TH/s')
+    row += 1
+    
+    ws_summary.write(row, 0, 'Fleet Data')
+    ws_summary.write(row, 1, 'Total Power')
+    ws_summary.write(row, 2, round(float(total_power), 2))
+    ws_summary.write(row, 3, 'kW')
+    row += 1
+    
+    ws_summary.write(row, 0, 'Fleet Data')
+    ws_summary.write(row, 1, 'Total CAPEX')
+    ws_summary.write(row, 2, float(total_capex))
+    ws_summary.write(row, 3, 'USD')
+    row += 1
+    
+    # Efficiency Data
+    ws_summary.write(row, 0, 'Efficiency Data')
+    ws_summary.write(row, 1, 'Average Efficiency')
+    ws_summary.write(row, 2, float(avg_efficiency))
+    ws_summary.write(row, 3, 'W/TH')
+    row += 1
+    
+    ws_summary.write(row, 0, 'Efficiency Data')
+    ws_summary.write(row, 1, 'Hashrate Weighted Avg Efficiency')
+    ws_summary.write(row, 2, float(hashrate_weighted_efficiency))
+    ws_summary.write(row, 3, 'W/TH')
+    row += 1
+    
+    # Energy Data
+    ws_summary.write(row, 0, 'Energy Data')
+    ws_summary.write(row, 1, 'Average Energy Cost')
+    ws_summary.write(row, 2, float(avg_energy_cost))
+    ws_summary.write(row, 3, '$/kWh')
+    row += 1
+    
+    ws_summary.write(row, 0, 'Energy Data')
+    ws_summary.write(row, 1, 'Hashrate Weighted Avg Energy Cost')
+    ws_summary.write(row, 2, float(hashrate_weighted_energy_cost))
+    ws_summary.write(row, 3, '$/kWh')
+    row += 1
+    
+    # Revenue Data
+    ws_summary.write(row, 0, 'Revenue Data')
+    ws_summary.write(row, 1, 'Total BTC Mined')
+    ws_summary.write(row, 2, float(total_btc_mined))
+    ws_summary.write(row, 3, 'BTC')
+    row += 1
+    
+    ws_summary.write(row, 0, 'Revenue Data')
+    ws_summary.write(row, 1, 'Current Gross Value')
+    ws_summary.write(row, 2, round(float(current_gross_value), 2))
+    ws_summary.write(row, 3, 'USD')
+    row += 1
+    
+    ws_summary.write(row, 0, 'Revenue Data')
+    ws_summary.write(row, 1, 'Total Payouts')
+    ws_summary.write(row, 2, total_payouts)
+    ws_summary.write(row, 3, 'count')
+    row += 1
+    
+    # Sheet 2: Hashrate by Platform
+    ws_hashrate_platform = wb.add_sheet('Hashrate by Platform')
+    ws_hashrate_platform.write(0, 0, 'Platform')
+    ws_hashrate_platform.write(0, 1, 'Hashrate (TH/s)')
+    
+    platform_row = 1
+    for platform in RemoteMiningPlatform.objects.all():
+        platform_hashrate = platform.miners.aggregate(total=Sum('hashrate'))['total'] or 0
+        if platform_hashrate > 0:
+            ws_hashrate_platform.write(platform_row, 0, platform.name)
+            ws_hashrate_platform.write(platform_row, 1, float(platform_hashrate))
+            platform_row += 1
+    
+    # Sheet 3: Hashrate by Location
+    ws_hashrate_location = wb.add_sheet('Hashrate by Location')
+    ws_hashrate_location.write(0, 0, 'Location')
+    ws_hashrate_location.write(0, 1, 'Hashrate (TH/s)')
+    
+    location_row = 1
+    locations = miners.values_list('location', flat=True).distinct()
+    for location in locations:
+        if location:
+            location_hashrate = miners.filter(location=location).aggregate(total=Sum('hashrate'))['total'] or 0
+            if location_hashrate > 0:
+                ws_hashrate_location.write(location_row, 0, location)
+                ws_hashrate_location.write(location_row, 1, float(location_hashrate))
+                location_row += 1
+    
+    # Sheet 4: Revenue by Platform
+    ws_revenue_platform = wb.add_sheet('Revenue by Platform')
+    ws_revenue_platform.write(0, 0, 'Platform')
+    ws_revenue_platform.write(0, 1, 'BTC Mined')
+    ws_revenue_platform.write(0, 2, 'Gross Value (USD)')
+    ws_revenue_platform.write(0, 3, 'Payout Count')
+    
+    revenue_row = 1
+    for platform in RemoteMiningPlatform.objects.all():
+        platform_btc = platform.payouts.aggregate(total=Sum('payout_amount'))['total'] or 0
+        platform_payouts = platform.payouts.count()
+        if platform_btc > 0:
+            platform_value = float(platform_btc) * float(bitcoin_price) if bitcoin_price else 0
+            ws_revenue_platform.write(revenue_row, 0, platform.name)
+            ws_revenue_platform.write(revenue_row, 1, float(platform_btc))
+            ws_revenue_platform.write(revenue_row, 2, round(float(platform_value), 2))
+            ws_revenue_platform.write(revenue_row, 3, platform_payouts)
+            revenue_row += 1
+    
+    response = HttpResponse(
+        content_type='application/vnd.ms-excel'
+    )
+    response['Content-Disposition'] = 'attachment; filename="overview_dashboard_export.xls"'
+    wb.save(response)
+    return response
+
+
 # Data Import Views
 def import_platform_data(request):
     """Import platform data from uploaded Excel file"""

@@ -49,4 +49,5 @@ urlpatterns = [
     path('export-data/platform/', views.export_platform_data, name='export_platform_data'),
     path('export-data/miner/', views.export_miner_data, name='export_miner_data'),
     path('export-data/payout/', views.export_payout_data, name='export_payout_data'),
+    path('export-data/overview/', views.export_overview_data, name='export_overview_data'),
 ]

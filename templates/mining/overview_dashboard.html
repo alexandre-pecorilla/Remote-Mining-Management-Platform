@@ -7,6 +7,9 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1><i class="fas fa-tachometer-alt"></i> Overview Dashboard</h1>
+    <a href="{% url 'export_overview_data' %}" class="btn btn-success">
+        <i class="fas fa-file-excel"></i> Export Data
+    </a>
 </div>
 
 <!-- NETWORK DATA -->
