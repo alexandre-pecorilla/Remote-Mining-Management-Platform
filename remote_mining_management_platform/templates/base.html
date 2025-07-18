@@ -35,20 +35,39 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'platform_list' %}">
-                            <i class="fas fa-server"></i> Platforms
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="masterDataDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-database"></i> Master Data
                         </a>
+                        <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'platform_list' %}">
+                                    <i class="fas fa-server"></i> Platforms
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'miner_list' %}">
+                                    <i class="fas fa-microchip"></i> Miners
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'payout_list' %}">
+                                    <i class="fas fa-coins"></i> Payouts
+                                </a>
+                            </li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'miner_list' %}">
-                            <i class="fas fa-microchip"></i> Miners
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="dashboardDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-chart-bar"></i> Dashboard
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'payout_list' %}">
-                            <i class="fas fa-coins"></i> Payouts
-                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="dashboardDropdown">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'overview_dashboard' %}">
+                                    <i class="fas fa-tachometer-alt"></i> Overview Dashboard
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
                 <ul class="navbar-nav ms-auto">

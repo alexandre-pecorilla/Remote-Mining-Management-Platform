@@ -28,6 +28,9 @@ urlpatterns = [
     # Settings
     path('settings/', views.settings_view, name='settings'),
     
+    # Dashboards
+    path('dashboard/overview/', views.overview_dashboard, name='overview_dashboard'),
+    
     # Import Template Downloads
     path('download-templates/platform/', views.download_platform_template, name='download_platform_template'),
     path('download-templates/miner/', views.download_miner_template, name='download_miner_template'),

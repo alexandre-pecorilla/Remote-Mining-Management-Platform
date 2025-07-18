@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Overview Dashboard - Remote Mining Management Platform{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-tachometer-alt"></i> Overview Dashboard</h1>
+</div>
+
+<!-- NETWORK DATA -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-globe"></i> Network Data</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fab fa-bitcoin fa-2x text-warning mb-2"></i>
+                            <h6 class="text-muted">Bitcoin Spot Price</h6>
+                            <h4 class="text-warning">${{ bitcoin_price|floatformat:2|intcomma }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
+                            <h6 class="text-muted">Total Network Hashrate</h6>
+                            <h4 class="text-info">{{ network_hashrate|floatformat:2 }} EH/s</h4>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-puzzle-piece fa-2x text-danger mb-2"></i>
+                            <h6 class="text-muted">Network Difficulty</h6>
+                            <h4 class="text-danger">{{ network_difficulty|intcomma }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FLEET DATA -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-industry"></i> Fleet Data</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-microchip fa-2x text-success mb-2"></i>
+                            <h6 class="text-muted">Miners</h6>
+                            <h4 class="text-success">{{ miner_count }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-tachometer-alt fa-2x text-primary mb-2"></i>
+                            <h6 class="text-muted">Hashrate (TH/s)</h6>
+                            <h4 class="text-primary">{{ total_hashrate|floatformat:2|intcomma }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-bolt fa-2x text-warning mb-2"></i>
+                            <h6 class="text-muted">Power Rate (kW)</h6>
+                            <h4 class="text-warning">{{ total_power|floatformat:2|intcomma }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-dollar-sign fa-2x text-success mb-2"></i>
+                            <h6 class="text-muted">Total CAPEX</h6>
+                            <h4 class="text-success">${{ total_capex|floatformat:2|intcomma }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EFFICIENCY DATA -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-cogs"></i> Efficiency Data</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-6 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-balance-scale fa-2x text-info mb-2"></i>
+                            <h6 class="text-muted">Miner Average Efficiency (W/TH)</h6>
+                            <h4 class="text-info">{{ avg_efficiency }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-weight fa-2x text-primary mb-2"></i>
+                            <h6 class="text-muted">Hashrate Weighted Average Efficiency (W/TH)</h6>
+                            <h4 class="text-primary">{{ hashrate_weighted_efficiency }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ENERGY DATA -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-plug"></i> Energy Data</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-6 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-calculator fa-2x text-warning mb-2"></i>
+                            <h6 class="text-muted">Miner Average Energy Cost ($/kWh)</h6>
+                            <h4 class="text-warning">${{ avg_energy_cost|floatformat:6 }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-chart-bar fa-2x text-danger mb-2"></i>
+                            <h6 class="text-muted">Hashrate Weighted Average Energy Cost ($/kWh)</h6>
+                            <h4 class="text-danger">${{ hashrate_weighted_energy_cost|floatformat:6 }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- HASHRATE DISTRIBUTION DATA -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5><i class="fas fa-server"></i> Hashrate Distribution by Platform</h5>
+            </div>
+            <div class="card-body">
+                {% if hashrate_by_platform %}
+                    {% for item in hashrate_by_platform %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>{{ item.platform }}</span>
+                            <span class="badge bg-primary">{{ item.hashrate|floatformat:2 }} TH/s</span>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center">No hashrate data available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5><i class="fas fa-map-marker-alt"></i> Hashrate Location Distribution</h5>
+            </div>
+            <div class="card-body">
+                {% if hashrate_by_location %}
+                    {% for item in hashrate_by_location %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>{{ item.location }}</span>
+                            <span class="badge bg-success">{{ item.hashrate|floatformat:2 }} TH/s</span>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center">No location data available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- REVENUES DATA -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-coins"></i> Revenues Data</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fab fa-bitcoin fa-2x text-warning mb-2"></i>
+                            <h6 class="text-muted">Total BTC Mined</h6>
+                            <h4 class="text-warning">{{ total_btc_mined|floatformat:8 }} BTC</h4>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-dollar-sign fa-2x text-success mb-2"></i>
+                            <h6 class="text-muted">Current Gross Value ($)</h6>
+                            <h4 class="text-success">${{ current_gross_value|floatformat:2|intcomma }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-receipt fa-2x text-info mb-2"></i>
+                            <h6 class="text-muted">Total Number of Payouts</h6>
+                            <h4 class="text-info">{{ total_payouts }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- REVENUES DISTRIBUTION DATA -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-pie"></i> Revenues Distribution Data</h5>
+            </div>
+            <div class="card-body">
+                {% if revenue_by_platform %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Platform</th>
+                                    <th>Bitcoin Revenue (BTC)</th>
+                                    <th>Current Gross Value ($)</th>
+                                    <th>Total Payouts</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in revenue_by_platform %}
+                                    <tr>
+                                        <td>{{ item.platform }}</td>
+                                        <td>{{ item.btc_mined|floatformat:8 }}</td>
+                                        <td>${{ item.gross_value|floatformat:2|intcomma }}</td>
+                                        <td>{{ item.payout_count }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">No revenue data available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Custom styles for dashboard */
+.card {
+    transition: transform 0.2s ease-in-out;
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.badge {
+    font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+    .card-body .row > div {
+        margin-bottom: 1rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+}
+</style>
+{% endblock %}

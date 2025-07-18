@@ -189,7 +189,137 @@ def settings_view(request):
     else:
         form = SettingsForm(instance=settings)
     
-    return render(request, 'mining/settings.html', {'form': form})
+    return render(request, 'mining/settings.html', {'form': form, 'settings': settings})
+
+
+# Dashboard Views
+def overview_dashboard(request):
+    """Overview Dashboard with comprehensive mining analytics"""
+    from django.db.models import Sum, Avg, Count
+    from decimal import Decimal
+    
+    # Get API data
+    api_data = APIData.get_api_data()
+    
+    # NETWORK DATA
+    bitcoin_price = api_data.bitcoin_price_usd or 0
+    network_hashrate = api_data.network_hashrate_ehs or 0
+    network_difficulty = api_data.network_difficulty or 0
+    
+    # FLEET DATA
+    miners = Miner.objects.filter(hashrate__isnull=False, power__isnull=False)
+    miner_count = miners.count()
+    total_hashrate = miners.aggregate(total=Sum('hashrate'))['total'] or 0
+    total_power = miners.aggregate(total=Sum('power'))['total'] or 0
+    total_capex = miners.aggregate(total=Sum('purchase_price'))['total'] or 0
+    
+    # EFFICIENCY DATA
+    avg_efficiency = miners.aggregate(avg=Avg('efficiency'))['avg'] or 0
+    if avg_efficiency:
+        avg_efficiency = round(float(avg_efficiency), 2)
+    
+    # Hashrate weighted average efficiency
+    hashrate_weighted_efficiency = 0
+    if total_hashrate > 0:
+        efficiency_sum = 0
+        for miner in miners.filter(efficiency__isnull=False):
+            efficiency_sum += float(miner.hashrate) * float(miner.efficiency)
+        hashrate_weighted_efficiency = round(efficiency_sum / float(total_hashrate), 2)
+    
+    # ENERGY DATA
+    # Get miners with platforms that have energy prices
+    miners_with_energy = miners.filter(platform__energy_price__isnull=False)
+    avg_energy_cost = miners_with_energy.aggregate(avg=Avg('platform__energy_price'))['avg'] or 0
+    if avg_energy_cost:
+        avg_energy_cost = round(float(avg_energy_cost), 6)
+    
+    # Hashrate weighted average energy cost
+    hashrate_weighted_energy_cost = 0
+    if total_hashrate > 0:
+        energy_cost_sum = 0
+        total_hashrate_with_energy = 0
+        for miner in miners_with_energy:
+            energy_cost_sum += float(miner.hashrate) * float(miner.platform.energy_price)
+            total_hashrate_with_energy += float(miner.hashrate)
+        if total_hashrate_with_energy > 0:
+            hashrate_weighted_energy_cost = round(energy_cost_sum / total_hashrate_with_energy, 6)
+    
+    # HASHRATE DISTRIBUTION DATA
+    hashrate_by_platform = []
+    for platform in RemoteMiningPlatform.objects.all():
+        platform_hashrate = platform.miners.aggregate(total=Sum('hashrate'))['total'] or 0
+        if platform_hashrate > 0:
+            hashrate_by_platform.append({
+                'platform': platform.name,
+                'hashrate': float(platform_hashrate)
+            })
+    
+    # Hashrate by location
+    hashrate_by_location = []
+    locations = miners.values_list('location', flat=True).distinct()
+    for location in locations:
+        if location:  # Skip empty locations
+            location_hashrate = miners.filter(location=location).aggregate(total=Sum('hashrate'))['total'] or 0
+            if location_hashrate > 0:
+                hashrate_by_location.append({
+                    'location': location,
+                    'hashrate': float(location_hashrate)
+                })
+    
+    # REVENUES DATA
+    payouts = Payout.objects.all()
+    total_btc_mined = payouts.aggregate(total=Sum('payout_amount'))['total'] or 0
+    current_gross_value = float(total_btc_mined) * float(bitcoin_price) if total_btc_mined and bitcoin_price else 0
+    total_payouts = payouts.count()
+    
+    # REVENUES DISTRIBUTION DATA
+    revenue_by_platform = []
+    for platform in RemoteMiningPlatform.objects.all():
+        platform_btc = platform.payouts.aggregate(total=Sum('payout_amount'))['total'] or 0
+        platform_payouts = platform.payouts.count()
+        if platform_btc > 0:
+            platform_value = float(platform_btc) * float(bitcoin_price) if bitcoin_price else 0
+            revenue_by_platform.append({
+                'platform': platform.name,
+                'btc_mined': float(platform_btc),
+                'gross_value': platform_value,
+                'payout_count': platform_payouts
+            })
+    
+    context = {
+        # Network Data
+        'bitcoin_price': bitcoin_price,
+        'network_hashrate': network_hashrate,
+        'network_difficulty': network_difficulty,
+        
+        # Fleet Data
+        'miner_count': miner_count,
+        'total_hashrate': total_hashrate,
+        'total_power': total_power,
+        'total_capex': total_capex,
+        
+        # Efficiency Data
+        'avg_efficiency': avg_efficiency,
+        'hashrate_weighted_efficiency': hashrate_weighted_efficiency,
+        
+        # Energy Data
+        'avg_energy_cost': avg_energy_cost,
+        'hashrate_weighted_energy_cost': hashrate_weighted_energy_cost,
+        
+        # Hashrate Distribution
+        'hashrate_by_platform': hashrate_by_platform,
+        'hashrate_by_location': hashrate_by_location,
+        
+        # Revenues Data
+        'total_btc_mined': total_btc_mined,
+        'current_gross_value': current_gross_value,
+        'total_payouts': total_payouts,
+        
+        # Revenue Distribution
+        'revenue_by_platform': revenue_by_platform,
+    }
+    
+    return render(request, 'mining/overview_dashboard.html', context)
 
 
 # Import Template Download Views
