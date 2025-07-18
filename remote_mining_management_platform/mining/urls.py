@@ -2,28 +2,32 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.PlatformListView.as_view(), name='platform_list'),
-    path('platform/<int:pk>/', views.PlatformDetailView.as_view(), name='platform_detail'),
-    path('platform/create/', views.PlatformCreateView.as_view(), name='platform_create'),
-    path('platforms/<int:pk>/edit/', views.PlatformUpdateView.as_view(), name='platform_edit'),
-    path('platforms/<int:pk>/delete/', views.PlatformDeleteView.as_view(), name='platform_delete'),
+    # Home Page
+    path('', views.home_view, name='home'),
     
-    # Miner URLs
-    path('miners/', views.MinerListView.as_view(), name='miner_list'),
-    path('miners/add/', views.MinerCreateView.as_view(), name='miner_create'),
-    path('miners/<int:pk>/', views.MinerDetailView.as_view(), name='miner_detail'),
-    path('miners/<int:pk>/edit/', views.MinerUpdateView.as_view(), name='miner_edit'),
-    path('miners/<int:pk>/delete/', views.MinerDeleteView.as_view(), name='miner_delete'),
+    # Platform URLs - /data/platforms
+    path('data/platforms/', views.PlatformListView.as_view(), name='platform_list'),
+    path('data/platforms/<int:pk>/', views.PlatformDetailView.as_view(), name='platform_detail'),
+    path('data/platforms/create/', views.PlatformCreateView.as_view(), name='platform_create'),
+    path('data/platforms/<int:pk>/edit/', views.PlatformUpdateView.as_view(), name='platform_edit'),
+    path('data/platforms/<int:pk>/delete/', views.PlatformDeleteView.as_view(), name='platform_delete'),
     
-    # Payout URLs
-    path('payouts/', views.PayoutListView.as_view(), name='payout_list'),
-    path('payouts/<int:pk>/', views.PayoutDetailView.as_view(), name='payout_detail'),
-    path('payouts/add/', views.PayoutCreateView.as_view(), name='payout_add'),
-    path('payouts/<int:pk>/edit/', views.PayoutUpdateView.as_view(), name='payout_edit'),
-    path('payouts/<int:pk>/delete/', views.PayoutDeleteView.as_view(), name='payout_delete'),
+    # Miner URLs - /data/miners
+    path('data/miners/', views.MinerListView.as_view(), name='miner_list'),
+    path('data/miners/add/', views.MinerCreateView.as_view(), name='miner_create'),
+    path('data/miners/<int:pk>/', views.MinerDetailView.as_view(), name='miner_detail'),
+    path('data/miners/<int:pk>/edit/', views.MinerUpdateView.as_view(), name='miner_edit'),
+    path('data/miners/<int:pk>/delete/', views.MinerDeleteView.as_view(), name='miner_delete'),
     
-    # API Data
-    path('api-data/', views.api_data_view, name='api_data'),
+    # Payout URLs - /data/payouts
+    path('data/payouts/', views.PayoutListView.as_view(), name='payout_list'),
+    path('data/payouts/<int:pk>/', views.PayoutDetailView.as_view(), name='payout_detail'),
+    path('data/payouts/add/', views.PayoutCreateView.as_view(), name='payout_add'),
+    path('data/payouts/<int:pk>/edit/', views.PayoutUpdateView.as_view(), name='payout_edit'),
+    path('data/payouts/<int:pk>/delete/', views.PayoutDeleteView.as_view(), name='payout_delete'),
+    
+    # API Data - /data/api-data
+    path('data/api-data/', views.api_data_view, name='api_data'),
     
     # Settings
     path('settings/', views.settings_view, name='settings'),

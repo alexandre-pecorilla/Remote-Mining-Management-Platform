@@ -13,6 +13,12 @@ from .forms import RemoteMiningPlatformForm, MinerForm, SettingsForm, PayoutForm
 from .api_utils import fetch_all_api_data
 
 
+# Home Page View
+def home_view(request):
+    """Home page with navigation to all sections of the application"""
+    return render(request, 'mining/home.html')
+
+
 class PlatformListView(ListView):
     model = RemoteMiningPlatform
     template_name = 'mining/platform_list.html'
