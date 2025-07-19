@@ -95,19 +95,32 @@
                 </div>
                 {% endif %}
 
-                {% if payout.closing_price %}
+                <!-- Closing Price Section -->
                 <div class="row">
                     <div class="col-md-12">
                         <div class="mb-3">
-                            <strong>Closing Price:</strong>
-                            <div class="fs-4 text-primary">
-                                ${{ payout.closing_price|floatformat:2|intcomma }}
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>Closing Price:</strong>
+                                    {% if payout.closing_price %}
+                                        <div class="fs-4 text-primary">
+                                            ${{ payout.closing_price|floatformat:2|intcomma }}
+                                        </div>
+                                        <small class="text-muted">Bitcoin price at payout date</small>
+                                    {% else %}
+                                        <div class="fs-6 text-muted">
+                                            Not set
+                                        </div>
+                                        <small class="text-muted">Bitcoin price at payout date</small>
+                                    {% endif %}
+                                </div>
+                                <button id="fetchClosingPriceDetailBtn" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-download"></i> Fetch Closing Price
+                                </button>
                             </div>
-                            <small class="text-muted">Bitcoin price at payout date</small>
                         </div>
                     </div>
                 </div>
-                {% endif %}
 
                 {% if payout.transaction_id %}
                 <div class="row">
@@ -139,4 +152,68 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fetchBtn = document.getElementById('fetchClosingPriceDetailBtn');
+    
+    if (fetchBtn) {
+        fetchBtn.addEventListener('click', function() {
+            // Disable button and show loading state
+            fetchBtn.disabled = true;
+            fetchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fetching...';
+            
+            // Get CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ? 
+                document.querySelector('[name=csrfmiddlewaretoken]').value : 
+                document.querySelector('meta[name="csrf-token"]') ? 
+                document.querySelector('meta[name="csrf-token"]').getAttribute('content') : 
+                '{{ csrf_token }}';
+            
+            // Make AJAX request to fetch closing price
+            fetch('{% url "fetch_closing_price" payout.pk %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Refresh the page to show the updated closing price
+                    window.location.reload();
+                } else {
+                    // Re-enable button and show error state briefly
+                    fetchBtn.disabled = false;
+                    fetchBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+                    fetchBtn.classList.add('btn-outline-danger');
+                    fetchBtn.classList.remove('btn-outline-primary');
+                    
+                    // Reset button after 3 seconds
+                    setTimeout(() => {
+                        fetchBtn.innerHTML = '<i class="fas fa-download"></i> Fetch Closing Price';
+                        fetchBtn.classList.remove('btn-outline-danger');
+                        fetchBtn.classList.add('btn-outline-primary');
+                    }, 3000);
+                }
+            })
+            .catch(error => {
+                // Re-enable button and show error state
+                fetchBtn.disabled = false;
+                fetchBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+                fetchBtn.classList.add('btn-outline-danger');
+                fetchBtn.classList.remove('btn-outline-primary');
+                
+                // Reset button after 3 seconds
+                setTimeout(() => {
+                    fetchBtn.innerHTML = '<i class="fas fa-download"></i> Fetch Closing Price';
+                    fetchBtn.classList.remove('btn-outline-danger');
+                    fetchBtn.classList.add('btn-outline-primary');
+                }, 3000);
+            });
+        });
+    }
+});
+</script>
 {% endblock %}

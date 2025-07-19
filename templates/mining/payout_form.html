@@ -95,7 +95,7 @@
                     {% endif %}
 
                     <div class="d-flex justify-content-between">
-                        <a href="{% url 'payout_list' %}" class="btn btn-secondary">
+                        <a href="{% if payout.pk %}{% url 'payout_detail' payout.pk %}{% else %}{% url 'payout_list' %}{% endif %}" class="btn btn-secondary">
                             <i class="fas fa-times"></i> Cancel
                         </a>
                         <button type="submit" class="btn btn-primary">
