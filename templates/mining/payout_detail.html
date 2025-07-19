@@ -15,7 +15,29 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1><i class="fas fa-coins"></i> Payout Details</h1>
             <div>
-                <a href="{% url 'payout_edit' payout.pk %}" class="btn btn-warning">
+                <!-- Navigation buttons -->
+                {% if previous_payout %}
+                    <a href="{% url 'payout_detail' previous_payout.pk %}" class="btn btn-outline-primary">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </a>
+                {% else %}
+                    <button class="btn btn-outline-secondary" disabled>
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                {% endif %}
+                
+                {% if next_payout %}
+                    <a href="{% url 'payout_detail' next_payout.pk %}" class="btn btn-outline-primary">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </a>
+                {% else %}
+                    <button class="btn btn-outline-secondary" disabled>
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                {% endif %}
+                
+                <!-- Action buttons -->
+                <a href="{% url 'payout_edit' payout.pk %}" class="btn btn-warning ms-2">
                     <i class="fas fa-edit"></i> Edit
                 </a>
                 <a href="{% url 'payout_list' %}" class="btn btn-outline-secondary">

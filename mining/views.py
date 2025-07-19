@@ -30,13 +30,33 @@ class PlatformDetailView(DetailView):
     model = RemoteMiningPlatform
     template_name = 'mining/platform_detail.html'
     context_object_name = 'platform'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        current_platform = self.get_object()
+        
+        # Get previous platform (lower ID)
+        previous_platform = RemoteMiningPlatform.objects.filter(
+            id__lt=current_platform.id
+        ).order_by('-id').first()
+        
+        # Get next platform (higher ID)
+        next_platform = RemoteMiningPlatform.objects.filter(
+            id__gt=current_platform.id
+        ).order_by('id').first()
+        
+        context['previous_platform'] = previous_platform
+        context['next_platform'] = next_platform
+        return context
 
 
 class PlatformCreateView(CreateView):
     model = RemoteMiningPlatform
     form_class = RemoteMiningPlatformForm
     template_name = 'mining/platform_form.html'
-    success_url = reverse_lazy('platform_list')
+    
+    def get_success_url(self):
+        return reverse_lazy('platform_detail', kwargs={'pk': self.object.pk})
     
     def form_valid(self, form):
         messages.success(self.request, 'Platform created successfully.')
@@ -47,7 +67,9 @@ class PlatformUpdateView(UpdateView):
     model = RemoteMiningPlatform
     form_class = RemoteMiningPlatformForm
     template_name = 'mining/platform_form.html'
-    success_url = reverse_lazy('platform_list')
+    
+    def get_success_url(self):
+        return reverse_lazy('platform_detail', kwargs={'pk': self.object.pk})
     
     def form_valid(self, form):
         messages.success(self.request, 'Platform updated successfully.')
@@ -76,13 +98,33 @@ class MinerDetailView(DetailView):
     model = Miner
     template_name = 'mining/miner_detail.html'
     context_object_name = 'miner'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        current_miner = self.get_object()
+        
+        # Get previous miner (lower ID)
+        previous_miner = Miner.objects.filter(
+            id__lt=current_miner.id
+        ).order_by('-id').first()
+        
+        # Get next miner (higher ID)
+        next_miner = Miner.objects.filter(
+            id__gt=current_miner.id
+        ).order_by('id').first()
+        
+        context['previous_miner'] = previous_miner
+        context['next_miner'] = next_miner
+        return context
 
 
 class MinerCreateView(CreateView):
     model = Miner
     form_class = MinerForm
     template_name = 'mining/miner_form.html'
-    success_url = reverse_lazy('miner_list')
+    
+    def get_success_url(self):
+        return reverse_lazy('miner_detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
         messages.success(self.request, "Miner created successfully!")
@@ -93,7 +135,9 @@ class MinerUpdateView(UpdateView):
     model = Miner
     form_class = MinerForm
     template_name = 'mining/miner_form.html'
-    success_url = reverse_lazy('miner_list')
+    
+    def get_success_url(self):
+        return reverse_lazy('miner_detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
         messages.success(self.request, "Miner updated successfully!")
@@ -123,13 +167,33 @@ class PayoutDetailView(DetailView):
     model = Payout
     template_name = 'mining/payout_detail.html'
     context_object_name = 'payout'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        current_payout = self.get_object()
+        
+        # Get previous payout (lower ID)
+        previous_payout = Payout.objects.filter(
+            id__lt=current_payout.id
+        ).order_by('-id').first()
+        
+        # Get next payout (higher ID)
+        next_payout = Payout.objects.filter(
+            id__gt=current_payout.id
+        ).order_by('id').first()
+        
+        context['previous_payout'] = previous_payout
+        context['next_payout'] = next_payout
+        return context
 
 
 class PayoutCreateView(CreateView):
     model = Payout
     form_class = PayoutForm
     template_name = 'mining/payout_form.html'
-    success_url = reverse_lazy('payout_list')
+    
+    def get_success_url(self):
+        return reverse_lazy('payout_detail', kwargs={'pk': self.object.pk})
     
     def form_valid(self, form):
         messages.success(self.request, 'Payout added successfully!')
@@ -140,7 +204,9 @@ class PayoutUpdateView(UpdateView):
     model = Payout
     form_class = PayoutForm
     template_name = 'mining/payout_form.html'
-    success_url = reverse_lazy('payout_list')
+    
+    def get_success_url(self):
+        return reverse_lazy('payout_detail', kwargs={'pk': self.object.pk})
     
     def form_valid(self, form):
         messages.success(self.request, 'Payout updated successfully!')
