@@ -380,6 +380,13 @@ def overview_dashboard(request):
     current_gross_value = float(total_btc_mined) * float(bitcoin_price) if total_btc_mined and bitcoin_price else 0
     total_payouts = payouts.count()
     
+    # Calculate Gross Value at Payout (sum of value_at_payout field)
+    gross_value_at_payout = payouts.aggregate(total=Sum('value_at_payout'))['total'] or 0
+    gross_value_at_payout = float(gross_value_at_payout)
+    
+    # Calculate Appreciation (Current Gross Value - Gross Value at Payout)
+    appreciation = current_gross_value - gross_value_at_payout
+    
     # REVENUES DISTRIBUTION DATA
     revenue_by_platform = []
     for platform in RemoteMiningPlatform.objects.all():
@@ -387,10 +394,13 @@ def overview_dashboard(request):
         platform_payouts = platform.payouts.count()
         if platform_btc > 0:
             platform_value = float(platform_btc) * float(bitcoin_price) if bitcoin_price else 0
+            platform_gross_value_at_payout = platform.payouts.aggregate(total=Sum('value_at_payout'))['total'] or 0
+            platform_gross_value_at_payout = float(platform_gross_value_at_payout)
             revenue_by_platform.append({
                 'platform': platform.name,
                 'btc_mined': float(platform_btc),
                 'gross_value': platform_value,
+                'gross_value_at_payout': platform_gross_value_at_payout,
                 'payout_count': platform_payouts
             })
     
@@ -422,6 +432,8 @@ def overview_dashboard(request):
         # Revenues Data
         'total_btc_mined': total_btc_mined,
         'current_gross_value': current_gross_value,
+        'gross_value_at_payout': gross_value_at_payout,
+        'appreciation': appreciation,
         'total_payouts': total_payouts,
         
         # Revenue Distribution
@@ -652,6 +664,13 @@ def export_overview_data(request):
     current_gross_value = float(total_btc_mined) * float(bitcoin_price) if total_btc_mined and bitcoin_price else 0
     total_payouts = payouts.count()
     
+    # Calculate Gross Value at Payout (sum of value_at_payout field)
+    gross_value_at_payout = payouts.aggregate(total=Sum('value_at_payout'))['total'] or 0
+    gross_value_at_payout = float(gross_value_at_payout)
+    
+    # Calculate Appreciation (Current Gross Value - Gross Value at Payout)
+    appreciation = current_gross_value - gross_value_at_payout
+    
     # Sheet 1: Overview Summary
     ws_summary = wb.add_sheet('Overview Summary')
     
@@ -754,6 +773,18 @@ def export_overview_data(request):
     row += 1
     
     ws_summary.write(row, 0, 'Revenue Data')
+    ws_summary.write(row, 1, 'Gross Value at Payout')
+    ws_summary.write(row, 2, round(float(gross_value_at_payout), 2))
+    ws_summary.write(row, 3, 'USD')
+    row += 1
+    
+    ws_summary.write(row, 0, 'Revenue Data')
+    ws_summary.write(row, 1, 'Appreciation')
+    ws_summary.write(row, 2, round(float(appreciation), 2))
+    ws_summary.write(row, 3, 'USD')
+    row += 1
+    
+    ws_summary.write(row, 0, 'Revenue Data')
     ws_summary.write(row, 1, 'Total Payouts')
     ws_summary.write(row, 2, total_payouts)
     ws_summary.write(row, 3, 'count')
@@ -792,7 +823,8 @@ def export_overview_data(request):
     ws_revenue_platform.write(0, 0, 'Platform')
     ws_revenue_platform.write(0, 1, 'BTC Mined')
     ws_revenue_platform.write(0, 2, 'Gross Value (USD)')
-    ws_revenue_platform.write(0, 3, 'Payout Count')
+    ws_revenue_platform.write(0, 3, 'Gross Value at Payout (USD)')
+    ws_revenue_platform.write(0, 4, 'Payout Count')
     
     revenue_row = 1
     for platform in RemoteMiningPlatform.objects.all():
@@ -800,10 +832,13 @@ def export_overview_data(request):
         platform_payouts = platform.payouts.count()
         if platform_btc > 0:
             platform_value = float(platform_btc) * float(bitcoin_price) if bitcoin_price else 0
+            platform_gross_value_at_payout = platform.payouts.aggregate(total=Sum('value_at_payout'))['total'] or 0
+            platform_gross_value_at_payout = float(platform_gross_value_at_payout)
             ws_revenue_platform.write(revenue_row, 0, platform.name)
             ws_revenue_platform.write(revenue_row, 1, float(platform_btc))
             ws_revenue_platform.write(revenue_row, 2, round(float(platform_value), 2))
-            ws_revenue_platform.write(revenue_row, 3, platform_payouts)
+            ws_revenue_platform.write(revenue_row, 3, round(float(platform_gross_value_at_payout), 2))
+            ws_revenue_platform.write(revenue_row, 4, platform_payouts)
             revenue_row += 1
     
     response = HttpResponse(

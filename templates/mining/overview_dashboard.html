@@ -161,7 +161,7 @@
     <div class="col-md-6 mb-3">
         <div class="card h-100">
             <div class="card-header">
-                <h5><i class="fas fa-server"></i> Hashrate Distribution by Platform</h5>
+                <h5><i class="fas fa-server"></i> Hashrate Platform Distribution</h5>
             </div>
             <div class="card-body">
                 {% if hashrate_by_platform %}
@@ -207,21 +207,35 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-lg-4 col-md-6 mb-3">
+                    <div class="col-lg-3 col-md-6 mb-3">
                         <div class="text-center">
                             <i class="fab fa-bitcoin fa-2x text-warning mb-2"></i>
                             <h6 class="text-muted">Total BTC Mined</h6>
                             <h4 class="text-warning">{{ total_btc_mined|floatformat:8 }} BTC</h4>
                         </div>
                     </div>
-                    <div class="col-lg-4 col-md-6 mb-3">
+                    <div class="col-lg-3 col-md-6 mb-3">
                         <div class="text-center">
                             <i class="fas fa-dollar-sign fa-2x text-success mb-2"></i>
-                            <h6 class="text-muted">Current Gross Value ($)</h6>
+                            <h6 class="text-muted">Current Gross Value</h6>
                             <h4 class="text-success">${{ current_gross_value|floatformat:2|intcomma }}</h4>
                         </div>
                     </div>
-                    <div class="col-lg-4 col-md-6 mb-3">
+                    <div class="col-lg-2 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-chart-line fa-2x text-primary mb-2"></i>
+                            <h6 class="text-muted">Gross Value at Payout</h6>
+                            <h4 class="text-primary">${{ gross_value_at_payout|floatformat:2|intcomma }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-arrow-up fa-2x text-{% if appreciation >= 0 %}success{% else %}danger{% endif %} mb-2"></i>
+                            <h6 class="text-muted">Appreciation</h6>
+                            <h4 class="text-{% if appreciation >= 0 %}success{% else %}danger{% endif %}">${{ appreciation|floatformat:2|intcomma }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-6 mb-3">
                         <div class="text-center">
                             <i class="fas fa-receipt fa-2x text-info mb-2"></i>
                             <h6 class="text-muted">Total Number of Payouts</h6>
@@ -249,7 +263,8 @@
                                 <tr>
                                     <th>Platform</th>
                                     <th>Bitcoin Revenue (BTC)</th>
-                                    <th>Current Gross Value ($)</th>
+                                    <th>Current Gross Value</th>
+                                    <th>Gross Value at Payout</th>
                                     <th>Total Payouts</th>
                                 </tr>
                             </thead>
@@ -259,6 +274,7 @@
                                         <td>{{ item.platform }}</td>
                                         <td>{{ item.btc_mined|floatformat:8 }}</td>
                                         <td>${{ item.gross_value|floatformat:2|intcomma }}</td>
+                                        <td>${{ item.gross_value_at_payout|floatformat:2|intcomma }}</td>
                                         <td>{{ item.payout_count }}</td>
                                     </tr>
                                 {% endfor %}
