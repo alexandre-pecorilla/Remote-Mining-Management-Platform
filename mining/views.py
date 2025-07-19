@@ -404,7 +404,7 @@ def overview_dashboard(request):
         # Fleet Data
         'miner_count': miner_count,
         'total_hashrate': total_hashrate,
-        'total_power': round(float(total_power) / 1000, 2),  # Convert watts to kW
+        'total_power': round(float(total_power), 2),  # Power already stored in kW in database
         'total_capex': total_capex,
         
         # Efficiency Data
@@ -704,7 +704,7 @@ def export_overview_data(request):
     
     ws_summary.write(row, 0, 'Fleet Data')
     ws_summary.write(row, 1, 'Total Power')
-    ws_summary.write(row, 2, round(float(total_power) / 1000, 2))  # Convert watts to kW
+    ws_summary.write(row, 2, round(float(total_power), 2))  # Power already stored in kW in database
     ws_summary.write(row, 3, 'kW')
     row += 1
     
