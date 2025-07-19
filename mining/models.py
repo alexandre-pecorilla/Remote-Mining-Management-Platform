@@ -87,6 +87,7 @@ class Payout(models.Model):
     payout_amount = models.DecimalField(max_digits=12, decimal_places=8, help_text="Payout amount in BTC")
     platform = models.ForeignKey(RemoteMiningPlatform, on_delete=models.SET_NULL, blank=True, null=True, related_name='payouts')
     transaction_id = models.CharField(max_length=100, blank=True, null=True, help_text="Bitcoin transaction ID")
+    closing_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, help_text="Bitcoin closing price in USD at payout date")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

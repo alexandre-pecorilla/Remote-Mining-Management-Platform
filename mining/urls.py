@@ -25,6 +25,7 @@ urlpatterns = [
     path('data/payouts/add/', views.PayoutCreateView.as_view(), name='payout_add'),
     path('data/payouts/<int:pk>/edit/', views.PayoutUpdateView.as_view(), name='payout_edit'),
     path('data/payouts/<int:pk>/delete/', views.PayoutDeleteView.as_view(), name='payout_delete'),
+    path('data/payouts/<int:payout_id>/fetch-closing-price/', views.fetch_closing_price, name='fetch_closing_price'),
     
     # API Data - /data/api-data
     path('data/api-data/', views.api_data_view, name='api_data'),

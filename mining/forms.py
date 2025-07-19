@@ -77,7 +77,7 @@ class MinerForm(forms.ModelForm):
 class PayoutForm(forms.ModelForm):
     class Meta:
         model = Payout
-        fields = ['payout_date', 'payout_amount', 'platform', 'transaction_id']
+        fields = ['payout_date', 'payout_amount', 'platform', 'transaction_id', 'closing_price']
         widgets = {
             'payout_date': forms.DateInput(attrs={
                 'type': 'date',
@@ -95,12 +95,18 @@ class PayoutForm(forms.ModelForm):
                 'class': 'form-control',
                 'maxlength': '100'
             }),
+            'closing_price': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0'
+            }),
         }
         labels = {
             'payout_date': 'Payout Date',
             'payout_amount': 'Payout Amount (BTC)',
             'platform': 'Platform',
             'transaction_id': 'Transaction ID',
+            'closing_price': 'Closing Price ($)',
         }
 
 

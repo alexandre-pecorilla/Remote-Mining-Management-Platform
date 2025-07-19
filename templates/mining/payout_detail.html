@@ -73,6 +73,20 @@
                 </div>
                 {% endif %}
 
+                {% if payout.closing_price %}
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="mb-3">
+                            <strong>Closing Price:</strong>
+                            <div class="fs-4 text-primary">
+                                ${{ payout.closing_price|floatformat:2|intcomma }}
+                            </div>
+                            <small class="text-muted">Bitcoin price at payout date</small>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 {% if payout.transaction_id %}
                 <div class="row">
                     <div class="col-md-12">

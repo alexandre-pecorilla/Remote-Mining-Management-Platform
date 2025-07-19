@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 import xlwt
@@ -10,7 +10,7 @@ from datetime import datetime
 import json
 from .models import RemoteMiningPlatform, Miner, Settings, APIData, Payout
 from .forms import RemoteMiningPlatformForm, MinerForm, SettingsForm, PayoutForm
-from .api_utils import fetch_all_api_data
+from .api_utils import fetch_all_api_data, get_historical_btc_price
 
 
 # Home Page View
@@ -156,6 +156,40 @@ class PayoutDeleteView(DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(self.request, 'Payout deleted successfully!')
         return super().delete(request, *args, **kwargs)
+
+
+def fetch_closing_price(request, payout_id):
+    """Fetch historical BTC price for payout date and update closing_price field"""
+    if request.method == 'POST':
+        try:
+            payout = get_object_or_404(Payout, pk=payout_id)
+            
+            if not payout.payout_date:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Payout date is required to fetch closing price'
+                })
+            
+            # Fetch historical BTC price for the payout date
+            historical_price = get_historical_btc_price(payout.payout_date)
+            
+            # Update the payout's closing_price field
+            payout.closing_price = Decimal(str(historical_price))
+            payout.save()
+            
+            return JsonResponse({
+                'success': True,
+                'closing_price': float(payout.closing_price),
+                'formatted_price': f'${payout.closing_price:,.2f}'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': f'Failed to fetch closing price: {str(e)}'
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 
 def api_data_view(request):
@@ -379,7 +413,7 @@ def download_payout_template(request):
     ws = wb.add_sheet('Payout Import Template')
     
     # Add headers based on form fields
-    headers = ['payout_date', 'payout_amount', 'platform', 'transaction_id']
+    headers = ['payout_date', 'payout_amount', 'platform', 'transaction_id', 'closing_price']
     
     for col, header in enumerate(headers):
         ws.write(0, col, header)
@@ -470,7 +504,7 @@ def export_payout_data(request):
     ws = wb.add_sheet('Payout Data')
     
     # Add headers
-    headers = ['payout_date', 'payout_amount', 'platform', 'transaction_id']
+    headers = ['payout_date', 'payout_amount', 'platform', 'transaction_id', 'closing_price']
     
     for col, header in enumerate(headers):
         ws.write(0, col, header)
@@ -482,6 +516,7 @@ def export_payout_data(request):
         ws.write(row, 1, float(payout.payout_amount) if payout.payout_amount else '')
         ws.write(row, 2, payout.platform.pk if payout.platform else '')
         ws.write(row, 3, payout.transaction_id or '')
+        ws.write(row, 4, float(payout.closing_price) if payout.closing_price else '')
     
     response = HttpResponse(
         content_type='application/vnd.ms-excel'
@@ -888,6 +923,8 @@ def import_payout_data(request):
                                 except:
                                     continue
                             elif field == 'payout_amount' and value:
+                                payout_data[field] = Decimal(str(value))
+                            elif field == 'closing_price' and value:
                                 payout_data[field] = Decimal(str(value))
                             elif field == 'payout_date' and value:
                                 if isinstance(value, str):

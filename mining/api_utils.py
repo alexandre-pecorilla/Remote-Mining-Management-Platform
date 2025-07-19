@@ -1,6 +1,7 @@
 import requests
 import json
 import math
+from datetime import datetime
 from .models import Settings
 
 
@@ -27,6 +28,30 @@ def get_btc_price():
     """Get BTC price in USD from CoinMarketCap API"""
     data = fetch_cmc_data('cryptocurrency/quotes/latest?symbol=BTC&convert=USD')
     return data['data']['BTC']['quote']['USD']['price']
+
+
+def get_historical_btc_price(date):
+    """Get historical BTC price for a specific date using CryptoCompare API
+    
+    Args:
+        date: datetime.date object for the date to fetch price for
+        
+    Returns:
+        float: BTC price in USD for the specified date
+    """
+    # Convert date to unix timestamp
+    timestamp = int(datetime.combine(date, datetime.min.time()).timestamp())
+    
+    # Get BTC price from CryptoCompare (free, no key needed)
+    url = f"https://min-api.cryptocompare.com/data/pricehistorical?fsym=BTC&tsyms=USD&ts={timestamp}"
+    
+    response = requests.get(url, timeout=30)
+    response.raise_for_status()
+    
+    data = response.json()
+    price = data['BTC']['USD']
+    
+    return float(price)
 
 
 def get_bitcoin_hashrate_in_ehs():
