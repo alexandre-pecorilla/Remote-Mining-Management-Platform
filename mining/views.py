@@ -160,7 +160,7 @@ class PayoutListView(ListView):
     model = Payout
     template_name = 'mining/payout_list.html'
     context_object_name = 'payouts'
-    paginate_by = 10
+    paginate_by = 50
 
 
 class PayoutDetailView(DetailView):
@@ -479,7 +479,7 @@ def download_payout_template(request):
     ws = wb.add_sheet('Payout Import Template')
     
     # Add headers based on form fields
-    headers = ['payout_date', 'payout_amount', 'platform', 'transaction_id', 'closing_price']
+    headers = ['payout_date', 'payout_amount', 'platform', 'transaction_id', 'closing_price', 'value_at_payout (read-only)']
     
     for col, header in enumerate(headers):
         ws.write(0, col, header)
@@ -570,7 +570,7 @@ def export_payout_data(request):
     ws = wb.add_sheet('Payout Data')
     
     # Add headers
-    headers = ['payout_date', 'payout_amount', 'platform', 'transaction_id', 'closing_price']
+    headers = ['payout_date', 'payout_amount', 'platform', 'transaction_id', 'closing_price', 'value_at_payout']
     
     for col, header in enumerate(headers):
         ws.write(0, col, header)
@@ -578,11 +578,12 @@ def export_payout_data(request):
     # Add data rows
     payouts = Payout.objects.all()
     for row, payout in enumerate(payouts, start=1):
-        ws.write(row, 0, payout.payout_date.strftime('%Y-%m-%d') if payout.payout_date else '')
-        ws.write(row, 1, float(payout.payout_amount) if payout.payout_amount else '')
+        ws.write(row, 0, payout.payout_date.strftime('%Y-%m-%d'))
+        ws.write(row, 1, float(payout.payout_amount))
         ws.write(row, 2, payout.platform.pk if payout.platform else '')
         ws.write(row, 3, payout.transaction_id or '')
         ws.write(row, 4, float(payout.closing_price) if payout.closing_price else '')
+        ws.write(row, 5, float(payout.value_at_payout) if payout.value_at_payout else '')
     
     response = HttpResponse(
         content_type='application/vnd.ms-excel'

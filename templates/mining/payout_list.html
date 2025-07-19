@@ -33,6 +33,7 @@
                     <th>Platform</th>
                     <th>Market Value (USD)</th>
                     <th>Closing Price (USD)</th>
+                    <th>Value at Payout (USD)</th>
                     <th>Transaction ID</th>
                     <th>Actions</th>
                 </tr>
@@ -51,7 +52,7 @@
                     </td>
                     <td>
                         {% if payout.current_market_value %}
-                            <span class="text-success">${{ payout.current_market_value|floatformat:2|intcomma }}</span>
+                            <span class="text-success fw-bold">${{ payout.current_market_value|floatformat:2|intcomma }}</span>
                         {% else %}
                             <span class="text-muted">-</span>
                         {% endif %}
@@ -59,6 +60,13 @@
                     <td>
                         {% if payout.closing_price %}
                             <span class="text-primary">${{ payout.closing_price|floatformat:2|intcomma }}</span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if payout.value_at_payout %}
+                            <span class="text-success">${{ payout.value_at_payout|floatformat:2|intcomma }}</span>
                         {% else %}
                             <span class="text-muted">-</span>
                         {% endif %}

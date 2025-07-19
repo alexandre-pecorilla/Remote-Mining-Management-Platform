@@ -86,7 +86,7 @@
                     <div class="col-md-12">
                         <div class="mb-3">
                             <strong>Current Market Value:</strong>
-                            <div class="fs-4 text-success">
+                            <div class="fs-4 text-success fw-bold">
                                 ${{ payout.current_market_value|floatformat:2|intcomma }}
                             </div>
                             <small class="text-muted">Based on current Bitcoin price</small>
@@ -121,6 +121,21 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Value at Payout Section (only when closing price exists) -->
+                {% if payout.closing_price %}
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="mb-3">
+                            <strong>Value at Payout:</strong>
+                            <div class="fs-4 text-success">
+                                ${{ payout.value_at_payout|floatformat:2|intcomma }}
+                            </div>
+                            <small class="text-muted">USD value when payout was received ({{ payout.payout_amount|floatformat:8 }} BTC × ${{ payout.closing_price|floatformat:2|intcomma }})</small>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
 
                 {% if payout.transaction_id %}
                 <div class="row">

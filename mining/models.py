@@ -88,6 +88,7 @@ class Payout(models.Model):
     platform = models.ForeignKey(RemoteMiningPlatform, on_delete=models.SET_NULL, blank=True, null=True, related_name='payouts')
     transaction_id = models.CharField(max_length=100, blank=True, null=True, help_text="Bitcoin transaction ID")
     closing_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, help_text="Bitcoin closing price in USD at payout date")
+    value_at_payout = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True, help_text="USD value at payout (payout_amount * closing_price)")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -98,6 +99,14 @@ class Payout(models.Model):
 
     def __str__(self):
         return f"Payout {self.payout_amount} BTC on {self.payout_date}"
+
+    def save(self, *args, **kwargs):
+        """Override save to automatically calculate value_at_payout when closing_price exists"""
+        if self.closing_price and self.payout_amount:
+            self.value_at_payout = self.payout_amount * self.closing_price
+        elif not self.closing_price:
+            self.value_at_payout = None
+        super().save(*args, **kwargs)
 
     @property
     def current_market_value(self):
