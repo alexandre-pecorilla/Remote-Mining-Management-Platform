@@ -3,6 +3,8 @@ from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.db.models import Sum, Q
+from django.db.models.functions import TruncMonth
 import xlwt
 import xlrd
 from decimal import Decimal
@@ -17,6 +19,307 @@ from .api_utils import fetch_all_api_data, get_historical_btc_price
 def home_view(request):
     """Home page with navigation to all sections of the application"""
     return render(request, 'mining/home.html')
+
+
+# CAPEX/OPEX Dashboard View
+def capex_opex_dashboard(request):
+    """Dashboard view for CAPEX/OPEX analysis"""
+    
+    # Total Expenses calculations
+    total_expenses = Expense.objects.aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+    total_capex = Expense.objects.filter(category='CAPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+    total_opex = Expense.objects.filter(category='OPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+    
+    # Total Expenses by Platform
+    platforms = RemoteMiningPlatform.objects.all()
+    platform_expenses = []
+    
+    for platform in platforms:
+        platform_total = Expense.objects.filter(platform=platform).aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+        platform_capex = Expense.objects.filter(platform=platform, category='CAPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+        platform_opex = Expense.objects.filter(platform=platform, category='OPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+        
+        if platform_total > 0:  # Only include platforms with expenses
+            platform_expenses.append({
+                'platform': platform,
+                'total': platform_total,
+                'capex': platform_capex,
+                'opex': platform_opex
+            })
+    
+    # Monthly CAPEX calculations
+    monthly_capex = Expense.objects.filter(category='CAPEX').annotate(
+        month=TruncMonth('expense_date')
+    ).values('month').annotate(
+        total=Sum('expense_amount')
+    ).order_by('month')
+    
+    # Monthly CAPEX by platform
+    monthly_capex_by_platform = {}
+    for platform in platforms:
+        platform_monthly_capex = Expense.objects.filter(
+            category='CAPEX', platform=platform
+        ).annotate(
+            month=TruncMonth('expense_date')
+        ).values('month').annotate(
+            total=Sum('expense_amount')
+        ).order_by('month')
+        
+        if platform_monthly_capex:  # Only include platforms with CAPEX expenses
+            monthly_capex_by_platform[platform] = platform_monthly_capex
+    
+    # Monthly OPEX calculations
+    monthly_opex = Expense.objects.filter(category='OPEX').annotate(
+        month=TruncMonth('expense_date')
+    ).values('month').annotate(
+        total=Sum('expense_amount')
+    ).order_by('month')
+    
+    # Monthly OPEX by platform
+    monthly_opex_by_platform = {}
+    for platform in platforms:
+        platform_monthly_opex = Expense.objects.filter(
+            category='OPEX', platform=platform
+        ).annotate(
+            month=TruncMonth('expense_date')
+        ).values('month').annotate(
+            total=Sum('expense_amount')
+        ).order_by('month')
+        
+        if platform_monthly_opex:  # Only include platforms with OPEX expenses
+            monthly_opex_by_platform[platform] = platform_monthly_opex
+    
+    # Get all unique months for table structure
+    all_months = set()
+    for item in monthly_capex:
+        all_months.add(item['month'])
+    for item in monthly_opex:
+        all_months.add(item['month'])
+    for platform_data in monthly_capex_by_platform.values():
+        for item in platform_data:
+            all_months.add(item['month'])
+    for platform_data in monthly_opex_by_platform.values():
+        for item in platform_data:
+            all_months.add(item['month'])
+    
+    all_months = sorted(list(all_months))
+    
+    context = {
+        'total_expenses': total_expenses,
+        'total_capex': total_capex,
+        'total_opex': total_opex,
+        'platform_expenses': platform_expenses,
+        'monthly_capex': monthly_capex,
+        'monthly_capex_by_platform': monthly_capex_by_platform,
+        'monthly_opex': monthly_opex,
+        'monthly_opex_by_platform': monthly_opex_by_platform,
+        'all_months': all_months,
+    }
+    
+    return render(request, 'mining/capex_opex_dashboard.html', context)
+
+
+def export_capex_opex_data(request):
+    """Export CAPEX/OPEX dashboard data to Excel file"""
+    
+    wb = xlwt.Workbook()
+    
+    # EXACT COPY of capex_opex_dashboard calculations
+    # Total Expenses calculations
+    total_expenses = Expense.objects.aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+    total_capex = Expense.objects.filter(category='CAPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+    total_opex = Expense.objects.filter(category='OPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+    
+    # Total Expenses by Platform
+    platforms = RemoteMiningPlatform.objects.all()
+    platform_expenses = []
+    
+    for platform in platforms:
+        platform_total = Expense.objects.filter(platform=platform).aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+        platform_capex = Expense.objects.filter(platform=platform, category='CAPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+        platform_opex = Expense.objects.filter(platform=platform, category='OPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+        
+        if platform_total > 0:  # Only include platforms with expenses
+            platform_expenses.append({
+                'platform': platform,
+                'total': platform_total,
+                'capex': platform_capex,
+                'opex': platform_opex
+            })
+    
+    # Monthly CAPEX calculations
+    monthly_capex = Expense.objects.filter(category='CAPEX').annotate(
+        month=TruncMonth('expense_date')
+    ).values('month').annotate(
+        total=Sum('expense_amount')
+    ).order_by('month')
+    
+    # Monthly CAPEX by platform
+    monthly_capex_by_platform = {}
+    for platform in platforms:
+        platform_monthly_capex = Expense.objects.filter(
+            category='CAPEX', platform=platform
+        ).annotate(
+            month=TruncMonth('expense_date')
+        ).values('month').annotate(
+            total=Sum('expense_amount')
+        ).order_by('month')
+        
+        if platform_monthly_capex:  # Only include platforms with CAPEX expenses
+            monthly_capex_by_platform[platform] = platform_monthly_capex
+    
+    # Monthly OPEX calculations
+    monthly_opex = Expense.objects.filter(category='OPEX').annotate(
+        month=TruncMonth('expense_date')
+    ).values('month').annotate(
+        total=Sum('expense_amount')
+    ).order_by('month')
+    
+    # Monthly OPEX by platform
+    monthly_opex_by_platform = {}
+    for platform in platforms:
+        platform_monthly_opex = Expense.objects.filter(
+            category='OPEX', platform=platform
+        ).annotate(
+            month=TruncMonth('expense_date')
+        ).values('month').annotate(
+            total=Sum('expense_amount')
+        ).order_by('month')
+        
+        if platform_monthly_opex:  # Only include platforms with OPEX expenses
+            monthly_opex_by_platform[platform] = platform_monthly_opex
+    
+    # Get all unique months for table structure
+    all_months = set()
+    for item in monthly_capex:
+        all_months.add(item['month'])
+    for item in monthly_opex:
+        all_months.add(item['month'])
+    for platform_data in monthly_capex_by_platform.values():
+        for item in platform_data:
+            all_months.add(item['month'])
+    for platform_data in monthly_opex_by_platform.values():
+        for item in platform_data:
+            all_months.add(item['month'])
+    
+    all_months = sorted(list(all_months))
+    
+    # Sheet 1: Total Expenses Summary
+    ws_summary = wb.add_sheet('Total Expenses Summary')
+    
+    # Headers
+    ws_summary.write(0, 0, 'Expense Type')
+    ws_summary.write(0, 1, 'Amount (USD)')
+    
+    # Data rows
+    ws_summary.write(1, 0, 'Total Expenses')
+    ws_summary.write(1, 1, float(total_expenses))
+    
+    ws_summary.write(2, 0, 'Total CAPEX')
+    ws_summary.write(2, 1, float(total_capex))
+    
+    ws_summary.write(3, 0, 'Total OPEX')
+    ws_summary.write(3, 1, float(total_opex))
+    
+    # Sheet 2: Expenses by Platform
+    if platform_expenses:
+        ws_platform = wb.add_sheet('Expenses by Platform')
+        
+        # Headers
+        ws_platform.write(0, 0, 'Platform')
+        ws_platform.write(0, 1, 'Total Expenses (USD)')
+        ws_platform.write(0, 2, 'CAPEX (USD)')
+        ws_platform.write(0, 3, 'OPEX (USD)')
+        
+        # Data rows
+        for row, item in enumerate(platform_expenses, start=1):
+            ws_platform.write(row, 0, item['platform'].name)
+            ws_platform.write(row, 1, float(item['total']))
+            ws_platform.write(row, 2, float(item['capex']))
+            ws_platform.write(row, 3, float(item['opex']))
+    
+    # Sheet 3: Monthly CAPEX
+    if monthly_capex and all_months:
+        ws_monthly_capex = wb.add_sheet('Monthly CAPEX')
+        
+        # Headers
+        ws_monthly_capex.write(0, 0, 'Month')
+        ws_monthly_capex.write(0, 1, 'Total CAPEX (USD)')
+        
+        # Platform headers
+        col = 2
+        platform_cols = {}
+        for platform in monthly_capex_by_platform.keys():
+            ws_monthly_capex.write(0, col, f'{platform.name} CAPEX (USD)')
+            platform_cols[platform] = col
+            col += 1
+        
+        # Data rows
+        for row, month in enumerate(all_months, start=1):
+            if month:
+                ws_monthly_capex.write(row, 0, month.strftime('%Y-%m'))
+                
+                # Total CAPEX for this month
+                month_total = Decimal('0')
+                for item in monthly_capex:
+                    if item['month'] == month:
+                        month_total = item['total']
+                        break
+                ws_monthly_capex.write(row, 1, float(month_total))
+                
+                # Platform CAPEX for this month
+                for platform, platform_data in monthly_capex_by_platform.items():
+                    platform_month_total = Decimal('0')
+                    for item in platform_data:
+                        if item['month'] == month:
+                            platform_month_total = item['total']
+                            break
+                    ws_monthly_capex.write(row, platform_cols[platform], float(platform_month_total))
+    
+    # Sheet 4: Monthly OPEX
+    if monthly_opex and all_months:
+        ws_monthly_opex = wb.add_sheet('Monthly OPEX')
+        
+        # Headers
+        ws_monthly_opex.write(0, 0, 'Month')
+        ws_monthly_opex.write(0, 1, 'Total OPEX (USD)')
+        
+        # Platform headers
+        col = 2
+        platform_cols = {}
+        for platform in monthly_opex_by_platform.keys():
+            ws_monthly_opex.write(0, col, f'{platform.name} OPEX (USD)')
+            platform_cols[platform] = col
+            col += 1
+        
+        # Data rows
+        for row, month in enumerate(all_months, start=1):
+            if month:
+                ws_monthly_opex.write(row, 0, month.strftime('%Y-%m'))
+                
+                # Total OPEX for this month
+                month_total = Decimal('0')
+                for item in monthly_opex:
+                    if item['month'] == month:
+                        month_total = item['total']
+                        break
+                ws_monthly_opex.write(row, 1, float(month_total))
+                
+                # Platform OPEX for this month
+                for platform, platform_data in monthly_opex_by_platform.items():
+                    platform_month_total = Decimal('0')
+                    for item in platform_data:
+                        if item['month'] == month:
+                            platform_month_total = item['total']
+                            break
+                    ws_monthly_opex.write(row, platform_cols[platform], float(platform_month_total))
+    
+    # Generate response
+    response = HttpResponse(content_type='application/vnd.ms-excel')
+    response['Content-Disposition'] = f'attachment; filename="capex_opex_dashboard_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xls"'
+    
+    wb.save(response)
+    return response
 
 
 class PlatformListView(ListView):

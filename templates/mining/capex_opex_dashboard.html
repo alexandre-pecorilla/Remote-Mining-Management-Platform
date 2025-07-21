@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}CAPEX/OPEX Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1><i class="fas fa-chart-pie"></i> CAPEX/OPEX Dashboard</h1>
+                <p class="text-muted mb-0">Comprehensive analysis of your mining operation expenses</p>
+            </div>
+            <div>
+                <a href="{% url 'export_capex_opex_data' %}" class="btn btn-success">
+                    <i class="fas fa-file-export"></i> Export Data
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Total Expenses Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h3><i class="fas fa-calculator"></i> Total Expenses</h3>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h4><i class="fas fa-dollar-sign"></i> Total Expenses</h4>
+                <h2>${{ total_expenses|floatformat:2|intcomma }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h4><i class="fas fa-tools"></i> Total CAPEX</h4>
+                <h2>${{ total_capex|floatformat:2|intcomma }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <h4><i class="fas fa-cogs"></i> Total OPEX</h4>
+                <h2>${{ total_opex|floatformat:2|intcomma }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Total Expenses by Platform Section -->
+{% if platform_expenses %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h3><i class="fas fa-server"></i> Total Expenses by Platform</h3>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Platform</th>
+                        <th class="text-end">Total Expenses</th>
+                        <th class="text-end">CAPEX</th>
+                        <th class="text-end">OPEX</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in platform_expenses %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'platform_detail' item.platform.pk %}" class="text-decoration-none">
+                                {{ item.platform.name }}
+                            </a>
+                        </td>
+                        <td class="text-end text-success fw-bold">${{ item.total|floatformat:2|intcomma }}</td>
+                        <td class="text-end">${{ item.capex|floatformat:2|intcomma }}</td>
+                        <td class="text-end">${{ item.opex|floatformat:2|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Monthly CAPEX Section -->
+{% if monthly_capex %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h3><i class="fas fa-chart-line"></i> Monthly CAPEX</h3>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th class="text-end">Total CAPEX</th>
+                        {% for platform in monthly_capex_by_platform.keys %}
+                        <th class="text-end">{{ platform.name }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for month in all_months %}
+                    {% if month %}
+                    <tr>
+                        <td><strong>{{ month|date:"F Y" }}</strong></td>
+                        <td class="text-end text-info fw-bold">
+                            {% for item in monthly_capex %}
+                                {% if item.month == month %}
+                                    ${{ item.total|floatformat:2|intcomma }}
+                                {% endif %}
+                            {% empty %}
+                                $0.00
+                            {% endfor %}
+                        </td>
+                        {% for platform, platform_data in monthly_capex_by_platform.items %}
+                        <td class="text-end">
+                            {% for item in platform_data %}
+                                {% if item.month == month %}
+                                    ${{ item.total|floatformat:2|intcomma }}
+                                {% endif %}
+                            {% empty %}
+                                $0.00
+                            {% endfor %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Monthly OPEX Section -->
+{% if monthly_opex %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h3><i class="fas fa-chart-bar"></i> Monthly OPEX</h3>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th class="text-end">Total OPEX</th>
+                        {% for platform in monthly_opex_by_platform.keys %}
+                        <th class="text-end">{{ platform.name }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for month in all_months %}
+                    {% if month %}
+                    <tr>
+                        <td><strong>{{ month|date:"F Y" }}</strong></td>
+                        <td class="text-end text-warning fw-bold">
+                            {% for item in monthly_opex %}
+                                {% if item.month == month %}
+                                    ${{ item.total|floatformat:2|intcomma }}
+                                {% endif %}
+                            {% empty %}
+                                $0.00
+                            {% endfor %}
+                        </td>
+                        {% for platform, platform_data in monthly_opex_by_platform.items %}
+                        <td class="text-end">
+                            {% for item in platform_data %}
+                                {% if item.month == month %}
+                                    ${{ item.total|floatformat:2|intcomma }}
+                                {% endif %}
+                            {% empty %}
+                                $0.00
+                            {% endfor %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- No Data Message -->
+{% if not monthly_capex and not monthly_opex and not platform_expenses %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle fa-3x mb-3"></i>
+            <h4>No Expense Data Available</h4>
+            <p>Start by adding some expenses to see your CAPEX/OPEX analysis.</p>
+            <a href="{% url 'expense_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Expense
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

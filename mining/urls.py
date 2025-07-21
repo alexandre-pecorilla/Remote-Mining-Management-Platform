@@ -5,6 +5,10 @@ urlpatterns = [
     # Home Page
     path('', views.home_view, name='home'),
     
+    # CAPEX/OPEX Dashboard
+    path('dashboard/capex-opex/', views.capex_opex_dashboard, name='capex_opex_dashboard'),
+    path('export-data/capex-opex/', views.export_capex_opex_data, name='export_capex_opex_data'),
+    
     # Platform URLs - /data/platforms
     path('data/platforms/', views.PlatformListView.as_view(), name='platform_list'),
     path('data/platforms/<int:pk>/', views.PlatformDetailView.as_view(), name='platform_detail'),
