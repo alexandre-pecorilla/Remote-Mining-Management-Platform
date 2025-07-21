@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Expense Detail{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-receipt"></i> Expense Detail</h1>
+    <div class="d-flex gap-2">
+        {% if previous_expense %}
+            <a href="{% url 'expense_detail' previous_expense.pk %}" class="btn btn-outline-secondary" title="Previous Expense">
+                <i class="fas fa-chevron-left"></i> Previous
+            </a>
+        {% else %}
+            <button class="btn btn-outline-secondary" disabled>
+                <i class="fas fa-chevron-left"></i> Previous
+            </button>
+        {% endif %}
+        
+        {% if next_expense %}
+            <a href="{% url 'expense_detail' next_expense.pk %}" class="btn btn-outline-secondary ms-2" title="Next Expense">
+                Next <i class="fas fa-chevron-right"></i>
+            </a>
+        {% else %}
+            <button class="btn btn-outline-secondary ms-2" disabled>
+                Next <i class="fas fa-chevron-right"></i>
+            </button>
+        {% endif %}
+        
+        <a href="{% url 'expense_edit' expense.pk %}" class="btn btn-outline-warning ms-2">
+            <i class="fas fa-edit"></i> Edit
+        </a>
+        <a href="{% url 'expense_delete' expense.pk %}" class="btn btn-outline-danger">
+            <i class="fas fa-trash"></i> Delete
+        </a>
+        <a href="{% url 'expense_list' %}" class="btn btn-outline-secondary ms-2">
+            <i class="fas fa-list"></i> Back to List
+        </a>
+    </div>
+</div>
+
+{% if settings.developer_mode %}
+    <div class="alert alert-info">
+        <i class="fas fa-database"></i> Database ID: {{ expense.pk }}
+    </div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-info-circle"></i> Expense Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Expense Date:</strong></p>
+                        <p class="text-primary">{{ expense.expense_date|date:"F d, Y" }}</p>
+                        
+                        <p><strong>Category:</strong></p>
+                        {% if expense.category == 'CAPEX' %}
+                            <span class="badge bg-primary fs-6">CAPEX</span>
+                        {% elif expense.category == 'OPEX' %}
+                            <span class="badge bg-info fs-6">OPEX</span>
+                        {% endif %}
+                        
+                        <p class="mt-3"><strong>Description:</strong></p>
+                        <p>{{ expense.description }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Platform:</strong></p>
+                        {% if expense.platform %}
+                            <p class="text-primary">
+                                <a href="{% url 'platform_detail' expense.platform.pk %}" class="text-decoration-none">
+                                    {{ expense.platform.name }}
+                                </a>
+                                {% if settings.developer_mode %}
+                                    <small class="text-muted d-block">Platform ID: {{ expense.platform.pk }}</small>
+                                {% endif %}
+                            </p>
+                        {% else %}
+                            <p class="text-muted">Not specified</p>
+                        {% endif %}
+                        
+                        <p><strong>Expense Amount:</strong></p>
+                        <p class="text-success fw-bold fs-4">${{ expense.expense_amount|floatformat:2|intcomma }}</p>
+                    </div>
+                </div>
+                
+                {% if expense.notes %}
+                    <hr>
+                    <p><strong>Notes:</strong></p>
+                    <div class="bg-body-secondary p-3 rounded">
+                        {{ expense.notes|linebreaks }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Documents Section -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-file-alt"></i> Documents</h5>
+            </div>
+            <div class="card-body">
+                {% if expense.invoice_link %}
+                    <div class="mb-3">
+                        <p class="mb-1"><strong>Invoice:</strong></p>
+                        <a href="{{ expense.invoice_link }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-file-invoice"></i> View Invoice
+                        </a>
+                    </div>
+                {% endif %}
+                
+                {% if expense.receipt_link %}
+                    <div class="mb-3">
+                        <p class="mb-1"><strong>Receipt:</strong></p>
+                        <a href="{{ expense.receipt_link }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-receipt"></i> View Receipt
+                        </a>
+                    </div>
+                {% endif %}
+                
+                {% if not expense.invoice_link and not expense.receipt_link %}
+                    <p class="text-muted">No documents available</p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -8,8 +8,8 @@ import xlrd
 from decimal import Decimal
 from datetime import datetime
 import json
-from .models import RemoteMiningPlatform, Miner, Settings, APIData, Payout
-from .forms import RemoteMiningPlatformForm, MinerForm, SettingsForm, PayoutForm
+from .models import RemoteMiningPlatform, Miner, Settings, APIData, Payout, Expense
+from .forms import RemoteMiningPlatformForm, MinerForm, SettingsForm, PayoutForm, ExpenseForm
 from .api_utils import fetch_all_api_data, get_historical_btc_price
 
 
@@ -297,6 +297,75 @@ def settings_view(request):
         form = SettingsForm(instance=settings)
     
     return render(request, 'mining/settings.html', {'form': form, 'settings': settings})
+
+
+# Expense Views
+class ExpenseListView(ListView):
+    model = Expense
+    template_name = 'mining/expense_list.html'
+    context_object_name = 'expenses'
+    paginate_by = 50
+
+
+class ExpenseDetailView(DetailView):
+    model = Expense
+    template_name = 'mining/expense_detail.html'
+    context_object_name = 'expense'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        current_expense = self.get_object()
+        
+        # Get previous expense (lower ID)
+        previous_expense = Expense.objects.filter(
+            id__lt=current_expense.id
+        ).order_by('-id').first()
+        
+        # Get next expense (higher ID)
+        next_expense = Expense.objects.filter(
+            id__gt=current_expense.id
+        ).order_by('id').first()
+        
+        context['previous_expense'] = previous_expense
+        context['next_expense'] = next_expense
+        return context
+
+
+class ExpenseCreateView(CreateView):
+    model = Expense
+    form_class = ExpenseForm
+    template_name = 'mining/expense_form.html'
+    
+    def get_success_url(self):
+        return reverse_lazy('expense_detail', kwargs={'pk': self.object.pk})
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Expense created successfully!')
+        return super().form_valid(form)
+
+
+class ExpenseUpdateView(UpdateView):
+    model = Expense
+    form_class = ExpenseForm
+    template_name = 'mining/expense_form.html'
+    
+    def get_success_url(self):
+        return reverse_lazy('expense_detail', kwargs={'pk': self.object.pk})
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Expense updated successfully!')
+        return super().form_valid(form)
+
+
+class ExpenseDeleteView(DeleteView):
+    model = Expense
+    template_name = 'mining/expense_confirm_delete.html'
+    success_url = reverse_lazy('expense_list')
+    context_object_name = 'expense'
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, 'Expense deleted successfully!')
+        return super().delete(request, *args, **kwargs)
 
 
 # Dashboard Views
@@ -1048,6 +1117,134 @@ def import_payout_data(request):
             return redirect('payout_list')
     
     return redirect('payout_list')
+
+
+# Expense Import/Export Functions
+def download_expense_template(request):
+    """Download import template for Expenses"""
+    wb = xlwt.Workbook()
+    ws = wb.add_sheet('Expense Import Template')
+    
+    # Add headers based on form fields
+    headers = ['expense_date', 'platform', 'category', 'description', 'expense_amount', 'invoice_link', 'receipt_link', 'notes']
+    
+    for col, header in enumerate(headers):
+        ws.write(0, col, header)
+    
+    response = HttpResponse(
+        content_type='application/vnd.ms-excel'
+    )
+    response['Content-Disposition'] = 'attachment; filename="expense_import_template.xls"'
+    wb.save(response)
+    return response
+
+
+def export_expense_data(request):
+    """Export all expense data to Excel file"""
+    wb = xlwt.Workbook()
+    ws = wb.add_sheet('Expense Data')
+    
+    # Add headers
+    headers = ['expense_date', 'platform', 'category', 'description', 'expense_amount', 'invoice_link', 'receipt_link', 'notes']
+    
+    for col, header in enumerate(headers):
+        ws.write(0, col, header)
+    
+    # Add data rows
+    expenses = Expense.objects.all().order_by('-expense_date')
+    for row, expense in enumerate(expenses, start=1):
+        ws.write(row, 0, expense.expense_date.strftime('%Y-%m-%d') if expense.expense_date else '')
+        ws.write(row, 1, expense.platform.id if expense.platform else '')
+        ws.write(row, 2, expense.category or '')
+        ws.write(row, 3, expense.description or '')
+        ws.write(row, 4, float(expense.expense_amount) if expense.expense_amount else '')
+        ws.write(row, 5, expense.invoice_link or '')
+        ws.write(row, 6, expense.receipt_link or '')
+        ws.write(row, 7, expense.notes or '')
+    
+    response = HttpResponse(
+        content_type='application/vnd.ms-excel'
+    )
+    response['Content-Disposition'] = 'attachment; filename="expense_data_export.xls"'
+    wb.save(response)
+    return response
+
+
+def import_expense_data(request):
+    """Import expense data from uploaded Excel file"""
+    if request.method == 'POST' and request.FILES.get('import_file'):
+        try:
+            file = request.FILES['import_file']
+            wb = xlrd.open_workbook(file_contents=file.read())
+            ws = wb.sheet_by_index(0)
+            
+            # Get headers from first row
+            headers = []
+            for col in range(ws.ncols):
+                header = ws.cell_value(0, col)
+                headers.append(header.lower().strip())
+            
+            # Process data rows
+            imported_count = 0
+            for row in range(1, ws.nrows):
+                expense_data = {}
+                
+                for col, header in enumerate(headers):
+                    if col >= ws.ncols:
+                        continue
+                        
+                    cell_value = ws.cell_value(row, col)
+                    
+                    if header == 'expense_date' and cell_value:
+                        try:
+                            if isinstance(cell_value, float):
+                                # Excel date as float
+                                from datetime import date
+                                import xldate
+                                expense_data['expense_date'] = xldate.xldate_as_datetime(cell_value, wb.datemode).date()
+                            else:
+                                # String date
+                                expense_data['expense_date'] = datetime.strptime(str(cell_value), '%Y-%m-%d').date()
+                        except:
+                            continue
+                    elif header == 'platform' and cell_value:
+                        try:
+                            platform_id = int(float(cell_value))
+                            platform = RemoteMiningPlatform.objects.get(pk=platform_id)
+                            expense_data['platform'] = platform
+                        except:
+                            pass
+                    elif header == 'category' and cell_value:
+                        category_value = str(cell_value).upper().strip()
+                        if category_value in ['CAPEX', 'OPEX']:
+                            expense_data['category'] = category_value
+                    elif header == 'description' and cell_value:
+                        expense_data['description'] = str(cell_value)
+                    elif header == 'expense_amount' and cell_value:
+                        try:
+                            expense_data['expense_amount'] = Decimal(str(cell_value))
+                        except:
+                            pass
+                    elif header == 'invoice_link' and cell_value:
+                        expense_data['invoice_link'] = str(cell_value)
+                    elif header == 'receipt_link' and cell_value:
+                        expense_data['receipt_link'] = str(cell_value)
+                    elif header == 'notes' and cell_value:
+                        expense_data['notes'] = str(cell_value)
+                
+                # Create expense if we have required fields
+                if 'expense_date' in expense_data and 'category' in expense_data and 'expense_amount' in expense_data:
+                    Expense.objects.create(**expense_data)
+                    imported_count += 1
+            
+            messages.success(request, f'Successfully imported {imported_count} expenses!')
+            return redirect('expense_list')
+            
+        except Exception as e:
+            messages.error(request, 'Wrong import file format or data. Please check your file and try again.')
+            return redirect('expense_list')
+    
+    return redirect('expense_list')
 
 
 def forecasting_dashboard(request):

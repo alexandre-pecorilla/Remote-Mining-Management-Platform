@@ -123,6 +123,41 @@ class Payout(models.Model):
         return f"https://mempool.space/tx/{self.transaction_id}"
 
 
+class Expense(models.Model):
+    """Mining expense record"""
+    CATEGORY_CHOICES = [
+        ('CAPEX', 'CAPEX'),
+        ('OPEX', 'OPEX'),
+    ]
+    
+    expense_date = models.DateField(help_text="Date of the expense")
+    platform = models.ForeignKey(RemoteMiningPlatform, on_delete=models.CASCADE, related_name='expenses')
+    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, help_text="Expense category")
+    description = models.CharField(max_length=200, blank=True, null=True, help_text="Short description of the expense")
+    expense_amount = models.DecimalField(max_digits=12, decimal_places=2, help_text="Expense amount in USD")
+    invoice_link = models.URLField(blank=True, null=True, help_text="Link to invoice document")
+    receipt_link = models.URLField(blank=True, null=True, help_text="Link to receipt document")
+    notes = models.TextField(blank=True, null=True, help_text="Additional notes")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Expense"
+        verbose_name_plural = "Expenses"
+        ordering = ['-expense_date']
+
+    def __str__(self):
+        return f"{self.category} - ${self.expense_amount:,.2f} on {self.expense_date}"
+
+    def get_absolute_url(self):
+        return reverse('expense_detail', kwargs={'pk': self.pk})
+
+    @property
+    def formatted_expense_amount(self):
+        """Format expense amount"""
+        return f"${self.expense_amount:,.2f}" if self.expense_amount else None
+
+
 class APIData(models.Model):
     """API data from external sources - singleton model"""
     bitcoin_price_usd = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, help_text="Bitcoin Price in USD")

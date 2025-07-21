@@ -1,5 +1,5 @@
 from django import forms
-from .models import RemoteMiningPlatform, Miner, Settings, Payout
+from .models import RemoteMiningPlatform, Miner, Settings, Payout, Expense
 
 
 class RemoteMiningPlatformForm(forms.ModelForm):
@@ -107,6 +107,53 @@ class PayoutForm(forms.ModelForm):
             'platform': 'Platform',
             'transaction_id': 'Transaction ID',
             'closing_price': 'Closing Price ($)',
+        }
+
+
+class ExpenseForm(forms.ModelForm):
+    class Meta:
+        model = Expense
+        fields = ['expense_date', 'platform', 'category', 'description', 'expense_amount', 'invoice_link', 'receipt_link', 'notes']
+        widgets = {
+            'expense_date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control'
+            }),
+            'platform': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'category': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'description': forms.TextInput(attrs={
+                'class': 'form-control',
+                'maxlength': '200'
+            }),
+            'expense_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'invoice_link': forms.URLInput(attrs={
+                'class': 'form-control'
+            }),
+            'receipt_link': forms.URLInput(attrs={
+                'class': 'form-control'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': '4'
+            }),
+        }
+        labels = {
+            'expense_date': 'Expense Date',
+            'platform': 'Platform',
+            'category': 'Category',
+            'description': 'Description',
+            'expense_amount': 'Expense Amount ($)',
+            'invoice_link': 'Invoice Link',
+            'receipt_link': 'Receipt Link',
+            'notes': 'Notes',
         }
 
 
