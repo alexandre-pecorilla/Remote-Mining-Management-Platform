@@ -206,6 +206,7 @@
                 <h5><i class="fas fa-coins"></i> Revenues Data</h5>
             </div>
             <div class="card-body">
+                <!-- Row 1: Total BTC Mined - Total Number of Payouts - Gross Value at Payout - Current Gross Value -->
                 <div class="row">
                     <div class="col-lg-3 col-md-6 mb-3">
                         <div class="text-center">
@@ -216,30 +217,47 @@
                     </div>
                     <div class="col-lg-3 col-md-6 mb-3">
                         <div class="text-center">
-                            <i class="fas fa-dollar-sign fa-2x text-success mb-2"></i>
-                            <h6 class="text-muted">Current Gross Value</h6>
-                            <h4 class="text-success">${{ current_gross_value|floatformat:2|intcomma }}</h4>
+                            <i class="fas fa-receipt fa-2x text-info mb-2"></i>
+                            <h6 class="text-muted">Total Number of Payouts</h6>
+                            <h4 class="text-info">{{ total_payouts }}</h4>
                         </div>
                     </div>
-                    <div class="col-lg-2 col-md-6 mb-3">
+                    <div class="col-lg-3 col-md-6 mb-3">
                         <div class="text-center">
                             <i class="fas fa-chart-line fa-2x text-primary mb-2"></i>
                             <h6 class="text-muted">Gross Value at Payout</h6>
                             <h4 class="text-primary">${{ gross_value_at_payout|floatformat:2|intcomma }}</h4>
                         </div>
                     </div>
-                    <div class="col-lg-2 col-md-6 mb-3">
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-dollar-sign fa-2x text-success mb-2"></i>
+                            <h6 class="text-muted">Current Gross Value</h6>
+                            <h4 class="text-success">${{ current_gross_value|floatformat:2|intcomma }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <!-- Row 2: Total OPEX - Current Net Value - Appreciation -->
+                <div class="row">
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-money-bill-wave fa-2x text-danger mb-2"></i>
+                            <h6 class="text-muted">Total OPEX</h6>
+                            <h4 class="text-danger">${{ total_opex|floatformat:2|intcomma }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-balance-scale fa-2x text-{% if current_net_value >= 0 %}success{% else %}danger{% endif %} mb-2"></i>
+                            <h6 class="text-muted">Current Net Value</h6>
+                            <h4 class="text-{% if current_net_value >= 0 %}success{% else %}danger{% endif %}">${{ current_net_value|floatformat:2|intcomma }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
                         <div class="text-center">
                             <i class="fas fa-arrow-up fa-2x text-{% if appreciation >= 0 %}success{% else %}danger{% endif %} mb-2"></i>
                             <h6 class="text-muted">Appreciation</h6>
                             <h4 class="text-{% if appreciation >= 0 %}success{% else %}danger{% endif %}">${{ appreciation|floatformat:2|intcomma }}</h4>
-                        </div>
-                    </div>
-                    <div class="col-lg-2 col-md-6 mb-3">
-                        <div class="text-center">
-                            <i class="fas fa-receipt fa-2x text-info mb-2"></i>
-                            <h6 class="text-muted">Total Number of Payouts</h6>
-                            <h4 class="text-info">{{ total_payouts }}</h4>
                         </div>
                     </div>
                 </div>

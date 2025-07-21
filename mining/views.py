@@ -759,6 +759,13 @@ def overview_dashboard(request):
     # Calculate Appreciation (Current Gross Value - Gross Value at Payout)
     appreciation = current_gross_value - gross_value_at_payout
     
+    # Calculate Total OPEX (sum of all OPEX expenses)
+    total_opex = Expense.objects.filter(category='OPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+    total_opex = float(total_opex)
+    
+    # Calculate Current Net Value (Current Gross Value - Total OPEX)
+    current_net_value = current_gross_value - total_opex
+    
     # REVENUES DISTRIBUTION DATA
     revenue_by_platform = []
     for platform in RemoteMiningPlatform.objects.all():
@@ -806,6 +813,8 @@ def overview_dashboard(request):
         'current_gross_value': current_gross_value,
         'gross_value_at_payout': gross_value_at_payout,
         'appreciation': appreciation,
+        'total_opex': total_opex,
+        'current_net_value': current_net_value,
         'total_payouts': total_payouts,
         
         # Revenue Distribution
@@ -1043,6 +1052,13 @@ def export_overview_data(request):
     # Calculate Appreciation (Current Gross Value - Gross Value at Payout)
     appreciation = current_gross_value - gross_value_at_payout
     
+    # Calculate Total OPEX (sum of all OPEX expenses)
+    total_opex = Expense.objects.filter(category='OPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+    total_opex = float(total_opex)
+    
+    # Calculate Current Net Value (Current Gross Value - Total OPEX)
+    current_net_value = current_gross_value - total_opex
+    
     # Sheet 1: Overview Summary
     ws_summary = wb.add_sheet('Overview Summary')
     
@@ -1160,6 +1176,18 @@ def export_overview_data(request):
     ws_summary.write(row, 1, 'Total Payouts')
     ws_summary.write(row, 2, total_payouts)
     ws_summary.write(row, 3, 'count')
+    row += 1
+    
+    ws_summary.write(row, 0, 'Revenue Data')
+    ws_summary.write(row, 1, 'Total OPEX')
+    ws_summary.write(row, 2, round(float(total_opex), 2))
+    ws_summary.write(row, 3, 'USD')
+    row += 1
+    
+    ws_summary.write(row, 0, 'Revenue Data')
+    ws_summary.write(row, 1, 'Current Net Value')
+    ws_summary.write(row, 2, round(float(current_net_value), 2))
+    ws_summary.write(row, 3, 'USD')
     row += 1
     
     # Sheet 2: Hashrate by Platform

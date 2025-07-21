@@ -21,18 +21,25 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-lg-6 col-md-6 mb-3">
+                    <div class="col-lg-4 col-md-6 mb-3">
                         <a href="{% url 'overview_dashboard' %}" class="btn btn-outline-info btn-lg w-100 h-100 d-flex flex-column justify-content-center">
                             <i class="fas fa-tachometer-alt fa-2x mb-2"></i>
                             <h5 class="mb-1">Overview Dashboard</h5>
                             <small class="text-muted">Analytics, metrics, and insights</small>
                         </a>
                     </div>
-                    <div class="col-lg-6 col-md-6 mb-3">
+                    <div class="col-lg-4 col-md-6 mb-3">
                         <a href="{% url 'forecasting_dashboard' %}" class="btn btn-outline-success btn-lg w-100 h-100 d-flex flex-column justify-content-center">
                             <i class="fas fa-chart-line fa-2x mb-2"></i>
                             <h5 class="mb-1">Forecasting Dashboard</h5>
                             <small class="text-muted">BTC mining profitability analysis</small>
+                        </a>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <a href="{% url 'capex_opex_dashboard' %}" class="btn btn-outline-warning btn-lg w-100 h-100 d-flex flex-column justify-content-center">
+                            <i class="fas fa-chart-pie fa-2x mb-2"></i>
+                            <h5 class="mb-1">CAPEX/OPEX Dashboard</h5>
+                            <small class="text-muted">Expense analysis and financial insights</small>
                         </a>
                     </div>
                 </div>
@@ -50,25 +57,32 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-lg-4 col-md-6 mb-3">
+                    <div class="col-lg-3 col-md-6 mb-3">
                         <a href="{% url 'platform_list' %}" class="btn btn-outline-primary btn-lg w-100 h-100 d-flex flex-column justify-content-center">
                             <i class="fas fa-server fa-2x mb-2"></i>
                             <h5 class="mb-1">Platforms</h5>
                             <small class="text-muted">Mining platforms and hosting providers</small>
                         </a>
                     </div>
-                    <div class="col-lg-4 col-md-6 mb-3">
+                    <div class="col-lg-3 col-md-6 mb-3">
                         <a href="{% url 'miner_list' %}" class="btn btn-outline-success btn-lg w-100 h-100 d-flex flex-column justify-content-center">
                             <i class="fas fa-microchip fa-2x mb-2"></i>
                             <h5 class="mb-1">Miners</h5>
                             <small class="text-muted">ASIC miners and hardware</small>
                         </a>
                     </div>
-                    <div class="col-lg-4 col-md-6 mb-3">
+                    <div class="col-lg-3 col-md-6 mb-3">
                         <a href="{% url 'payout_list' %}" class="btn btn-outline-warning btn-lg w-100 h-100 d-flex flex-column justify-content-center">
                             <i class="fas fa-coins fa-2x mb-2"></i>
                             <h5 class="mb-1">Payouts</h5>
                             <small class="text-muted">Bitcoin mining payouts and earnings</small>
+                        </a>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <a href="{% url 'expense_list' %}" class="btn btn-outline-danger btn-lg w-100 h-100 d-flex flex-column justify-content-center">
+                            <i class="fas fa-receipt fa-2x mb-2"></i>
+                            <h5 class="mb-1">Expenses</h5>
+                            <small class="text-muted">CAPEX/OPEX expense tracking</small>
                         </a>
                     </div>
                 </div>
