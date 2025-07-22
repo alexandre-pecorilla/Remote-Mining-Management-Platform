@@ -1,5 +1,5 @@
 from django import forms
-from .models import RemoteMiningPlatform, Miner, Settings, Payout, Expense
+from .models import RemoteMiningPlatform, Miner, Settings, Payout, Expense, TopUp
 
 
 class RemoteMiningPlatformForm(forms.ModelForm):
@@ -154,6 +154,40 @@ class ExpenseForm(forms.ModelForm):
             'invoice_link': 'Invoice Link',
             'receipt_link': 'Receipt Link',
             'notes': 'Notes',
+        }
+
+
+class TopUpForm(forms.ModelForm):
+    class Meta:
+        model = TopUp
+        fields = ['topup_date', 'platform', 'topup_amount', 'description', 'receipt_link']
+        widgets = {
+            'topup_date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control'
+            }),
+            'platform': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'topup_amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': '4'
+            }),
+            'receipt_link': forms.URLInput(attrs={
+                'class': 'form-control'
+            }),
+        }
+        labels = {
+            'topup_date': 'Top-Up Date',
+            'platform': 'Platform',
+            'topup_amount': 'Top-Up Amount ($)',
+            'description': 'Description',
+            'receipt_link': 'Receipt Link',
         }
 
 

@@ -31,12 +31,19 @@ urlpatterns = [
     path('data/payouts/<int:pk>/delete/', views.PayoutDeleteView.as_view(), name='payout_delete'),
     path('data/payouts/<int:payout_id>/fetch-closing-price/', views.fetch_closing_price, name='fetch_closing_price'),
     
-    # Expense URLs - /data/expenses
+    # Expenses - /data/expenses
     path('data/expenses/', views.ExpenseListView.as_view(), name='expense_list'),
     path('data/expenses/<int:pk>/', views.ExpenseDetailView.as_view(), name='expense_detail'),
     path('data/expenses/add/', views.ExpenseCreateView.as_view(), name='expense_create'),
     path('data/expenses/<int:pk>/edit/', views.ExpenseUpdateView.as_view(), name='expense_edit'),
     path('data/expenses/<int:pk>/delete/', views.ExpenseDeleteView.as_view(), name='expense_delete'),
+    
+    # Top-Ups - /data/topups
+    path('data/topups/', views.TopUpListView.as_view(), name='topup_list'),
+    path('data/topups/<int:pk>/', views.TopUpDetailView.as_view(), name='topup_detail'),
+    path('data/topups/add/', views.TopUpCreateView.as_view(), name='topup_create'),
+    path('data/topups/<int:pk>/edit/', views.TopUpUpdateView.as_view(), name='topup_edit'),
+    path('data/topups/<int:pk>/delete/', views.TopUpDeleteView.as_view(), name='topup_delete'),
     
     # API Data - /data/api-data
     path('data/api-data/', views.api_data_view, name='api_data'),
@@ -53,18 +60,21 @@ urlpatterns = [
     path('download-templates/miner/', views.download_miner_template, name='download_miner_template'),
     path('download-templates/payout/', views.download_payout_template, name='download_payout_template'),
     path('download-templates/expense/', views.download_expense_template, name='download_expense_template'),
+    path('download-templates/topup/', views.download_topup_template, name='download_topup_template'),
     
     # Data Import
     path('import-data/platform/', views.import_platform_data, name='import_platform_data'),
     path('import-data/miner/', views.import_miner_data, name='import_miner_data'),
     path('import-data/payout/', views.import_payout_data, name='import_payout_data'),
     path('import-data/expense/', views.import_expense_data, name='import_expense_data'),
+    path('import-data/topup/', views.import_topup_data, name='import_topup_data'),
     
     # Data Export
     path('export-data/platform/', views.export_platform_data, name='export_platform_data'),
     path('export-data/miner/', views.export_miner_data, name='export_miner_data'),
     path('export-data/payout/', views.export_payout_data, name='export_payout_data'),
     path('export-data/expense/', views.export_expense_data, name='export_expense_data'),
+    path('export-data/topup/', views.export_topup_data, name='export_topup_data'),
     path('export-data/overview/', views.export_overview_data, name='export_overview_data'),
     path('export-data/forecasting/', views.export_forecasting_data, name='export_forecasting_data'),
 ]

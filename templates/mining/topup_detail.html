@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Top-Up{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-plus-circle"></i> Top-Up</h1>
+    <div class="d-flex gap-2">
+        {% if previous_topup %}
+            <a href="{% url 'topup_detail' previous_topup.pk %}" class="btn btn-outline-secondary" title="Previous Top-Up">
+                <i class="fas fa-chevron-left"></i> Previous
+            </a>
+        {% else %}
+            <button class="btn btn-outline-secondary" disabled>
+                <i class="fas fa-chevron-left"></i> Previous
+            </button>
+        {% endif %}
+        
+        {% if next_topup %}
+            <a href="{% url 'topup_detail' next_topup.pk %}" class="btn btn-outline-secondary ms-2" title="Next Top-Up">
+                Next <i class="fas fa-chevron-right"></i>
+            </a>
+        {% else %}
+            <button class="btn btn-outline-secondary ms-2" disabled>
+                Next <i class="fas fa-chevron-right"></i>
+            </button>
+        {% endif %}
+        
+        <a href="{% url 'topup_edit' topup.pk %}" class="btn btn-outline-warning ms-2">
+            <i class="fas fa-edit"></i> Edit
+        </a>
+        <a href="{% url 'topup_delete' topup.pk %}" class="btn btn-outline-danger">
+            <i class="fas fa-trash"></i> Delete
+        </a>
+        <a href="{% url 'topup_list' %}" class="btn btn-outline-secondary ms-2">
+            <i class="fas fa-list"></i> Back to List
+        </a>
+    </div>
+</div>
+
+{% if settings.developer_mode %}
+    <div class="alert alert-info">
+        <i class="fas fa-database"></i> Database ID: {{ topup.pk }}
+    </div>
+{% endif %}
+
+<div class="row">
+    <div class="col-12">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-info-circle"></i> Top-Up Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-6 mb-3">
+                        <strong>Top-Up Date:</strong>
+                        <div class="text-muted">{{ topup.topup_date|date:"M d, Y" }}</div>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <strong>Platform:</strong>
+                        {% if topup.platform %}
+                            <p class="text-primary">
+                                <a href="{% url 'platform_detail' topup.platform.pk %}" class="text-decoration-none">
+                                    {{ topup.platform.name }}
+                                </a>
+                                {% if settings.developer_mode %}
+                                    <small class="text-muted d-block">Platform ID: {{ topup.platform.pk }}</small>
+                                {% endif %}
+                            </p>
+                        {% else %}
+                            <p class="text-muted">No Platform</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-sm-6 mb-3">
+                        <strong>Top-Up Amount:</strong>
+                        <div class="text-success fw-bold h5 mb-0">${{ topup.topup_amount|floatformat:2|intcomma }}</div>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <strong>Receipt:</strong>
+                        <div>
+                            {% if topup.receipt_link %}
+                                <a href="{{ topup.receipt_link }}" class="btn btn-sm btn-outline-info" target="_blank">
+                                    <i class="fas fa-receipt"></i> View Receipt
+                                </a>
+                            {% else %}
+                                <span class="text-muted">No receipt</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if topup.description %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-body-secondary">
+                <h5 class="mb-0"><i class="fas fa-comment"></i> Description</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-body">{{ topup.description|linebreaksbr }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Top-Ups{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-plus-circle"></i> Top-Ups</h1>
+    <div class="d-flex gap-2">
+        <a href="{% url 'download_topup_template' %}" class="btn btn-outline-info">
+            <i class="fas fa-download"></i> Download Import Template
+        </a>
+        <button type="button" class="btn btn-outline-warning" onclick="document.getElementById('topupImportFile').click()">
+            <i class="fas fa-upload"></i> Import Data
+        </button>
+        <a href="{% url 'export_topup_data' %}" class="btn btn-outline-success">
+            <i class="fas fa-file-export"></i> Export Data
+        </a>
+        <a href="{% url 'topup_create' %}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Add New Top-Up
+        </a>
+    </div>
+</div>
+
+{% if topups %}
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Date</th>
+                    <th>Platform</th>
+                    <th>Amount (USD)</th>
+                    <th>Description</th>
+                    <th>Receipt</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for topup in topups %}
+                    <tr>
+                        <td>{{ topup.topup_date|date:"M d, Y" }}</td>
+                        <td>
+                            {% if topup.platform %}
+                                <span class="text-primary">{{ topup.platform.name }}</span>
+                                {% if settings.developer_mode %}
+                                    <small class="text-muted d-block">ID: {{ topup.platform.pk }}</small>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">No Platform</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-success fw-bold">${{ topup.topup_amount|floatformat:2|intcomma }}</td>
+                        <td>
+                            {% if topup.description %}
+                                {{ topup.description|truncatechars:50 }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if topup.receipt_link %}
+                                <a href="{{ topup.receipt_link }}" class="text-info" target="_blank">
+                                    <i class="fas fa-receipt"></i>
+                                </a>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{% url 'topup_detail' topup.pk %}" class="btn btn-outline-primary" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'topup_edit' topup.pk %}" class="btn btn-outline-warning" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'topup_delete' topup.pk %}" class="btn btn-outline-danger" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+        <nav aria-label="Top-Up pagination">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1">&laquo; First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                    </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <span class="page-link">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+{% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-plus-circle fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">No Top-Ups Found</h4>
+        <p class="text-muted">Start by adding your first top-up transaction.</p>
+        <a href="{% url 'topup_create' %}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Add New Top-Up
+        </a>
+    </div>
+{% endif %}
+
+<!-- Hidden file input for import -->
+<form id="topupImportForm" method="post" action="{% url 'import_topup_data' %}" enctype="multipart/form-data" style="display: none;">
+    {% csrf_token %}
+    <input type="file" id="topupImportFile" name="import_file" accept=".xlsx,.xls" onchange="submitImportForm('topupImportForm')">
+</form>
+
+<script>
+function submitImportForm(formId) {
+    const form = document.getElementById(formId);
+    const fileInput = form.querySelector('input[type="file"]');
+    
+    if (fileInput.files.length > 0) {
+        // Show loading indicator
+        const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'), {backdrop: 'static', keyboard: false});
+        loadingModal.show();
+        
+        form.submit();
+    }
+}
+</script>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-labelledby="loadingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mb-0">Importing top-up data...</p>
+                <small class="text-muted">Please wait, this may take a moment.</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

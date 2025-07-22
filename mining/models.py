@@ -158,6 +158,34 @@ class Expense(models.Model):
         return f"${self.expense_amount:,.2f}" if self.expense_amount else None
 
 
+class TopUp(models.Model):
+    """Platform top-up record"""
+    
+    topup_date = models.DateField(help_text="Date of the top-up")
+    platform = models.ForeignKey(RemoteMiningPlatform, on_delete=models.CASCADE, related_name='topups')
+    topup_amount = models.DecimalField(max_digits=12, decimal_places=2, help_text="Top-up amount in USD")
+    description = models.TextField(blank=True, null=True, help_text="Description of the top-up")
+    receipt_link = models.URLField(blank=True, null=True, help_text="Link to receipt document")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Top-Up"
+        verbose_name_plural = "Top-Ups"
+        ordering = ['-topup_date']
+
+    def __str__(self):
+        return f"${self.topup_amount:,.2f} top-up on {self.topup_date} - {self.platform.name}"
+
+    def get_absolute_url(self):
+        return reverse('topup_detail', kwargs={'pk': self.pk})
+
+    @property
+    def formatted_topup_amount(self):
+        """Format top-up amount"""
+        return f"${self.topup_amount:,.2f}" if self.topup_amount else None
+
+
 class APIData(models.Model):
     """API data from external sources - singleton model"""
     bitcoin_price_usd = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, help_text="Bitcoin Price in USD")

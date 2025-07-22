@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if topup.pk %}Edit Top-Up{% else %}Add New Top-Up{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-plus-circle"></i>
+                    {% if topup.pk %}Edit Top-Up{% else %}Add New Top-Up{% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <!-- Top-Up Date -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.topup_date.id_for_label }}" class="form-label">
+                                    {{ form.topup_date.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.topup_date }}
+                                {% if form.topup_date.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.topup_date.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Platform -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.platform.id_for_label }}" class="form-label">
+                                    {{ form.platform.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.platform }}
+                                {% if form.platform.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.platform.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Top-Up Amount -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.topup_amount.id_for_label }}" class="form-label">
+                                    {{ form.topup_amount.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.topup_amount }}
+                                {% if form.topup_amount.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.topup_amount.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Receipt Link -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.receipt_link.id_for_label }}" class="form-label">
+                                    {{ form.receipt_link.label }}
+                                </label>
+                                {{ form.receipt_link }}
+                                {% if form.receipt_link.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.receipt_link.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">
+                            {{ form.description.label }}
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.description.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% if topup.pk %}{% url 'topup_detail' topup.pk %}{% else %}{% url 'topup_list' %}{% endif %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> {% if topup.pk %}Update{% else %}Create{% endif %} Top-Up
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if topup.pk %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> Additional Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-2"><strong>Created:</strong> {{ topup.created_at|date:"M d, Y H:i" }}</p>
+                <p class="text-muted mb-0"><strong>Last Modified:</strong> {{ topup.updated_at|date:"M d, Y H:i" }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

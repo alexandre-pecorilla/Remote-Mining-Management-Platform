@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.db.models import Sum, Q
 from django.db.models.functions import TruncMonth
@@ -10,8 +10,8 @@ import xlrd
 from decimal import Decimal
 from datetime import datetime
 import json
-from .models import RemoteMiningPlatform, Miner, Settings, APIData, Payout, Expense
-from .forms import RemoteMiningPlatformForm, MinerForm, SettingsForm, PayoutForm, ExpenseForm
+from .models import RemoteMiningPlatform, Miner, Settings, APIData, Payout, Expense, TopUp
+from .forms import RemoteMiningPlatformForm, MinerForm, SettingsForm, PayoutForm, ExpenseForm, TopUpForm
 from .api_utils import fetch_all_api_data, get_historical_btc_price
 
 
@@ -1576,6 +1576,198 @@ def import_expense_data(request):
             return redirect('expense_list')
     
     return redirect('expense_list')
+
+
+# ===== TOP-UP VIEWS =====
+
+class TopUpListView(ListView):
+    model = TopUp
+    template_name = 'mining/topup_list.html'
+    context_object_name = 'topups'
+    paginate_by = 50
+
+
+class TopUpDetailView(DetailView):
+    model = TopUp
+    template_name = 'mining/topup_detail.html'
+    context_object_name = 'topup'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Add previous and next navigation
+        topup = self.get_object()
+        context['previous_topup'] = TopUp.objects.filter(
+            id__lt=topup.id
+        ).order_by('-id').first()
+        
+        context['next_topup'] = TopUp.objects.filter(
+            id__gt=topup.id
+        ).order_by('id').first()
+        
+        return context
+
+
+class TopUpCreateView(CreateView):
+    model = TopUp
+    form_class = TopUpForm
+    template_name = 'mining/topup_form.html'
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'Top-Up created successfully!')
+        return response
+    
+    def get_success_url(self):
+        return reverse('topup_detail', kwargs={'pk': self.object.pk})
+
+
+class TopUpUpdateView(UpdateView):
+    model = TopUp
+    form_class = TopUpForm
+    template_name = 'mining/topup_form.html'
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'Top-Up updated successfully!')
+        return response
+    
+    def get_success_url(self):
+        return reverse('topup_detail', kwargs={'pk': self.object.pk})
+
+
+class TopUpDeleteView(DeleteView):
+    model = TopUp
+    template_name = 'mining/topup_confirm_delete.html'
+    
+    def delete(self, request, *args, **kwargs):
+        response = super().delete(request, *args, **kwargs)
+        messages.success(request, 'Top-Up deleted successfully!')
+        return response
+    
+    def get_success_url(self):
+        return reverse('topup_list')
+
+
+def download_topup_template(request):
+    """Download Excel template for Top-Up import"""
+    wb = xlwt.Workbook()
+    ws = wb.add_sheet('TopUp Template')
+    
+    # Add headers
+    headers = ['topup_date', 'platform', 'topup_amount', 'description', 'receipt_link']
+    
+    for col, header in enumerate(headers):
+        ws.write(0, col, header)
+    
+    response = HttpResponse(
+        content_type='application/vnd.ms-excel'
+    )
+    response['Content-Disposition'] = 'attachment; filename="topup_import_template.xls"'
+    wb.save(response)
+    return response
+
+
+def export_topup_data(request):
+    """Export all top-up data to Excel file"""
+    wb = xlwt.Workbook()
+    ws = wb.add_sheet('TopUp Data')
+    
+    # Add headers
+    headers = ['topup_date', 'platform', 'topup_amount', 'description', 'receipt_link']
+    
+    for col, header in enumerate(headers):
+        ws.write(0, col, header)
+    
+    # Add data rows
+    topups = TopUp.objects.all().order_by('-topup_date')
+    for row, topup in enumerate(topups, start=1):
+        ws.write(row, 0, str(topup.topup_date) if topup.topup_date else '')
+        ws.write(row, 1, topup.platform.name if topup.platform else '')
+        ws.write(row, 2, float(topup.topup_amount) if topup.topup_amount else '')
+        ws.write(row, 3, topup.description or '')
+        ws.write(row, 4, topup.receipt_link or '')
+    
+    response = HttpResponse(
+        content_type='application/vnd.ms-excel'
+    )
+    response['Content-Disposition'] = 'attachment; filename="topup_data_export.xls"'
+    wb.save(response)
+    return response
+
+
+def import_topup_data(request):
+    """Import top-up data from uploaded Excel file"""
+    if request.method == 'POST' and request.FILES.get('import_file'):
+        try:
+            file = request.FILES['import_file']
+            wb = xlrd.open_workbook(file_contents=file.read())
+            ws = wb.sheet_by_index(0)
+            
+            # Get headers from first row
+            headers = [str(ws.cell_value(0, col)).lower().strip() for col in range(ws.ncols)]
+            
+            imported_count = 0
+            
+            # Process each row (skip header row)
+            for row in range(1, ws.nrows):
+                topup_data = {}
+                
+                # Process each column
+                for col, header in enumerate(headers):
+                    if col >= ws.ncols:
+                        break
+                        
+                    cell_value = ws.cell_value(row, col)
+                    
+                    if header == 'topup_date' and cell_value:
+                        # Handle date conversion
+                        if isinstance(cell_value, float):
+                            try:
+                                from datetime import datetime, date
+                                dt = xlrd.xldate_as_datetime(cell_value, wb.datemode)
+                                topup_data['topup_date'] = dt.date()
+                            except:
+                                continue
+                        else:
+                            try:
+                                from datetime import datetime
+                                topup_data['topup_date'] = datetime.strptime(str(cell_value), '%Y-%m-%d').date()
+                            except:
+                                continue
+                    elif header == 'platform' and cell_value:
+                        try:
+                            # Try to find platform by ID or name
+                            if isinstance(cell_value, float):
+                                platform = RemoteMiningPlatform.objects.get(id=int(cell_value))
+                            else:
+                                platform = RemoteMiningPlatform.objects.get(name=str(cell_value))
+                            topup_data['platform'] = platform
+                        except RemoteMiningPlatform.DoesNotExist:
+                            continue
+                    elif header == 'topup_amount' and cell_value:
+                        try:
+                            topup_data['topup_amount'] = float(cell_value)
+                        except (ValueError, TypeError):
+                            continue
+                    elif header == 'description' and cell_value:
+                        topup_data['description'] = str(cell_value)
+                    elif header == 'receipt_link' and cell_value:
+                        topup_data['receipt_link'] = str(cell_value)
+                
+                # Create top-up if we have required fields
+                if 'topup_date' in topup_data and 'platform' in topup_data and 'topup_amount' in topup_data:
+                    TopUp.objects.create(**topup_data)
+                    imported_count += 1
+            
+            messages.success(request, f'Successfully imported {imported_count} top-ups!')
+            return redirect('topup_list')
+            
+        except Exception as e:
+            messages.error(request, 'Wrong import file format or data. Please check your file and try again.')
+            return redirect('topup_list')
+    
+    return redirect('topup_list')
 
 
 def forecasting_dashboard(request):
