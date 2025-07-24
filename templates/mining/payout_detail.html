@@ -142,9 +142,9 @@
                     <div class="col-md-12">
                         <div class="mb-3">
                             <strong>Transaction ID:</strong>
-                            <div class="d-flex align-items-center">
-                                <code class="me-2">{{ payout.transaction_id }}</code>
-                                <a href="{{ payout.mempool_link }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                            <div class="d-flex flex-column flex-md-row align-items-md-center gap-2">
+                                <code class="flex-grow-1 me-md-2" style="word-break: break-all; overflow-wrap: break-word; white-space: pre-wrap;">{{ payout.transaction_id }}</code>
+                                <a href="{{ payout.mempool_link }}" target="_blank" class="btn btn-outline-primary btn-sm flex-shrink-0">
                                     <i class="fas fa-external-link-alt"></i> View on mempool.space
                                 </a>
                             </div>
