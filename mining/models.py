@@ -31,6 +31,40 @@ class RemoteMiningPlatform(models.Model):
         if self.energy_price:
             return f"${self.energy_price:.4f}/kWh"
         return "Not specified"
+    
+    @property
+    def average_efficiency(self):
+        """Calculate average efficiency (W/TH) of all miners on this platform"""
+        miners_with_efficiency = self.miners.filter(efficiency__isnull=False, efficiency__gt=0)
+        if miners_with_efficiency.exists():
+            from django.db.models import Avg
+            avg_eff = miners_with_efficiency.aggregate(avg=Avg('efficiency'))['avg']
+            return round(float(avg_eff), 2) if avg_eff else None
+        return None
+    
+    @property
+    def average_efficiency_weighted(self):
+        """Calculate hashrate-weighted average efficiency (W/TH) of all miners on this platform"""
+        miners = self.miners.filter(
+            efficiency__isnull=False, 
+            efficiency__gt=0,
+            hashrate__isnull=False, 
+            hashrate__gt=0
+        )
+        if miners.exists():
+            total_weighted_efficiency = 0
+            total_hashrate = 0
+            
+            for miner in miners:
+                hashrate = float(miner.hashrate)
+                efficiency = float(miner.efficiency)
+                total_weighted_efficiency += hashrate * efficiency
+                total_hashrate += hashrate
+            
+            if total_hashrate > 0:
+                weighted_avg = total_weighted_efficiency / total_hashrate
+                return round(weighted_avg, 2)
+        return None
 
 
 class Miner(models.Model):

@@ -93,6 +93,18 @@
                         <td><span class="energy-price">{{ platform.formatted_energy_price }}</span></td>
                     </tr>
                     {% endif %}
+                    {% if platform.average_efficiency %}
+                    <tr>
+                        <td><strong>Average Efficiency:</strong></td>
+                        <td><span class="text-info">{{ platform.average_efficiency }} W/TH</span></td>
+                    </tr>
+                    {% endif %}
+                    {% if platform.average_efficiency_weighted %}
+                    <tr>
+                        <td><strong>Average Efficiency (Weighted):</strong></td>
+                        <td><span class="text-success">{{ platform.average_efficiency_weighted }} W/TH</span></td>
+                    </tr>
+                    {% endif %}
                     {% if platform.point_of_contact_name %}
                     <tr>
                         <td><strong>Contact Name:</strong></td>
