@@ -322,6 +322,370 @@ def export_capex_opex_data(request):
     return response
 
 
+# Income Dashboard View
+def income_dashboard(request):
+    """Dashboard view for Income analysis"""
+    
+    # Get API data for current market value calculations
+    api_data = APIData.get_api_data()
+    current_btc_price = float(api_data.bitcoin_price_usd) if api_data.bitcoin_price_usd else 0
+    
+    # Total Income calculations
+    total_income_btc = Payout.objects.aggregate(total=Sum('payout_amount'))['total'] or Decimal('0')
+    total_income_usd_then = Payout.objects.aggregate(total=Sum('value_at_payout'))['total'] or Decimal('0')
+    
+    # Calculate total income USD now (current market value)
+    total_income_usd_now = Decimal('0')
+    if current_btc_price > 0:
+        total_income_usd_now = total_income_btc * Decimal(str(current_btc_price))
+    
+    # Total Income by Platform
+    platforms = RemoteMiningPlatform.objects.all()
+    platform_income = []
+    
+    for platform in platforms:
+        platform_btc = Payout.objects.filter(platform=platform).aggregate(total=Sum('payout_amount'))['total'] or Decimal('0')
+        platform_usd_then = Payout.objects.filter(platform=platform).aggregate(total=Sum('value_at_payout'))['total'] or Decimal('0')
+        platform_usd_now = Decimal('0')
+        if current_btc_price > 0:
+            platform_usd_now = platform_btc * Decimal(str(current_btc_price))
+        
+        if platform_btc > 0:  # Only include platforms with income
+            platform_income.append({
+                'platform': platform,
+                'total_btc': platform_btc,
+                'total_usd_then': platform_usd_then,
+                'total_usd_now': platform_usd_now
+            })
+    
+    # Monthly Income BTC calculations
+    monthly_income_btc = Payout.objects.annotate(
+        month=TruncMonth('payout_date')
+    ).values('month').annotate(
+        total_btc=Sum('payout_amount'),
+        total_usd_then=Sum('value_at_payout')
+    ).order_by('month')
+    
+    # Add current market value to monthly income
+    for item in monthly_income_btc:
+        item['total_usd_now'] = item['total_btc'] * Decimal(str(current_btc_price)) if current_btc_price > 0 else Decimal('0')
+    
+    # Monthly Income by platform
+    monthly_income_by_platform = {}
+    for platform in platforms:
+        platform_monthly_income = Payout.objects.filter(
+            platform=platform
+        ).annotate(
+            month=TruncMonth('payout_date')
+        ).values('month').annotate(
+            total_btc=Sum('payout_amount'),
+            total_usd_then=Sum('value_at_payout')
+        ).order_by('month')
+        
+        # Add current market value
+        for item in platform_monthly_income:
+            item['total_usd_now'] = item['total_btc'] * Decimal(str(current_btc_price)) if current_btc_price > 0 else Decimal('0')
+        
+        if platform_monthly_income:  # Only include platforms with income
+            monthly_income_by_platform[platform] = platform_monthly_income
+    
+    # Get all unique months for table structure
+    all_months = set()
+    for item in monthly_income_btc:
+        all_months.add(item['month'])
+    for platform_data in monthly_income_by_platform.values():
+        for item in platform_data:
+            all_months.add(item['month'])
+    
+    all_months = sorted(list(all_months))
+    
+    # Prepare monthly data for template
+    monthly_btc_data = []
+    monthly_usd_then_data = []
+    monthly_usd_now_data = []
+    
+    for month in all_months:
+        if month:
+            # BTC data
+            btc_row = {'month': month, 'total': Decimal('0'), 'platforms': {}}
+            usd_then_row = {'month': month, 'total': Decimal('0'), 'platforms': {}}
+            usd_now_row = {'month': month, 'total': Decimal('0'), 'platforms': {}}
+            
+            # Find total for this month
+            for item in monthly_income_btc:
+                if item['month'] == month:
+                    btc_row['total'] = item['total_btc']
+                    usd_then_row['total'] = item['total_usd_then']
+                    usd_now_row['total'] = item['total_usd_now']
+                    break
+            
+            # Add platform data
+            for platform, platform_data in monthly_income_by_platform.items():
+                btc_row['platforms'][platform] = Decimal('0')
+                usd_then_row['platforms'][platform] = Decimal('0')
+                usd_now_row['platforms'][platform] = Decimal('0')
+                
+                for item in platform_data:
+                    if item['month'] == month:
+                        btc_row['platforms'][platform] = item['total_btc']
+                        usd_then_row['platforms'][platform] = item['total_usd_then']
+                        usd_now_row['platforms'][platform] = item['total_usd_now']
+                        break
+            
+            monthly_btc_data.append(btc_row)
+            monthly_usd_then_data.append(usd_then_row)
+            monthly_usd_now_data.append(usd_now_row)
+    
+    context = {
+        'total_income_btc': total_income_btc,
+        'total_income_usd_then': total_income_usd_then,
+        'total_income_usd_now': total_income_usd_now,
+        'platform_income': platform_income,
+        'monthly_btc_data': monthly_btc_data,
+        'monthly_usd_then_data': monthly_usd_then_data,
+        'monthly_usd_now_data': monthly_usd_now_data,
+        'platforms_with_income': [item['platform'] for item in platform_income],
+        'current_btc_price': current_btc_price,
+    }
+    
+    return render(request, 'mining/income_dashboard.html', context)
+
+
+def export_income_data(request):
+    """Export Income dashboard data to Excel file"""
+    
+    wb = xlwt.Workbook()
+    
+    # Get API data for current market value calculations
+    api_data = APIData.get_api_data()
+    current_btc_price = float(api_data.bitcoin_price_usd) if api_data.bitcoin_price_usd else 0
+    
+    # EXACT COPY of income_dashboard calculations
+    # Total Income calculations
+    total_income_btc = Payout.objects.aggregate(total=Sum('payout_amount'))['total'] or Decimal('0')
+    total_income_usd_then = Payout.objects.aggregate(total=Sum('value_at_payout'))['total'] or Decimal('0')
+    
+    # Calculate total income USD now (current market value)
+    total_income_usd_now = Decimal('0')
+    if current_btc_price > 0:
+        total_income_usd_now = total_income_btc * Decimal(str(current_btc_price))
+    
+    # Total Income by Platform
+    platforms = RemoteMiningPlatform.objects.all()
+    platform_income = []
+    
+    for platform in platforms:
+        platform_btc = Payout.objects.filter(platform=platform).aggregate(total=Sum('payout_amount'))['total'] or Decimal('0')
+        platform_usd_then = Payout.objects.filter(platform=platform).aggregate(total=Sum('value_at_payout'))['total'] or Decimal('0')
+        platform_usd_now = Decimal('0')
+        if current_btc_price > 0:
+            platform_usd_now = platform_btc * Decimal(str(current_btc_price))
+        
+        if platform_btc > 0:  # Only include platforms with income
+            platform_income.append({
+                'platform': platform,
+                'total_btc': platform_btc,
+                'total_usd_then': platform_usd_then,
+                'total_usd_now': platform_usd_now
+            })
+    
+    # Monthly Income calculations
+    monthly_income_btc = Payout.objects.annotate(
+        month=TruncMonth('payout_date')
+    ).values('month').annotate(
+        total_btc=Sum('payout_amount'),
+        total_usd_then=Sum('value_at_payout')
+    ).order_by('month')
+    
+    # Add current market value to monthly income
+    for item in monthly_income_btc:
+        item['total_usd_now'] = item['total_btc'] * Decimal(str(current_btc_price)) if current_btc_price > 0 else Decimal('0')
+    
+    # Monthly Income by platform
+    monthly_income_by_platform = {}
+    for platform in platforms:
+        platform_monthly_income = Payout.objects.filter(
+            platform=platform
+        ).annotate(
+            month=TruncMonth('payout_date')
+        ).values('month').annotate(
+            total_btc=Sum('payout_amount'),
+            total_usd_then=Sum('value_at_payout')
+        ).order_by('month')
+        
+        # Add current market value
+        for item in platform_monthly_income:
+            item['total_usd_now'] = item['total_btc'] * Decimal(str(current_btc_price)) if current_btc_price > 0 else Decimal('0')
+        
+        if platform_monthly_income:  # Only include platforms with income
+            monthly_income_by_platform[platform] = platform_monthly_income
+    
+    # Get all unique months for table structure
+    all_months = set()
+    for item in monthly_income_btc:
+        all_months.add(item['month'])
+    for platform_data in monthly_income_by_platform.values():
+        for item in platform_data:
+            all_months.add(item['month'])
+    
+    all_months = sorted(list(all_months))
+    
+    # Sheet 1: Total Income Summary
+    ws_summary = wb.add_sheet('Total Income Summary')
+    
+    # Headers
+    ws_summary.write(0, 0, 'Income Type')
+    ws_summary.write(0, 1, 'Amount')
+    
+    # Data rows
+    ws_summary.write(1, 0, 'Total Income BTC')
+    ws_summary.write(1, 1, float(total_income_btc))
+    
+    ws_summary.write(2, 0, 'Total Income USD (then)')
+    ws_summary.write(2, 1, float(total_income_usd_then))
+    
+    ws_summary.write(3, 0, 'Total Income USD (now)')
+    ws_summary.write(3, 1, float(total_income_usd_now))
+    
+    # Sheet 2: Income by Platform
+    if platform_income:
+        ws_platform = wb.add_sheet('Income by Platform')
+        
+        # Headers
+        ws_platform.write(0, 0, 'Platform')
+        ws_platform.write(0, 1, 'Total Income BTC')
+        ws_platform.write(0, 2, 'Total Income USD (then)')
+        ws_platform.write(0, 3, 'Total Income USD (now)')
+        
+        # Data rows
+        for row, item in enumerate(platform_income, start=1):
+            ws_platform.write(row, 0, item['platform'].name)
+            ws_platform.write(row, 1, float(item['total_btc']))
+            ws_platform.write(row, 2, float(item['total_usd_then']))
+            ws_platform.write(row, 3, float(item['total_usd_now']))
+    
+    # Sheet 3: Monthly Income BTC
+    if monthly_income_btc and all_months:
+        ws_monthly_btc = wb.add_sheet('Monthly Income BTC')
+        
+        # Headers
+        ws_monthly_btc.write(0, 0, 'Month')
+        ws_monthly_btc.write(0, 1, 'Total Income BTC')
+        
+        # Platform headers
+        col = 2
+        platform_cols = {}
+        for platform in monthly_income_by_platform.keys():
+            ws_monthly_btc.write(0, col, f'{platform.name} BTC')
+            platform_cols[platform] = col
+            col += 1
+        
+        # Data rows
+        for row, month in enumerate(all_months, start=1):
+            if month:
+                ws_monthly_btc.write(row, 0, month.strftime('%Y-%m'))
+                
+                # Total BTC for this month
+                month_total = Decimal('0')
+                for item in monthly_income_btc:
+                    if item['month'] == month:
+                        month_total = item['total_btc']
+                        break
+                ws_monthly_btc.write(row, 1, float(month_total))
+                
+                # Platform BTC for this month
+                for platform, platform_data in monthly_income_by_platform.items():
+                    platform_month_total = Decimal('0')
+                    for item in platform_data:
+                        if item['month'] == month:
+                            platform_month_total = item['total_btc']
+                            break
+                    ws_monthly_btc.write(row, platform_cols[platform], float(platform_month_total))
+    
+    # Sheet 4: Monthly Income USD (then)
+    if monthly_income_btc and all_months:
+        ws_monthly_usd_then = wb.add_sheet('Monthly Income USD then')
+        
+        # Headers
+        ws_monthly_usd_then.write(0, 0, 'Month')
+        ws_monthly_usd_then.write(0, 1, 'Total Income USD (then)')
+        
+        # Platform headers
+        col = 2
+        platform_cols = {}
+        for platform in monthly_income_by_platform.keys():
+            ws_monthly_usd_then.write(0, col, f'{platform.name} USD (then)')
+            platform_cols[platform] = col
+            col += 1
+        
+        # Data rows
+        for row, month in enumerate(all_months, start=1):
+            if month:
+                ws_monthly_usd_then.write(row, 0, month.strftime('%Y-%m'))
+                
+                # Total USD then for this month
+                month_total = Decimal('0')
+                for item in monthly_income_btc:
+                    if item['month'] == month:
+                        month_total = item['total_usd_then']
+                        break
+                ws_monthly_usd_then.write(row, 1, float(month_total))
+                
+                # Platform USD then for this month
+                for platform, platform_data in monthly_income_by_platform.items():
+                    platform_month_total = Decimal('0')
+                    for item in platform_data:
+                        if item['month'] == month:
+                            platform_month_total = item['total_usd_then']
+                            break
+                    ws_monthly_usd_then.write(row, platform_cols[platform], float(platform_month_total))
+    
+    # Sheet 5: Monthly Income USD (now)
+    if monthly_income_btc and all_months:
+        ws_monthly_usd_now = wb.add_sheet('Monthly Income USD now')
+        
+        # Headers
+        ws_monthly_usd_now.write(0, 0, 'Month')
+        ws_monthly_usd_now.write(0, 1, 'Total Income USD (now)')
+        
+        # Platform headers
+        col = 2
+        platform_cols = {}
+        for platform in monthly_income_by_platform.keys():
+            ws_monthly_usd_now.write(0, col, f'{platform.name} USD (now)')
+            platform_cols[platform] = col
+            col += 1
+        
+        # Data rows
+        for row, month in enumerate(all_months, start=1):
+            if month:
+                ws_monthly_usd_now.write(row, 0, month.strftime('%Y-%m'))
+                
+                # Total USD now for this month
+                month_total = Decimal('0')
+                for item in monthly_income_btc:
+                    if item['month'] == month:
+                        month_total = item['total_usd_now']
+                        break
+                ws_monthly_usd_now.write(row, 1, float(month_total))
+                
+                # Platform USD now for this month
+                for platform, platform_data in monthly_income_by_platform.items():
+                    platform_month_total = Decimal('0')
+                    for item in platform_data:
+                        if item['month'] == month:
+                            platform_month_total = item['total_usd_now']
+                            break
+                    ws_monthly_usd_now.write(row, platform_cols[platform], float(platform_month_total))
+    
+    # Generate response
+    response = HttpResponse(content_type='application/vnd.ms-excel')
+    response['Content-Disposition'] = f'attachment; filename="income_dashboard_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xls"'
+    
+    wb.save(response)
+    return response
+
+
 class PlatformListView(ListView):
     model = RemoteMiningPlatform
     template_name = 'mining/platform_list.html'

@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+{% load dict_filters %}
+
+{% block title %}Income Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1><i class="fas fa-chart-line"></i> Income Dashboard</h1>
+                <p class="text-muted mb-0">Comprehensive analysis of your mining operation income</p>
+            </div>
+            <div>
+                <a href="{% url 'export_income_data' %}" class="btn btn-success">
+                    <i class="fas fa-file-export"></i> Export Data
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Total Income Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h3><i class="fas fa-calculator"></i> Total Income</h3>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h4><i class="fab fa-bitcoin"></i> Total Income BTC</h4>
+                <h2>{{ total_income_btc|floatformat:8 }} BTC</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h4><i class="fas fa-clock"></i> Total Income USD (then)</h4>
+                <h2>${{ total_income_usd_then|floatformat:2|intcomma }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h4><i class="fas fa-dollar-sign"></i> Total Income USD (now)</h4>
+                <h2>${{ total_income_usd_now|floatformat:2|intcomma }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Total Income by Platform Section -->
+{% if platform_income %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h3><i class="fas fa-server"></i> Total Income by Platform</h3>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Platform</th>
+                        <th class="text-end">Total Income BTC</th>
+                        <th class="text-end">Total Income USD (then)</th>
+                        <th class="text-end">Total Income USD (now)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in platform_income %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'platform_detail' item.platform.pk %}" class="text-decoration-none">
+                                {{ item.platform.name }}
+                            </a>
+                        </td>
+                        <td class="text-end text-primary fw-bold">{{ item.total_btc|floatformat:8 }} BTC</td>
+                        <td class="text-end text-info">${{ item.total_usd_then|floatformat:2|intcomma }}</td>
+                        <td class="text-end text-success">${{ item.total_usd_now|floatformat:2|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Monthly Income BTC Section -->
+{% if monthly_btc_data %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h3><i class="fab fa-bitcoin"></i> Monthly Income BTC</h3>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th class="text-end">Total Income BTC</th>
+                        {% for platform in platforms_with_income %}
+                        <th class="text-end">{{ platform.name }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in monthly_btc_data %}
+                    <tr>
+                        <td><strong>{{ row.month|date:"F Y" }}</strong></td>
+                        <td class="text-end text-primary fw-bold">
+                            {{ row.total|floatformat:8 }} BTC
+                        </td>
+                        {% for platform in platforms_with_income %}
+                        <td class="text-end">
+                            {{ row.platforms|get_item:platform|floatformat:8 }} BTC
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Monthly Income USD (then) Section -->
+{% if monthly_usd_then_data %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h3><i class="fas fa-clock"></i> Monthly Income USD (then)</h3>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th class="text-end">Total Income USD (then)</th>
+                        {% for platform in platforms_with_income %}
+                        <th class="text-end">{{ platform.name }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in monthly_usd_then_data %}
+                    <tr>
+                        <td><strong>{{ row.month|date:"F Y" }}</strong></td>
+                        <td class="text-end text-info fw-bold">
+                            ${{ row.total|floatformat:2|intcomma }}
+                        </td>
+                        {% for platform in platforms_with_income %}
+                        <td class="text-end">
+                            ${{ row.platforms|get_item:platform|floatformat:2|intcomma }}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Monthly Income USD (now) Section -->
+{% if monthly_usd_now_data %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h3><i class="fas fa-dollar-sign"></i> Monthly Income USD (now)</h3>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th class="text-end">Total Income USD (now)</th>
+                        {% for platform in platforms_with_income %}
+                        <th class="text-end">{{ platform.name }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in monthly_usd_now_data %}
+                    <tr>
+                        <td><strong>{{ row.month|date:"F Y" }}</strong></td>
+                        <td class="text-end text-success fw-bold">
+                            ${{ row.total|floatformat:2|intcomma }}
+                        </td>
+                        {% for platform in platforms_with_income %}
+                        <td class="text-end">
+                            ${{ row.platforms|get_item:platform|floatformat:2|intcomma }}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- No Data Message -->
+{% if not monthly_btc_data and not platform_income %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle fa-3x mb-3"></i>
+            <h4>No Income Data Available</h4>
+            <p>Start by adding some payouts to see your income analysis.</p>
+            <a href="{% url 'payout_add' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Payout
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

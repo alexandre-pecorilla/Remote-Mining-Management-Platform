@@ -9,6 +9,10 @@ urlpatterns = [
     path('dashboard/capex-opex/', views.capex_opex_dashboard, name='capex_opex_dashboard'),
     path('export-data/capex-opex/', views.export_capex_opex_data, name='export_capex_opex_data'),
     
+    # Income Dashboard
+    path('dashboard/income/', views.income_dashboard, name='income_dashboard'),
+    path('export-data/income/', views.export_income_data, name='export_income_data'),
+    
     # Platform URLs - /data/platforms
     path('data/platforms/', views.PlatformListView.as_view(), name='platform_list'),
     path('data/platforms/<int:pk>/', views.PlatformDetailView.as_view(), name='platform_detail'),
