@@ -761,7 +761,7 @@ class MinerListView(ListView):
     model = Miner
     template_name = 'mining/miner_list.html'
     context_object_name = 'miners'
-    paginate_by = 12
+    paginate_by = 50
 
 
 class MinerDetailView(DetailView):
