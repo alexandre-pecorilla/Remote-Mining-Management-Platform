@@ -1071,28 +1071,81 @@ def bulk_fetch_closing_prices_status(request):
         })
 
 
-def api_data_view(request):
-    """API Data page view"""
-    api_data = APIData.get_api_data()
-    
-    if request.method == 'POST':
-        # Fetch API data when button is clicked
+# Fetch API Data - background task state
+_api_fetch_status = {
+    'running': False,
+    'message': '',
+    'success': None,
+}
+_api_fetch_lock = threading.Lock()
+
+
+def _fetch_api_data_task():
+    """Background task: fetch all API data and save to database."""
+    try:
+        with _api_fetch_lock:
+            _api_fetch_status['message'] = 'Fetching API data...'
+        
         result = fetch_all_api_data()
         
         if result['success']:
-            # Update the API data in database
+            api_data = APIData.get_api_data()
             api_data.bitcoin_price_usd = result['bitcoin_price_usd']
             api_data.network_hashrate_ehs = result['network_hashrate_ehs']
             api_data.network_difficulty = result['network_difficulty']
             api_data.avg_block_fees_24h = result['avg_block_fees_24h']
             api_data.save()
             
-            messages.success(request, result['message'])
+            with _api_fetch_lock:
+                _api_fetch_status['message'] = result['message']
+                _api_fetch_status['success'] = True
         else:
-            messages.error(request, result['message'])
-            
-        return redirect('api_data')
+            with _api_fetch_lock:
+                _api_fetch_status['message'] = result['message']
+                _api_fetch_status['success'] = False
+    except Exception as e:
+        with _api_fetch_lock:
+            _api_fetch_status['message'] = f'Unexpected error: {str(e)}'
+            _api_fetch_status['success'] = False
+    finally:
+        with _api_fetch_lock:
+            _api_fetch_status['running'] = False
+
+
+def trigger_fetch_api_data(request):
+    """Trigger API data fetch as a background task."""
+    if request.method == 'POST':
+        with _api_fetch_lock:
+            if _api_fetch_status['running']:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'API fetch is already in progress.'
+                })
+            _api_fetch_status['running'] = True
+            _api_fetch_status['message'] = 'Starting...'
+            _api_fetch_status['success'] = None
+        
+        thread = threading.Thread(target=_fetch_api_data_task, daemon=True)
+        thread.start()
+        
+        return JsonResponse({'success': True, 'message': 'API fetch started.'})
     
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+def fetch_api_data_status(request):
+    """Return the current status of the API data fetch task."""
+    with _api_fetch_lock:
+        return JsonResponse({
+            'running': _api_fetch_status['running'],
+            'message': _api_fetch_status['message'],
+            'success': _api_fetch_status['success'],
+        })
+
+
+def api_data_view(request):
+    """API Data page view"""
+    api_data = APIData.get_api_data()
     return render(request, 'mining/api_data.html', {'api_data': api_data})
 
 

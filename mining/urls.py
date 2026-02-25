@@ -52,6 +52,8 @@ urlpatterns = [
     
     # API Data - /data/api-data
     path('data/api-data/', views.api_data_view, name='api_data'),
+    path('data/api-data/fetch/', views.trigger_fetch_api_data, name='trigger_fetch_api_data'),
+    path('data/api-data/fetch/status/', views.fetch_api_data_status, name='fetch_api_data_status'),
     path('data/api-data/bulk-fetch-closing-prices/', views.bulk_fetch_closing_prices, name='bulk_fetch_closing_prices'),
     path('data/api-data/bulk-fetch-closing-prices/status/', views.bulk_fetch_closing_prices_status, name='bulk_fetch_closing_prices_status'),
     

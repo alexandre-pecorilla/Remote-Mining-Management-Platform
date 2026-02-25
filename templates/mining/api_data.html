@@ -14,12 +14,15 @@
         {% endif %}
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1><i class="fas fa-chart-line"></i> API Data</h1>
-            <form method="post" class="d-inline">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-primary">
+            <div class="d-flex align-items-center gap-2">
+                <button id="fetchApiBtn" class="btn btn-primary">
                     <i class="fas fa-sync-alt"></i> Fetch API Data
                 </button>
-            </form>
+                <span id="fetchApiStatus" class="d-none">
+                    <span id="fetchApiStatusIcon"></span>
+                    <span id="fetchApiStatusMsg" class="ms-1 small"></span>
+                </span>
+            </div>
         </div>
 
         <!-- CoinMarketCap API Section -->
@@ -140,6 +143,90 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // --- Fetch API Data (background) ---
+    const fetchApiBtn = document.getElementById('fetchApiBtn');
+    const fetchApiStatus = document.getElementById('fetchApiStatus');
+    const fetchApiStatusIcon = document.getElementById('fetchApiStatusIcon');
+    const fetchApiStatusMsg = document.getElementById('fetchApiStatusMsg');
+    let apiPollInterval = null;
+
+    function updateApiFetchUI(data) {
+        fetchApiStatus.classList.remove('d-none');
+        if (data.running) {
+            fetchApiStatusIcon.innerHTML = '<i class="fas fa-spinner fa-spin text-primary"></i>';
+            fetchApiStatusMsg.textContent = data.message;
+            fetchApiStatusMsg.className = 'ms-1 small text-primary';
+            fetchApiBtn.disabled = true;
+            fetchApiBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fetching...';
+        } else if (data.success === true) {
+            fetchApiStatusIcon.innerHTML = '<i class="fas fa-check-circle text-success"></i>';
+            fetchApiStatusMsg.textContent = data.message;
+            fetchApiStatusMsg.className = 'ms-1 small text-success';
+            fetchApiBtn.disabled = false;
+            fetchApiBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Fetch API Data';
+            if (apiPollInterval) { clearInterval(apiPollInterval); apiPollInterval = null; }
+            // Reload page after short delay to show updated values
+            setTimeout(() => { window.location.reload(); }, 1500);
+        } else if (data.success === false) {
+            fetchApiStatusIcon.innerHTML = '<i class="fas fa-exclamation-triangle text-danger"></i>';
+            fetchApiStatusMsg.textContent = data.message;
+            fetchApiStatusMsg.className = 'ms-1 small text-danger';
+            fetchApiBtn.disabled = false;
+            fetchApiBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Fetch API Data';
+            if (apiPollInterval) { clearInterval(apiPollInterval); apiPollInterval = null; }
+        }
+    }
+
+    function pollApiFetchStatus() {
+        fetch('{% url "fetch_api_data_status" %}')
+            .then(r => r.json())
+            .then(data => updateApiFetchUI(data))
+            .catch(() => {});
+    }
+
+    // Check on page load if a fetch is already running
+    fetch('{% url "fetch_api_data_status" %}')
+        .then(r => r.json())
+        .then(data => {
+            if (data.running) {
+                updateApiFetchUI(data);
+                apiPollInterval = setInterval(pollApiFetchStatus, 1500);
+            }
+        });
+
+    fetchApiBtn.addEventListener('click', function() {
+        fetchApiBtn.disabled = true;
+        fetchApiBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
+        const csrfToken = '{{ csrf_token }}';
+
+        fetch('{% url "trigger_fetch_api_data" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                apiPollInterval = setInterval(pollApiFetchStatus, 1500);
+                pollApiFetchStatus();
+            } else {
+                fetchApiStatus.classList.remove('d-none');
+                fetchApiStatusIcon.innerHTML = '<i class="fas fa-exclamation-triangle text-warning"></i>';
+                fetchApiStatusMsg.textContent = data.error;
+                fetchApiStatusMsg.className = 'ms-1 small text-warning';
+                fetchApiBtn.disabled = false;
+                fetchApiBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Fetch API Data';
+            }
+        })
+        .catch(() => {
+            fetchApiBtn.disabled = false;
+            fetchApiBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Fetch API Data';
+        });
+    });
+
+    // --- Bulk Fetch Closing Prices ---
     const btn = document.getElementById('bulkFetchBtn');
     const statusPanel = document.getElementById('bulkFetchStatus');
     const statusIcon = document.getElementById('bulkStatusIcon');
