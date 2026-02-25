@@ -179,6 +179,64 @@
         </div>
     </div>
 
+    <!-- Efficiency Data -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-cogs"></i> Efficiency Data</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-6 col-md-6 mb-3">
+                            <div class="text-center">
+                                <i class="fas fa-balance-scale fa-2x text-info mb-2"></i>
+                                <h6 class="text-muted">Miner Average Efficiency (W/TH)</h6>
+                                <h4 class="text-info">{{ avg_efficiency }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-6 mb-3">
+                            <div class="text-center">
+                                <i class="fas fa-weight fa-2x text-primary mb-2"></i>
+                                <h6 class="text-muted">Hashrate Weighted Average Efficiency (W/TH)</h6>
+                                <h4 class="text-primary">{{ hashrate_weighted_efficiency }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Energy Data -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-plug"></i> Energy Data</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-6 col-md-6 mb-3">
+                            <div class="text-center">
+                                <i class="fas fa-calculator fa-2x text-warning mb-2"></i>
+                                <h6 class="text-muted">Miner Average Energy Cost ($/kWh)</h6>
+                                <h4 class="text-warning">${{ avg_energy_cost|floatformat:6 }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-6 mb-3">
+                            <div class="text-center">
+                                <i class="fas fa-chart-bar fa-2x text-danger mb-2"></i>
+                                <h6 class="text-muted">Hashrate Weighted Average Energy Cost ($/kWh)</h6>
+                                <h4 class="text-danger">${{ hashrate_weighted_energy_cost|floatformat:6 }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Key Metrics -->
     <div class="row mb-4">
         <div class="col-lg-4 mb-3">

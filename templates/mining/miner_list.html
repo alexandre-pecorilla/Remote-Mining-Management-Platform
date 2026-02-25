@@ -44,7 +44,10 @@
                         </div>
                     {% endif %}
                     <div class="card-body">
-                        <h5 class="card-title">{{ miner.model }}</h5>
+                        <h5 class="card-title">
+                            {{ miner.model }}
+                            {% if miner.is_active %}<span class="badge bg-success ms-1">ON</span>{% else %}<span class="badge bg-secondary ms-1">OFF</span>{% endif %}
+                        </h5>
                         {% if miner.manufacturer %}
                             <p class="card-text">
                                 <small class="text-muted">
@@ -104,6 +107,7 @@
                 <tr>
                     <th>Image</th>
                     <th>Model</th>
+                    <th>Status</th>
                     <th>Manufacturer</th>
                     <th>Hashrate</th>
                     <th>Platform</th>
@@ -125,6 +129,13 @@
                             {% endif %}
                         </td>
                         <td><strong>{{ miner.model }}</strong></td>
+                        <td>
+                            {% if miner.is_active %}
+                                <span class="badge bg-success">ON</span>
+                            {% else %}
+                                <span class="badge bg-secondary">OFF</span>
+                            {% endif %}
+                        </td>
                         <td>
                             {% if miner.manufacturer %}
                                 {{ miner.manufacturer }}

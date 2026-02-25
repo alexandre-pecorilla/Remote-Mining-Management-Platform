@@ -46,6 +46,15 @@
                 <i class="fas fa-arrow-left"></i> Back to List
             </a>
         </div>
+        
+        <!-- On/Off Toggle -->
+        <form method="post" action="{% url 'miner_toggle_active' miner.pk %}" class="ms-2 d-inline-flex align-items-center">
+            {% csrf_token %}
+            <button type="submit" class="btn {% if miner.is_active %}btn-success{% else %}btn-outline-secondary{% endif %}">
+                <i class="fas fa-power-off"></i> {% if miner.is_active %}ON{% else %}OFF{% endif %}
+            </button>
+            <small class="text-muted ms-2" style="max-width: 160px; line-height: 1.2;">Only affects the Forecasting Dashboard</small>
+        </form>
     </div>
 </div>
 

@@ -26,6 +26,7 @@ urlpatterns = [
     path('data/miners/<int:pk>/', views.MinerDetailView.as_view(), name='miner_detail'),
     path('data/miners/<int:pk>/edit/', views.MinerUpdateView.as_view(), name='miner_edit'),
     path('data/miners/<int:pk>/delete/', views.MinerDeleteView.as_view(), name='miner_delete'),
+    path('data/miners/<int:pk>/toggle/', views.toggle_miner_active, name='miner_toggle_active'),
     
     # Payout URLs - /data/payouts
     path('data/payouts/', views.PayoutListView.as_view(), name='payout_list'),

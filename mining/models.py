@@ -82,6 +82,7 @@ class Miner(models.Model):
     purchase_date = models.DateField(blank=True, null=True)
     start_date = models.DateField(blank=True, null=True)
     location = models.CharField(max_length=200, blank=True, null=True)
+    is_active = models.BooleanField(default=True, help_text="Whether this miner is currently turned on. Only affects the Forecasting Dashboard.")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -822,6 +822,17 @@ class MinerDeleteView(DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
+def toggle_miner_active(request, pk):
+    """Toggle a miner's is_active status (on/off)"""
+    if request.method == 'POST':
+        miner = get_object_or_404(Miner, pk=pk)
+        miner.is_active = not miner.is_active
+        miner.save(update_fields=['is_active'])
+        status = "ON" if miner.is_active else "OFF"
+        messages.success(request, f"{miner.model} turned {status}.")
+    return redirect('miner_detail', pk=pk)
+
+
 # Payout Views
 class PayoutListView(ListView):
     model = Payout
@@ -2137,7 +2148,7 @@ def import_topup_data(request):
 def forecasting_dashboard(request):
     """Forecasting Dashboard with BTC mining profitability calculations"""
     from decimal import Decimal
-    from django.db.models import Sum
+    from django.db.models import Sum, Avg
     
     # Gather all required data from database models
     api_data = APIData.get_api_data()
@@ -2153,9 +2164,9 @@ def forecasting_dashboard(request):
         except (RemoteMiningPlatform.DoesNotExist, ValueError):
             selected_platform = None
     
-    # Get miners with valid hashrate and power data (consistent with overview dashboard)
+    # Get miners with valid hashrate and power data, only active miners
     total_miner_count = Miner.objects.count()
-    miners = Miner.objects.filter(hashrate__isnull=False, power__isnull=False)
+    miners = Miner.objects.filter(hashrate__isnull=False, power__isnull=False, is_active=True)
     if selected_platform:
         miners = miners.filter(platform=selected_platform)
     
@@ -2186,6 +2197,17 @@ def forecasting_dashboard(request):
             total_hashrate_with_energy += miner.hashrate
         if total_hashrate_with_energy > 0:
             hashrate_weighted_energy_cost = total_weighted / total_hashrate_with_energy
+    
+    # Simple average efficiency
+    avg_efficiency = miners.filter(efficiency__isnull=False).aggregate(avg=Avg('efficiency'))['avg'] or Decimal('0')
+    if avg_efficiency:
+        avg_efficiency = round(float(avg_efficiency), 2)
+    
+    # Simple average energy cost
+    miners_with_energy = miners.filter(platform__energy_price__isnull=False)
+    avg_energy_cost = miners_with_energy.aggregate(avg=Avg('platform__energy_price'))['avg'] or Decimal('0')
+    if avg_energy_cost:
+        avg_energy_cost = round(float(avg_energy_cost), 6)
     
     # Get data from API and settings
     network_difficulty = api_data.network_difficulty or 0
@@ -2348,6 +2370,11 @@ def forecasting_dashboard(request):
         'price_per_kwh': price_per_kwh,
         'efficiency_w_th': efficiency_w_th,
         'hardware_cost_usd': hardware_cost_usd,
+        # Efficiency & Energy KPIs
+        'avg_efficiency': avg_efficiency,
+        'hashrate_weighted_efficiency': round(float(hashrate_weighted_efficiency), 2),
+        'avg_energy_cost': avg_energy_cost,
+        'hashrate_weighted_energy_cost': round(float(hashrate_weighted_energy_cost), 6),
         # Calculation results
         'results': results,
     }
@@ -2378,9 +2405,9 @@ def export_forecasting_data(request):
         except (RemoteMiningPlatform.DoesNotExist, ValueError):
             selected_platform = None
     
-    # Get miners with valid hashrate and power data (consistent with overview dashboard)
+    # Get miners with valid hashrate and power data, only active miners
     total_miner_count = Miner.objects.count()
-    miners = Miner.objects.filter(hashrate__isnull=False, power__isnull=False)
+    miners = Miner.objects.filter(hashrate__isnull=False, power__isnull=False, is_active=True)
     if selected_platform:
         miners = miners.filter(platform=selected_platform)
     
@@ -2411,6 +2438,17 @@ def export_forecasting_data(request):
             total_hashrate_with_energy += miner.hashrate
         if total_hashrate_with_energy > 0:
             hashrate_weighted_energy_cost = total_weighted / total_hashrate_with_energy
+    
+    # Simple average efficiency
+    avg_efficiency = miners.filter(efficiency__isnull=False).aggregate(avg=Avg('efficiency'))['avg'] or Decimal('0')
+    if avg_efficiency:
+        avg_efficiency = round(float(avg_efficiency), 2)
+    
+    # Simple average energy cost
+    miners_with_energy = miners.filter(platform__energy_price__isnull=False)
+    avg_energy_cost = miners_with_energy.aggregate(avg=Avg('platform__energy_price'))['avg'] or Decimal('0')
+    if avg_energy_cost:
+        avg_energy_cost = round(float(avg_energy_cost), 6)
     
     # Get data from API and settings
     network_difficulty = api_data.network_difficulty or 0
@@ -2585,6 +2623,32 @@ def export_forecasting_data(request):
         ws_summary.write(row, 1, 'Net Profit Margin')
         ws_summary.write(row, 2, round(margin, 2))
         ws_summary.write(row, 3, '%')
+        row += 1
+        
+        # Efficiency Data
+        ws_summary.write(row, 0, 'Efficiency Data')
+        ws_summary.write(row, 1, 'Average Efficiency')
+        ws_summary.write(row, 2, float(avg_efficiency))
+        ws_summary.write(row, 3, 'W/TH')
+        row += 1
+        
+        ws_summary.write(row, 0, 'Efficiency Data')
+        ws_summary.write(row, 1, 'Hashrate Weighted Avg Efficiency')
+        ws_summary.write(row, 2, round(float(hashrate_weighted_efficiency), 2))
+        ws_summary.write(row, 3, 'W/TH')
+        row += 1
+        
+        # Energy Data
+        ws_summary.write(row, 0, 'Energy Data')
+        ws_summary.write(row, 1, 'Average Energy Cost')
+        ws_summary.write(row, 2, float(avg_energy_cost))
+        ws_summary.write(row, 3, '$/kWh')
+        row += 1
+        
+        ws_summary.write(row, 0, 'Energy Data')
+        ws_summary.write(row, 1, 'Hashrate Weighted Avg Energy Cost')
+        ws_summary.write(row, 2, round(float(hashrate_weighted_energy_cost), 6))
+        ws_summary.write(row, 3, '$/kWh')
         row += 1
         
         # Key Metrics
