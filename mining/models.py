@@ -124,6 +124,7 @@ class Payout(models.Model):
     transaction_id = models.CharField(max_length=100, blank=True, null=True, help_text="Bitcoin transaction ID")
     closing_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, help_text="Bitcoin closing price in USD at payout date")
     value_at_payout = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True, help_text="USD value at payout (payout_amount * closing_price)")
+    closing_price_fetched_at = models.DateField(blank=True, null=True, help_text="Date when closing price was last fetched from API")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

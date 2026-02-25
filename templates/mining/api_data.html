@@ -96,6 +96,38 @@
             </div>
         </div>
 
+        <!-- CryptoCompare Bulk Fetch Section -->
+        <div class="card mt-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-history"></i> CryptoCompare API — Bulk Fetch Closing Prices
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">
+                    Fetch historical BTC closing prices for all payouts that are missing or outdated.
+                    Payouts are processed in small batches with delays to respect API rate limits.
+                    Payouts whose closing price was already fetched at least one day after the payout date will be skipped.
+                </p>
+                <button id="bulkFetchBtn" class="btn btn-primary">
+                    <i class="fas fa-sync-alt"></i> Bulk Fetch Closing Prices
+                </button>
+
+                <!-- Status panel (hidden by default) -->
+                <div id="bulkFetchStatus" class="alert alert-info mt-3 d-none">
+                    <div class="d-flex align-items-center mb-2">
+                        <span id="bulkStatusIcon"></span>
+                        <strong class="ms-2" id="bulkStatusTitle">Status</strong>
+                    </div>
+                    <div id="bulkStatusMessage" class="mb-2"></div>
+                    <div class="progress" style="height: 20px;" id="bulkProgressBar">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" id="bulkProgress">0%</div>
+                    </div>
+                    <div class="mt-2 small text-muted" id="bulkStatusDetails"></div>
+                </div>
+            </div>
+        </div>
+
         {% if api_data.updated_at %}
         <div class="text-center mt-3">
             <small class="text-muted">
@@ -105,4 +137,114 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('bulkFetchBtn');
+    const statusPanel = document.getElementById('bulkFetchStatus');
+    const statusIcon = document.getElementById('bulkStatusIcon');
+    const statusTitle = document.getElementById('bulkStatusTitle');
+    const statusMessage = document.getElementById('bulkStatusMessage');
+    const progressBar = document.getElementById('bulkProgress');
+    const progressContainer = document.getElementById('bulkProgressBar');
+    const statusDetails = document.getElementById('bulkStatusDetails');
+    let pollInterval = null;
+
+    function showStatus() {
+        statusPanel.classList.remove('d-none');
+    }
+
+    function updateUI(data) {
+        showStatus();
+        if (data.running) {
+            statusPanel.className = 'alert alert-info mt-3';
+            statusIcon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            statusTitle.textContent = 'Sync in progress...';
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> In Progress...';
+            progressContainer.classList.remove('d-none');
+
+            let pct = data.total > 0 ? Math.round((data.processed / data.total) * 100) : 0;
+            progressBar.style.width = pct + '%';
+            progressBar.textContent = pct + '%';
+            statusMessage.textContent = data.message;
+            statusDetails.textContent = `Processed: ${data.processed}/${data.total} | Updated: ${data.updated} | Errors: ${data.errors}`;
+        } else if (data.message) {
+            statusPanel.className = data.errors > 0 ? 'alert alert-warning mt-3' : 'alert alert-success mt-3';
+            statusIcon.innerHTML = data.errors > 0 ? '<i class="fas fa-exclamation-triangle"></i>' : '<i class="fas fa-check-circle"></i>';
+            statusTitle.textContent = data.errors > 0 ? 'Completed with errors' : 'Completed';
+            statusMessage.textContent = data.message;
+            progressContainer.classList.add('d-none');
+            // Show error details if any
+            if (data.error_details && data.error_details.length > 0) {
+                let errorHtml = '<strong>Error details:</strong><ul class="mb-0 mt-1">';
+                data.error_details.forEach(err => {
+                    errorHtml += `<li>${err}</li>`;
+                });
+                errorHtml += '</ul>';
+                statusDetails.innerHTML = errorHtml;
+            } else {
+                statusDetails.textContent = '';
+            }
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sync-alt"></i> Bulk Fetch Closing Prices';
+            if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+        }
+    }
+
+    function pollStatus() {
+        fetch('{% url "bulk_fetch_closing_prices_status" %}')
+            .then(r => r.json())
+            .then(data => updateUI(data))
+            .catch(() => {});
+    }
+
+    // Check status on page load (in case task is already running)
+    fetch('{% url "bulk_fetch_closing_prices_status" %}')
+        .then(r => r.json())
+        .then(data => {
+            if (data.running) {
+                updateUI(data);
+                pollInterval = setInterval(pollStatus, 2000);
+            } else if (data.message) {
+                updateUI(data);
+            }
+        });
+
+    btn.addEventListener('click', function() {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
+
+        const csrfToken = '{{ csrf_token }}';
+
+        fetch('{% url "bulk_fetch_closing_prices" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                pollInterval = setInterval(pollStatus, 2000);
+                pollStatus();
+            } else {
+                statusPanel.classList.remove('d-none');
+                statusPanel.className = 'alert alert-warning mt-3';
+                statusIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+                statusTitle.textContent = 'Warning';
+                statusMessage.textContent = data.error;
+                progressContainer.classList.add('d-none');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Bulk Fetch Closing Prices';
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sync-alt"></i> Bulk Fetch Closing Prices';
+        });
+    });
+});
+</script>
 {% endblock %}

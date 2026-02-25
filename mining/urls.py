@@ -52,6 +52,8 @@ urlpatterns = [
     
     # API Data - /data/api-data
     path('data/api-data/', views.api_data_view, name='api_data'),
+    path('data/api-data/bulk-fetch-closing-prices/', views.bulk_fetch_closing_prices, name='bulk_fetch_closing_prices'),
+    path('data/api-data/bulk-fetch-closing-prices/status/', views.bulk_fetch_closing_prices_status, name='bulk_fetch_closing_prices_status'),
     
     # Settings
     path('settings/', views.settings_view, name='settings'),

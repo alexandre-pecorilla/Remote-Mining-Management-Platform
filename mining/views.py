@@ -8,8 +8,10 @@ from django.db.models.functions import TruncMonth
 import xlwt
 import xlrd
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, date, timedelta
 import json
+import threading
+import time
 from .models import RemoteMiningPlatform, Miner, Settings, APIData, Payout, Expense, TopUp
 from .forms import RemoteMiningPlatformForm, MinerForm, SettingsForm, PayoutForm, ExpenseForm, TopUpForm
 from .api_utils import fetch_all_api_data, get_historical_btc_price
@@ -923,8 +925,9 @@ def fetch_closing_price(request, payout_id):
             # Fetch historical BTC price for the payout date
             historical_price = get_historical_btc_price(payout.payout_date)
             
-            # Update the payout's closing_price field
+            # Update the payout's closing_price and fetched_at fields
             payout.closing_price = Decimal(str(historical_price))
+            payout.closing_price_fetched_at = date.today()
             payout.save()
             
             return JsonResponse({
@@ -940,6 +943,132 @@ def fetch_closing_price(request, payout_id):
             })
     
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+# Bulk closing price fetch - background task state
+_bulk_fetch_status = {
+    'running': False,
+    'total': 0,
+    'processed': 0,
+    'updated': 0,
+    'skipped': 0,
+    'errors': 0,
+    'error_details': [],
+    'message': '',
+}
+_bulk_fetch_lock = threading.Lock()
+
+
+def _bulk_fetch_closing_prices_task():
+    """Background task: fetch closing prices in sub-batches with delay to respect API rate limits."""
+    from .api_utils import get_historical_btc_price as fetch_price
+    
+    BATCH_SIZE = 5
+    DELAY_BETWEEN_BATCHES = 3  # seconds
+    
+    today = date.today()
+    
+    # Get all payouts that need fetching:
+    # - closing_price_fetched_at is NULL, OR
+    # - closing_price_fetched_at is on the same day as payout_date or before
+    payouts = list(
+        Payout.objects.filter(payout_date__isnull=False).order_by('payout_date')
+    )
+    
+    # Filter to only those that need updating
+    payouts_to_fetch = []
+    for p in payouts:
+        if p.closing_price_fetched_at is None:
+            payouts_to_fetch.append(p)
+        elif p.closing_price_fetched_at <= p.payout_date:
+            payouts_to_fetch.append(p)
+        # else: fetched_at > payout_date (at least next day), skip
+    
+    with _bulk_fetch_lock:
+        _bulk_fetch_status['total'] = len(payouts_to_fetch)
+        _bulk_fetch_status['processed'] = 0
+        _bulk_fetch_status['updated'] = 0
+        _bulk_fetch_status['skipped'] = 0
+        _bulk_fetch_status['errors'] = 0
+        _bulk_fetch_status['error_details'] = []
+        _bulk_fetch_status['message'] = f'Processing {len(payouts_to_fetch)} payouts...'
+    
+    # Process in sub-batches
+    for i in range(0, len(payouts_to_fetch), BATCH_SIZE):
+        batch = payouts_to_fetch[i:i + BATCH_SIZE]
+        
+        for payout in batch:
+            try:
+                historical_price = fetch_price(payout.payout_date)
+                payout.closing_price = Decimal(str(historical_price))
+                payout.closing_price_fetched_at = today
+                payout.save()
+                with _bulk_fetch_lock:
+                    _bulk_fetch_status['updated'] += 1
+            except Exception as e:
+                with _bulk_fetch_lock:
+                    _bulk_fetch_status['errors'] += 1
+                    _bulk_fetch_status['error_details'].append(
+                        f'Payout #{payout.pk} ({payout.payout_date}): {str(e)}'
+                    )
+            
+            with _bulk_fetch_lock:
+                _bulk_fetch_status['processed'] += 1
+        
+        # Delay between batches (but not after the last one)
+        if i + BATCH_SIZE < len(payouts_to_fetch):
+            time.sleep(DELAY_BETWEEN_BATCHES)
+    
+    with _bulk_fetch_lock:
+        skipped = len(payouts) - len(payouts_to_fetch)
+        _bulk_fetch_status['skipped'] = skipped
+        _bulk_fetch_status['message'] = (
+            f'Completed: {_bulk_fetch_status["updated"]} updated, '
+            f'{skipped} skipped, '
+            f'{_bulk_fetch_status["errors"]} errors.'
+        )
+        _bulk_fetch_status['running'] = False
+
+
+def bulk_fetch_closing_prices(request):
+    """Trigger bulk closing price fetch as a background task."""
+    if request.method == 'POST':
+        with _bulk_fetch_lock:
+            if _bulk_fetch_status['running']:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'A bulk fetch is already in progress.'
+                })
+            _bulk_fetch_status['running'] = True
+            _bulk_fetch_status['total'] = 0
+            _bulk_fetch_status['processed'] = 0
+            _bulk_fetch_status['updated'] = 0
+            _bulk_fetch_status['skipped'] = 0
+            _bulk_fetch_status['errors'] = 0
+            _bulk_fetch_status['message'] = 'Starting...'
+            _bulk_fetch_status['error_details'] = []
+        
+        thread = threading.Thread(target=_bulk_fetch_closing_prices_task, daemon=True)
+        thread.start()
+        
+        return JsonResponse({'success': True, 'message': 'Bulk fetch started.'})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+def bulk_fetch_closing_prices_status(request):
+    """Return the current status of the bulk closing price fetch task."""
+    with _bulk_fetch_lock:
+        return JsonResponse({
+            'running': _bulk_fetch_status['running'],
+            'total': _bulk_fetch_status['total'],
+            'processed': _bulk_fetch_status['processed'],
+            'updated': _bulk_fetch_status['updated'],
+            'skipped': _bulk_fetch_status['skipped'],
+            'errors': _bulk_fetch_status['errors'],
+            'message': _bulk_fetch_status['message'],
+            'error_details': list(_bulk_fetch_status['error_details']),
+        })
 
 
 def api_data_view(request):
