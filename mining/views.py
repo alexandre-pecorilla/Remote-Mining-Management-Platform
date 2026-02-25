@@ -1055,6 +1055,16 @@ def overview_dashboard(request):
     # Get API data
     api_data = APIData.get_api_data()
     
+    # Platform filter
+    platforms = RemoteMiningPlatform.objects.all()
+    selected_platform_id = request.GET.get('platform', '')
+    selected_platform = None
+    if selected_platform_id:
+        try:
+            selected_platform = RemoteMiningPlatform.objects.get(pk=selected_platform_id)
+        except (RemoteMiningPlatform.DoesNotExist, ValueError):
+            selected_platform = None
+    
     # NETWORK DATA
     bitcoin_price = api_data.bitcoin_price_usd or 0
     network_hashrate = api_data.network_hashrate_ehs or 0
@@ -1063,6 +1073,8 @@ def overview_dashboard(request):
     
     # FLEET DATA
     miners = Miner.objects.filter(hashrate__isnull=False, power__isnull=False)
+    if selected_platform:
+        miners = miners.filter(platform=selected_platform)
     miner_count = miners.count()
     total_hashrate = miners.aggregate(total=Sum('hashrate'))['total'] or 0
     total_power = miners.aggregate(total=Sum('power'))['total'] or 0
@@ -1101,8 +1113,10 @@ def overview_dashboard(request):
     
     # HASHRATE DISTRIBUTION DATA
     hashrate_by_platform = []
-    for platform in RemoteMiningPlatform.objects.all():
-        platform_hashrate = platform.miners.aggregate(total=Sum('hashrate'))['total'] or 0
+    platform_list = [selected_platform] if selected_platform else RemoteMiningPlatform.objects.all()
+    for platform in platform_list:
+        platform_miners = platform.miners.filter(hashrate__isnull=False, power__isnull=False)
+        platform_hashrate = platform_miners.aggregate(total=Sum('hashrate'))['total'] or 0
         if platform_hashrate > 0:
             hashrate_by_platform.append({
                 'platform': platform.name,
@@ -1123,6 +1137,8 @@ def overview_dashboard(request):
     
     # REVENUES DATA
     payouts = Payout.objects.all()
+    if selected_platform:
+        payouts = payouts.filter(platform=selected_platform)
     total_btc_mined = payouts.aggregate(total=Sum('payout_amount'))['total'] or 0
     current_gross_value = float(total_btc_mined) * float(bitcoin_price) if total_btc_mined and bitcoin_price else 0
     total_payouts = payouts.count()
@@ -1135,7 +1151,10 @@ def overview_dashboard(request):
     appreciation = current_gross_value - gross_value_at_payout
     
     # Calculate Total OPEX (sum of all OPEX expenses)
-    total_opex = Expense.objects.filter(category='OPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+    expenses = Expense.objects.filter(category='OPEX')
+    if selected_platform:
+        expenses = expenses.filter(platform=selected_platform)
+    total_opex = expenses.aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
     total_opex = float(total_opex)
     
     # Calculate Current Net Value (Current Gross Value - Total OPEX)
@@ -1143,7 +1162,8 @@ def overview_dashboard(request):
     
     # REVENUES DISTRIBUTION DATA
     revenue_by_platform = []
-    for platform in RemoteMiningPlatform.objects.all():
+    rev_platform_list = [selected_platform] if selected_platform else RemoteMiningPlatform.objects.all()
+    for platform in rev_platform_list:
         platform_btc = platform.payouts.aggregate(total=Sum('payout_amount'))['total'] or 0
         platform_payouts = platform.payouts.count()
         if platform_btc > 0:
@@ -1159,6 +1179,10 @@ def overview_dashboard(request):
             })
     
     context = {
+        # Platform filter
+        'platforms': platforms,
+        'selected_platform': selected_platform,
+        
         # Network Data
         'bitcoin_price': bitcoin_price,
         'network_hashrate': network_hashrate,
@@ -1371,6 +1395,17 @@ def export_overview_data(request):
     # Get API data
     api_data = APIData.get_api_data()
     
+    # Platform filter
+    selected_platform_id = request.GET.get('platform', '')
+    selected_platform = None
+    selected_platform_name = 'All Platforms'
+    if selected_platform_id:
+        try:
+            selected_platform = RemoteMiningPlatform.objects.get(pk=selected_platform_id)
+            selected_platform_name = selected_platform.name
+        except (RemoteMiningPlatform.DoesNotExist, ValueError):
+            selected_platform = None
+    
     # NETWORK DATA
     bitcoin_price = api_data.bitcoin_price_usd or 0
     network_hashrate = api_data.network_hashrate_ehs or 0
@@ -1379,6 +1414,8 @@ def export_overview_data(request):
     
     # FLEET DATA
     miners = Miner.objects.filter(hashrate__isnull=False, power__isnull=False)
+    if selected_platform:
+        miners = miners.filter(platform=selected_platform)
     miner_count = miners.count()
     total_hashrate = miners.aggregate(total=Sum('hashrate'))['total'] or 0
     total_power = miners.aggregate(total=Sum('power'))['total'] or 0
@@ -1416,6 +1453,8 @@ def export_overview_data(request):
     
     # REVENUES DATA
     payouts = Payout.objects.all()
+    if selected_platform:
+        payouts = payouts.filter(platform=selected_platform)
     total_btc_mined = payouts.aggregate(total=Sum('payout_amount'))['total'] or 0
     current_gross_value = float(total_btc_mined) * float(bitcoin_price) if total_btc_mined and bitcoin_price else 0
     total_payouts = payouts.count()
@@ -1428,7 +1467,10 @@ def export_overview_data(request):
     appreciation = current_gross_value - gross_value_at_payout
     
     # Calculate Total OPEX (sum of all OPEX expenses)
-    total_opex = Expense.objects.filter(category='OPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
+    expenses = Expense.objects.filter(category='OPEX')
+    if selected_platform:
+        expenses = expenses.filter(platform=selected_platform)
+    total_opex = expenses.aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
     total_opex = float(total_opex)
     
     # Calculate Current Net Value (Current Gross Value - Total OPEX)
@@ -1445,6 +1487,13 @@ def export_overview_data(request):
     
     # Data rows
     row = 1
+    
+    # Platform Filter
+    ws_summary.write(row, 0, 'Filter')
+    ws_summary.write(row, 1, 'Platform')
+    ws_summary.write(row, 2, selected_platform_name)
+    ws_summary.write(row, 3, '')
+    row += 1
     
     # Network Data
     ws_summary.write(row, 0, 'Network Data')
@@ -1571,8 +1620,10 @@ def export_overview_data(request):
     ws_hashrate_platform.write(0, 1, 'Hashrate (TH/s)')
     
     platform_row = 1
-    for platform in RemoteMiningPlatform.objects.all():
-        platform_hashrate = platform.miners.aggregate(total=Sum('hashrate'))['total'] or 0
+    export_platform_list = [selected_platform] if selected_platform else RemoteMiningPlatform.objects.all()
+    for platform in export_platform_list:
+        platform_miners = platform.miners.filter(hashrate__isnull=False, power__isnull=False)
+        platform_hashrate = platform_miners.aggregate(total=Sum('hashrate'))['total'] or 0
         if platform_hashrate > 0:
             ws_hashrate_platform.write(platform_row, 0, platform.name)
             ws_hashrate_platform.write(platform_row, 1, float(platform_hashrate))
@@ -1602,7 +1653,7 @@ def export_overview_data(request):
     ws_revenue_platform.write(0, 4, 'Payout Count')
     
     revenue_row = 1
-    for platform in RemoteMiningPlatform.objects.all():
+    for platform in export_platform_list:
         platform_btc = platform.payouts.aggregate(total=Sum('payout_amount'))['total'] or 0
         platform_payouts = platform.payouts.count()
         if platform_btc > 0:
@@ -1619,7 +1670,8 @@ def export_overview_data(request):
     response = HttpResponse(
         content_type='application/vnd.ms-excel'
     )
-    response['Content-Disposition'] = 'attachment; filename="overview_dashboard_export.xls"'
+    platform_suffix = f'_{selected_platform_name.replace(" ", "_")}' if selected_platform else ''
+    response['Content-Disposition'] = f'attachment; filename="overview_dashboard{platform_suffix}_export.xls"'
     wb.save(response)
     return response
 
