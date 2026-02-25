@@ -702,15 +702,18 @@ class PlatformDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         current_platform = self.get_object()
         
-        # Get previous platform (lower ID)
+        # Navigate by name (matching list view order: alphabetical)
+        # Previous = earlier in alphabet
         previous_platform = RemoteMiningPlatform.objects.filter(
-            id__lt=current_platform.id
-        ).order_by('-id').first()
+            Q(name__lt=current_platform.name) |
+            Q(name=current_platform.name, id__lt=current_platform.id)
+        ).order_by('-name', '-id').first()
         
-        # Get next platform (higher ID)
+        # Next = later in alphabet
         next_platform = RemoteMiningPlatform.objects.filter(
-            id__gt=current_platform.id
-        ).order_by('id').first()
+            Q(name__gt=current_platform.name) |
+            Q(name=current_platform.name, id__gt=current_platform.id)
+        ).order_by('name', 'id').first()
         
         context['previous_platform'] = previous_platform
         context['next_platform'] = next_platform
@@ -850,15 +853,18 @@ class PayoutDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         current_payout = self.get_object()
         
-        # Get previous payout (lower ID)
+        # Navigate by payout_date (matching list view order: newest first)
+        # Previous = newer payout (appears before in list)
         previous_payout = Payout.objects.filter(
-            id__lt=current_payout.id
-        ).order_by('-id').first()
+            Q(payout_date__gt=current_payout.payout_date) |
+            Q(payout_date=current_payout.payout_date, id__gt=current_payout.id)
+        ).order_by('payout_date', 'id').first()
         
-        # Get next payout (higher ID)
+        # Next = older payout (appears after in list)
         next_payout = Payout.objects.filter(
-            id__gt=current_payout.id
-        ).order_by('id').first()
+            Q(payout_date__lt=current_payout.payout_date) |
+            Q(payout_date=current_payout.payout_date, id__lt=current_payout.id)
+        ).order_by('-payout_date', '-id').first()
         
         context['previous_payout'] = previous_payout
         context['next_payout'] = next_payout
@@ -994,15 +1000,18 @@ class ExpenseDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         current_expense = self.get_object()
         
-        # Get previous expense (lower ID)
+        # Navigate by expense_date (matching list view order: newest first)
+        # Previous = newer expense (appears before in list)
         previous_expense = Expense.objects.filter(
-            id__lt=current_expense.id
-        ).order_by('-id').first()
+            Q(expense_date__gt=current_expense.expense_date) |
+            Q(expense_date=current_expense.expense_date, id__gt=current_expense.id)
+        ).order_by('expense_date', 'id').first()
         
-        # Get next expense (higher ID)
+        # Next = older expense (appears after in list)
         next_expense = Expense.objects.filter(
-            id__gt=current_expense.id
-        ).order_by('id').first()
+            Q(expense_date__lt=current_expense.expense_date) |
+            Q(expense_date=current_expense.expense_date, id__lt=current_expense.id)
+        ).order_by('-expense_date', '-id').first()
         
         context['previous_expense'] = previous_expense
         context['next_expense'] = next_expense
@@ -2022,15 +2031,19 @@ class TopUpDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Add previous and next navigation
+        # Navigate by topup_date (matching list view order: newest first)
         topup = self.get_object()
+        # Previous = newer top-up (appears before in list)
         context['previous_topup'] = TopUp.objects.filter(
-            id__lt=topup.id
-        ).order_by('-id').first()
+            Q(topup_date__gt=topup.topup_date) |
+            Q(topup_date=topup.topup_date, id__gt=topup.id)
+        ).order_by('topup_date', 'id').first()
         
+        # Next = older top-up (appears after in list)
         context['next_topup'] = TopUp.objects.filter(
-            id__gt=topup.id
-        ).order_by('id').first()
+            Q(topup_date__lt=topup.topup_date) |
+            Q(topup_date=topup.topup_date, id__lt=topup.id)
+        ).order_by('-topup_date', '-id').first()
         
         return context
 
