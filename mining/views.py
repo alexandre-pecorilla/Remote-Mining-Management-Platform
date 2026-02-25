@@ -1480,7 +1480,7 @@ def export_overview_data(request):
     row += 1
     
     ws_summary.write(row, 0, 'Fleet Data')
-    ws_summary.write(row, 1, 'Total CAPEX')
+    ws_summary.write(row, 1, 'Total Hardware Cost')
     ws_summary.write(row, 2, float(total_capex))
     ws_summary.write(row, 3, 'USD')
     row += 1
@@ -2143,32 +2143,37 @@ def forecasting_dashboard(request):
     api_data = APIData.get_api_data()
     settings = Settings.get_settings()
     
-    # Get total hashrate (sum of all miners)
-    total_hashrate = Miner.objects.aggregate(total=Sum('hashrate'))['total'] or Decimal('0')
+    # Get miners with valid hashrate and power data (consistent with overview dashboard)
+    total_miner_count = Miner.objects.count()
+    miners = Miner.objects.filter(hashrate__isnull=False, power__isnull=False)
     
-    # Get miner count
-    miner_count = Miner.objects.count()
+    # Get total hashrate
+    total_hashrate = miners.aggregate(total=Sum('hashrate'))['total'] or Decimal('0')
     
-    # Get total CAPEX (sum of all miner purchase prices)
-    total_capex = Miner.objects.aggregate(total=Sum('purchase_price'))['total'] or Decimal('0')
+    # Get miner count (accounted for on dashboard)
+    miner_count = miners.count()
+    
+    # Get total hardware cost (sum of miner purchase prices)
+    total_capex = miners.aggregate(total=Sum('purchase_price'))['total'] or Decimal('0')
     
     # Calculate hashrate weighted average efficiency
     hashrate_weighted_efficiency = Decimal('0')
     if total_hashrate > 0:
         total_weighted = Decimal('0')
-        for miner in Miner.objects.all():
-            if miner.hashrate and miner.efficiency:
-                total_weighted += miner.hashrate * miner.efficiency
+        for miner in miners.filter(efficiency__isnull=False):
+            total_weighted += miner.hashrate * miner.efficiency
         hashrate_weighted_efficiency = total_weighted / total_hashrate if total_weighted > 0 else Decimal('0')
     
-    # Calculate hashrate weighted average energy cost
+    # Calculate hashrate weighted average energy cost (denominator = only miners with energy prices)
     hashrate_weighted_energy_cost = Decimal('0')
     if total_hashrate > 0:
         total_weighted = Decimal('0')
-        for miner in Miner.objects.all():
-            if miner.hashrate and miner.platform and miner.platform.energy_price:
-                total_weighted += miner.hashrate * miner.platform.energy_price
-        hashrate_weighted_energy_cost = total_weighted / total_hashrate if total_weighted > 0 else Decimal('0')
+        total_hashrate_with_energy = Decimal('0')
+        for miner in miners.filter(platform__energy_price__isnull=False):
+            total_weighted += miner.hashrate * miner.platform.energy_price
+            total_hashrate_with_energy += miner.hashrate
+        if total_hashrate_with_energy > 0:
+            hashrate_weighted_energy_cost = total_weighted / total_hashrate_with_energy
     
     # Get data from API and settings
     network_difficulty = api_data.network_difficulty or 0
@@ -2180,23 +2185,21 @@ def forecasting_dashboard(request):
     efficiency_w_th = float(hashrate_weighted_efficiency)
     hardware_cost_usd = float(total_capex)
     
-    # Perform calculations (using the same logic as the Python script)
+    # Perform calculations using difficulty-based formula
     results = None
-    if total_hashrate > 0 and network_hashrate_ehs > 0 and btc_price_usd > 0:
+    if total_hashrate > 0 and network_difficulty > 0 and btc_price_usd > 0:
         # Convert hashrate to H/s
         miner_hashrate_hs = float(total_hashrate) * 1e12  # TH/s to H/s
         
-        # Use network hashrate directly from API data
-        network_hashrate_hs = network_hashrate_ehs * 1e18  # EH/s to H/s
+        # Hashrate share for display purposes only
+        network_hashrate_hs = network_hashrate_ehs * 1e18 if network_hashrate_ehs > 0 else 0  # EH/s to H/s
+        hashrate_share_percent = (miner_hashrate_hs / network_hashrate_hs * 100) if network_hashrate_hs > 0 else 0
         
-        # Calculate hashrate share
-        hashrate_share = miner_hashrate_hs / network_hashrate_hs
-        hashrate_share_percent = hashrate_share * 100
-        
-        # Daily mining calculations
-        daily_blocks = 144
+        # Daily mining calculations using difficulty-based formula
+        # Expected blocks per day = (hashrate * 86400) / (difficulty * 2^32)
         block_reward = float(settings.block_reward) + avg_tx_fees
-        daily_btc_gross_before_fee = hashrate_share * daily_blocks * block_reward
+        expected_blocks_per_day = (miner_hashrate_hs * 86400) / (network_difficulty * 2**32)
+        daily_btc_gross_before_fee = expected_blocks_per_day * block_reward
         pool_fee_btc = daily_btc_gross_before_fee * (pool_fee / 100)
         daily_btc_after_fee = daily_btc_gross_before_fee - pool_fee_btc
         
@@ -2321,6 +2324,7 @@ def forecasting_dashboard(request):
         # Input parameters
         'total_hashrate': total_hashrate,
         'miner_count': miner_count,
+        'total_miner_count': total_miner_count,
         'network_difficulty': network_difficulty,
         'network_hashrate_ehs': network_hashrate_ehs,
         'avg_tx_fees': avg_tx_fees,
@@ -2348,32 +2352,37 @@ def export_forecasting_data(request):
     api_data = APIData.get_api_data()
     settings = Settings.get_settings()
     
-    # Get total hashrate (sum of all miners)
-    total_hashrate = Miner.objects.aggregate(total=Sum('hashrate'))['total'] or Decimal('0')
+    # Get miners with valid hashrate and power data (consistent with overview dashboard)
+    total_miner_count = Miner.objects.count()
+    miners = Miner.objects.filter(hashrate__isnull=False, power__isnull=False)
     
-    # Get miner count
-    miner_count = Miner.objects.count()
+    # Get total hashrate
+    total_hashrate = miners.aggregate(total=Sum('hashrate'))['total'] or Decimal('0')
     
-    # Get total CAPEX (sum of all miners' purchase prices)
-    total_capex = Miner.objects.aggregate(total=Sum('purchase_price'))['total'] or Decimal('0')
+    # Get miner count (accounted for on dashboard)
+    miner_count = miners.count()
     
-    # Calculate hashrate weighted efficiency
-    hashrate_weighted_efficiency = 0
+    # Get total hardware cost (sum of miner purchase prices)
+    total_capex = miners.aggregate(total=Sum('purchase_price'))['total'] or Decimal('0')
+    
+    # Calculate hashrate weighted average efficiency
+    hashrate_weighted_efficiency = Decimal('0')
     if total_hashrate > 0:
-        efficiency_sum = 0
-        for miner in Miner.objects.filter(hashrate__isnull=False, efficiency__isnull=False):
-            efficiency_sum += float(miner.hashrate) * float(miner.efficiency)
-        if efficiency_sum > 0:
-            hashrate_weighted_efficiency = efficiency_sum / float(total_hashrate)
+        total_weighted = Decimal('0')
+        for miner in miners.filter(efficiency__isnull=False):
+            total_weighted += miner.hashrate * miner.efficiency
+        hashrate_weighted_efficiency = total_weighted / total_hashrate if total_weighted > 0 else Decimal('0')
     
-    # Calculate weighted average energy cost
-    hashrate_weighted_energy_cost = 0
+    # Calculate hashrate weighted average energy cost (denominator = only miners with energy prices)
+    hashrate_weighted_energy_cost = Decimal('0')
     if total_hashrate > 0:
-        energy_cost_sum = 0
-        for miner in Miner.objects.filter(hashrate__isnull=False, platform__energy_price__isnull=False):
-            energy_cost_sum += float(miner.hashrate) * float(miner.platform.energy_price)
-        if energy_cost_sum > 0:
-            hashrate_weighted_energy_cost = energy_cost_sum / float(total_hashrate)
+        total_weighted = Decimal('0')
+        total_hashrate_with_energy = Decimal('0')
+        for miner in miners.filter(platform__energy_price__isnull=False):
+            total_weighted += miner.hashrate * miner.platform.energy_price
+            total_hashrate_with_energy += miner.hashrate
+        if total_hashrate_with_energy > 0:
+            hashrate_weighted_energy_cost = total_weighted / total_hashrate_with_energy
     
     # Get data from API and settings
     network_difficulty = api_data.network_difficulty or 0
@@ -2392,25 +2401,23 @@ def export_forecasting_data(request):
     elif total_hashrate == 0:
         ws = wb.add_sheet('Error')
         ws.write(0, 0, 'Error: No miners with hashrate data available')
-    elif network_hashrate_ehs <= 0 or btc_price_usd <= 0:
+    elif network_difficulty <= 0 or btc_price_usd <= 0:
         ws = wb.add_sheet('Error')
-        ws.write(0, 0, 'Error: Invalid network or price data')
+        ws.write(0, 0, 'Error: Invalid network difficulty or price data')
     else:
         # EXACT SAME CALCULATIONS AS DASHBOARD
         # Convert hashrate to H/s
         miner_hashrate_hs = float(total_hashrate) * 1e12  # TH/s to H/s
         
-        # Use network hashrate directly from API data
-        network_hashrate_hs = network_hashrate_ehs * 1e18  # EH/s to H/s
+        # Hashrate share for display purposes only
+        network_hashrate_hs = network_hashrate_ehs * 1e18 if network_hashrate_ehs > 0 else 0  # EH/s to H/s
+        hashrate_share_percent = (miner_hashrate_hs / network_hashrate_hs * 100) if network_hashrate_hs > 0 else 0
         
-        # Calculate hashrate share
-        hashrate_share = miner_hashrate_hs / network_hashrate_hs
-        hashrate_share_percent = hashrate_share * 100
-        
-        # Daily mining calculations
-        daily_blocks = 144
+        # Daily mining calculations using difficulty-based formula
+        # Expected blocks per day = (hashrate * 86400) / (difficulty * 2^32)
         block_reward = float(settings.block_reward) + avg_tx_fees
-        daily_btc_gross_before_fee = hashrate_share * daily_blocks * block_reward
+        expected_blocks_per_day = (miner_hashrate_hs * 86400) / (network_difficulty * 2**32)
+        daily_btc_gross_before_fee = expected_blocks_per_day * block_reward
         pool_fee_btc = daily_btc_gross_before_fee * (pool_fee / 100)
         daily_btc_after_fee = daily_btc_gross_before_fee - pool_fee_btc
         
@@ -2515,6 +2522,12 @@ def export_forecasting_data(request):
         row += 1
         
         # My Fleet Overview
+        ws_summary.write(row, 0, 'My Fleet Overview')
+        ws_summary.write(row, 1, 'Miners Accounted For')
+        ws_summary.write(row, 2, miner_count)
+        ws_summary.write(row, 3, f'of {total_miner_count}')
+        row += 1
+        
         ws_summary.write(row, 0, 'My Fleet Overview')
         ws_summary.write(row, 1, 'My Hashrate')
         ws_summary.write(row, 2, float(total_hashrate))
