@@ -2143,9 +2143,21 @@ def forecasting_dashboard(request):
     api_data = APIData.get_api_data()
     settings = Settings.get_settings()
     
+    # Platform filter
+    platforms = RemoteMiningPlatform.objects.all()
+    selected_platform_id = request.GET.get('platform', '')
+    selected_platform = None
+    if selected_platform_id:
+        try:
+            selected_platform = RemoteMiningPlatform.objects.get(pk=selected_platform_id)
+        except (RemoteMiningPlatform.DoesNotExist, ValueError):
+            selected_platform = None
+    
     # Get miners with valid hashrate and power data (consistent with overview dashboard)
     total_miner_count = Miner.objects.count()
     miners = Miner.objects.filter(hashrate__isnull=False, power__isnull=False)
+    if selected_platform:
+        miners = miners.filter(platform=selected_platform)
     
     # Get total hashrate
     total_hashrate = miners.aggregate(total=Sum('hashrate'))['total'] or Decimal('0')
@@ -2321,6 +2333,9 @@ def forecasting_dashboard(request):
         }
     
     context = {
+        # Platform filter
+        'platforms': platforms,
+        'selected_platform': selected_platform,
         # Input parameters
         'total_hashrate': total_hashrate,
         'miner_count': miner_count,
@@ -2352,9 +2367,22 @@ def export_forecasting_data(request):
     api_data = APIData.get_api_data()
     settings = Settings.get_settings()
     
+    # Platform filter
+    selected_platform_id = request.GET.get('platform', '')
+    selected_platform = None
+    selected_platform_name = 'All Platforms'
+    if selected_platform_id:
+        try:
+            selected_platform = RemoteMiningPlatform.objects.get(pk=selected_platform_id)
+            selected_platform_name = selected_platform.name
+        except (RemoteMiningPlatform.DoesNotExist, ValueError):
+            selected_platform = None
+    
     # Get miners with valid hashrate and power data (consistent with overview dashboard)
     total_miner_count = Miner.objects.count()
     miners = Miner.objects.filter(hashrate__isnull=False, power__isnull=False)
+    if selected_platform:
+        miners = miners.filter(platform=selected_platform)
     
     # Get total hashrate
     total_hashrate = miners.aggregate(total=Sum('hashrate'))['total'] or Decimal('0')
@@ -2495,6 +2523,13 @@ def export_forecasting_data(request):
         ws_summary.write(0, 3, 'Unit')
         
         row = 1
+        
+        # Platform Filter
+        ws_summary.write(row, 0, 'Filter')
+        ws_summary.write(row, 1, 'Platform')
+        ws_summary.write(row, 2, selected_platform_name)
+        ws_summary.write(row, 3, '')
+        row += 1
         
         # Network Overview
         ws_summary.write(row, 0, 'Network Overview')
@@ -2724,6 +2759,7 @@ def export_forecasting_data(request):
         row += 1
     
     response = HttpResponse(content_type='application/vnd.ms-excel')
-    response['Content-Disposition'] = 'attachment; filename="forecasting_dashboard_export.xls"'
+    platform_suffix = f'_{selected_platform_name.replace(" ", "_")}' if selected_platform else ''
+    response['Content-Disposition'] = f'attachment; filename="forecasting_dashboard{platform_suffix}_export.xls"'
     wb.save(response)
     return response

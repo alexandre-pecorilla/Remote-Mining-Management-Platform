@@ -8,9 +8,20 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h2"><i class="fas fa-chart-line text-primary"></i> Forecasting Dashboard</h1>
-        <a href="{% url 'export_forecasting_data' %}" class="btn btn-success">
-            <i class="fas fa-file-excel"></i> Export Data
-        </a>
+        <div class="d-flex align-items-center gap-2">
+            <form method="get" class="d-flex align-items-center gap-2" id="platformFilterForm">
+                <label for="platformSelect" class="form-label mb-0 text-nowrap"><i class="fas fa-filter"></i> Platform:</label>
+                <select name="platform" id="platformSelect" class="form-select form-select-sm" style="min-width: 180px;" onchange="document.getElementById('platformFilterForm').submit();">
+                    <option value="">All Platforms</option>
+                    {% for platform in platforms %}
+                    <option value="{{ platform.pk }}" {% if selected_platform and selected_platform.pk == platform.pk %}selected{% endif %}>{{ platform.name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            <a href="{% url 'export_forecasting_data' %}{% if selected_platform %}?platform={{ selected_platform.pk }}{% endif %}" class="btn btn-success btn-sm text-nowrap">
+                <i class="fas fa-file-excel"></i> Export Data
+            </a>
+        </div>
     </div>
 
     {% if not results %}
