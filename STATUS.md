@@ -1,7 +1,8 @@
 # Status
 
 ## Recent Changes
-- `PENDING` Extract shared data-gathering logic into mining/services.py, eliminating ~900 lines of duplication between dashboard views and their export counterparts
+- `PENDING` Fix broken import in import_expense_data: replace nonexistent xldate module with xlrd.xldate_as_datetime
+- `78f7ce0` Extract shared data-gathering logic into mining/services.py, eliminating ~900 lines of duplication between dashboard views and their export counterparts
 - `42deabb` Fix N+1 query problems: add select_related('platform') to all miner, payout, expense, and topup querysets that access platform fields
 - `028d125` Include CLAUDE.md rules and fix missed staging
 - `8c83f5f` Fix STATUS.md to follow PENDING/hash commit tracking convention

@@ -1611,9 +1611,7 @@ def import_expense_data(request):
                         try:
                             if isinstance(cell_value, float):
                                 # Excel date as float
-                                from datetime import date
-                                import xldate
-                                expense_data['expense_date'] = xldate.xldate_as_datetime(cell_value, wb.datemode).date()
+                                expense_data['expense_date'] = xlrd.xldate_as_datetime(cell_value, wb.datemode).date()
                             else:
                                 # String date
                                 expense_data['expense_date'] = datetime.strptime(str(cell_value), '%Y-%m-%d').date()
