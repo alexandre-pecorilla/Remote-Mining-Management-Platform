@@ -82,7 +82,7 @@ class Miner(models.Model):
     purchase_date = models.DateField(blank=True, null=True)
     start_date = models.DateField(blank=True, null=True)
     location = models.CharField(max_length=200, blank=True, null=True)
-    is_active = models.BooleanField(default=True, help_text="Whether this miner is currently turned on. Only affects the Forecasting Dashboard.")
+    is_active = models.BooleanField(default=True, db_index=True, help_text="Whether this miner is currently turned on. Only affects the Forecasting Dashboard.")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -118,7 +118,7 @@ class Miner(models.Model):
 
 class Payout(models.Model):
     """Mining payout record"""
-    payout_date = models.DateField(help_text="Date of the payout")
+    payout_date = models.DateField(db_index=True, help_text="Date of the payout")
     payout_amount = models.DecimalField(max_digits=12, decimal_places=8, help_text="Payout amount in BTC")
     platform = models.ForeignKey(RemoteMiningPlatform, on_delete=models.SET_NULL, blank=True, null=True, related_name='payouts')
     transaction_id = models.CharField(max_length=100, blank=True, null=True, help_text="Bitcoin transaction ID")
@@ -166,9 +166,9 @@ class Expense(models.Model):
         ('OPEX', 'OPEX'),
     ]
     
-    expense_date = models.DateField(help_text="Date of the expense")
+    expense_date = models.DateField(db_index=True, help_text="Date of the expense")
     platform = models.ForeignKey(RemoteMiningPlatform, on_delete=models.CASCADE, related_name='expenses')
-    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, help_text="Expense category")
+    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, db_index=True, help_text="Expense category")
     description = models.CharField(max_length=200, blank=True, null=True, help_text="Short description of the expense")
     expense_amount = models.DecimalField(max_digits=12, decimal_places=2, help_text="Expense amount in USD")
     invoice_link = models.URLField(blank=True, null=True, help_text="Link to invoice document")
