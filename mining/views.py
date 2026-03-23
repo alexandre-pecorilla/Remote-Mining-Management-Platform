@@ -1377,9 +1377,10 @@ def import_platform_data(request):
                 
                 if row_data:  # Skip empty rows
                     # Create platform instance
+                    valid_fields = {f.name for f in RemoteMiningPlatform._meta.get_fields()}
                     platform_data = {}
                     for field, value in row_data.items():
-                        if hasattr(RemoteMiningPlatform, field) and value:
+                        if field in valid_fields and value:
                             if field == 'energy_price' and value:
                                 platform_data[field] = Decimal(str(value))
                             else:
@@ -1435,9 +1436,10 @@ def import_miner_data(request):
                 
                 if row_data:  # Skip empty rows
                     # Create miner instance
+                    valid_fields = {f.name for f in Miner._meta.get_fields()}
                     miner_data = {}
                     for field, value in row_data.items():
-                        if hasattr(Miner, field) and value:
+                        if field in valid_fields and value:
                             if field == 'platform':
                                 # Handle foreign key - expect platform ID
                                 try:
@@ -1505,9 +1507,10 @@ def import_payout_data(request):
                 
                 if row_data:  # Skip empty rows
                     # Create payout instance
+                    valid_fields = {f.name for f in Payout._meta.get_fields()}
                     payout_data = {}
                     for field, value in row_data.items():
-                        if hasattr(Payout, field) and value:
+                        if field in valid_fields and value:
                             if field == 'platform':
                                 # Handle foreign key - expect platform ID
                                 try:
