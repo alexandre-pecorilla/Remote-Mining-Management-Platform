@@ -1,37 +1,11 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib import messages
-from django.http import HttpResponse, JsonResponse
-from django.urls import reverse_lazy, reverse
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
-from django.views.decorators.http import require_POST
-from django.db.models import Sum, Q
-from django.db.models.functions import TruncMonth
-from openpyxl import Workbook, load_workbook
-from decimal import Decimal, InvalidOperation
-from datetime import datetime, date, timedelta
-import json
-import logging
-import threading
-import time
-
-logger = logging.getLogger(__name__)
-from .models import RemoteMiningPlatform, Miner, Settings, APIData, Payout, Expense, TopUp
-from .forms import RemoteMiningPlatformForm, MinerForm, SettingsForm, PayoutForm, ExpenseForm, TopUpForm
-from .api_utils import fetch_all_api_data, get_historical_btc_price
-from .services import get_capex_opex_data, get_income_data, get_overview_data, get_forecasting_data, resolve_selected_platform
-
-
-# Home Page View
-def home_view(request):
-    """Home page with navigation to all sections of the application"""
-    return render(request, 'mining/home.html')
-
-
-# CAPEX/OPEX Dashboard View
-def capex_opex_dashboard(request):
-    """Dashboard view for CAPEX/OPEX analysis"""
-    data = get_capex_opex_data()
-    return render(request, 'mining/capex_opex_dashboard.html', data)
+from django.http import HttpResponse
+from openpyxl import Workbook
+from datetime import datetime
+from ..services import (
+    get_capex_opex_data, get_income_data, get_overview_data,
+    get_forecasting_data, resolve_selected_platform,
+)
+from ..models import RemoteMiningPlatform, Miner, Payout, Expense, TopUp
 
 
 def export_capex_opex_data(request):
@@ -170,65 +144,6 @@ def export_capex_opex_data(request):
 
 
 # Income Dashboard View
-def income_dashboard(request):
-    """Dashboard view for Income analysis"""
-    data = get_income_data()
-    current_btc_price = data['current_btc_price']
-    platform_income = data['platform_income']
-    monthly_income_btc = data['monthly_income_btc']
-    monthly_income_by_platform = data['monthly_income_by_platform']
-    all_months = data['all_months']
-
-    # Prepare monthly data for template (dashboard-specific pivot)
-    monthly_btc_data = []
-    monthly_usd_then_data = []
-    monthly_usd_now_data = []
-    
-    for month in all_months:
-        if month:
-            # BTC data
-            btc_row = {'month': month, 'total': Decimal('0'), 'platforms': {}}
-            usd_then_row = {'month': month, 'total': Decimal('0'), 'platforms': {}}
-            usd_now_row = {'month': month, 'total': Decimal('0'), 'platforms': {}}
-            
-            # Find total for this month
-            for item in monthly_income_btc:
-                if item['month'] == month:
-                    btc_row['total'] = item['total_btc']
-                    usd_then_row['total'] = item['total_usd_then']
-                    usd_now_row['total'] = item['total_usd_now']
-                    break
-            
-            # Add platform data
-            for platform, platform_data in monthly_income_by_platform.items():
-                btc_row['platforms'][platform] = Decimal('0')
-                usd_then_row['platforms'][platform] = Decimal('0')
-                usd_now_row['platforms'][platform] = Decimal('0')
-                
-                for item in platform_data:
-                    if item['month'] == month:
-                        btc_row['platforms'][platform] = item['total_btc']
-                        usd_then_row['platforms'][platform] = item['total_usd_then']
-                        usd_now_row['platforms'][platform] = item['total_usd_now']
-                        break
-            
-            monthly_btc_data.append(btc_row)
-            monthly_usd_then_data.append(usd_then_row)
-            monthly_usd_now_data.append(usd_now_row)
-    
-    context = {
-        'total_income_btc': data['total_income_btc'],
-        'total_income_usd_then': data['total_income_usd_then'],
-        'total_income_usd_now': data['total_income_usd_now'],
-        'platform_income': platform_income,
-        'monthly_btc_data': monthly_btc_data,
-        'monthly_usd_then_data': monthly_usd_then_data,
-        'monthly_usd_now_data': monthly_usd_now_data,
-        'platforms_with_income': [item['platform'] for item in platform_income],
-        'current_btc_price': current_btc_price,
-    }
-
-    return render(request, 'mining/income_dashboard.html', context)
 
 
 def export_income_data(request):
@@ -403,568 +318,8 @@ def export_income_data(request):
     return response
 
 
-class PlatformListView(ListView):
-    model = RemoteMiningPlatform
-    template_name = 'mining/platform_list.html'
-    context_object_name = 'platforms'
-    paginate_by = 10
 
 
-class PlatformDetailView(DetailView):
-    model = RemoteMiningPlatform
-    template_name = 'mining/platform_detail.html'
-    context_object_name = 'platform'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        current_platform = self.get_object()
-        
-        # Navigate by name (matching list view order: alphabetical)
-        # Previous = earlier in alphabet
-        previous_platform = RemoteMiningPlatform.objects.filter(
-            Q(name__lt=current_platform.name) |
-            Q(name=current_platform.name, id__lt=current_platform.id)
-        ).order_by('-name', '-id').first()
-        
-        # Next = later in alphabet
-        next_platform = RemoteMiningPlatform.objects.filter(
-            Q(name__gt=current_platform.name) |
-            Q(name=current_platform.name, id__gt=current_platform.id)
-        ).order_by('name', 'id').first()
-        
-        context['previous_platform'] = previous_platform
-        context['next_platform'] = next_platform
-        return context
-
-
-class PlatformCreateView(CreateView):
-    model = RemoteMiningPlatform
-    form_class = RemoteMiningPlatformForm
-    template_name = 'mining/platform_form.html'
-    
-    def get_success_url(self):
-        return reverse_lazy('platform_detail', kwargs={'pk': self.object.pk})
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Platform created successfully.')
-        return super().form_valid(form)
-
-
-class PlatformUpdateView(UpdateView):
-    model = RemoteMiningPlatform
-    form_class = RemoteMiningPlatformForm
-    template_name = 'mining/platform_form.html'
-    
-    def get_success_url(self):
-        return reverse_lazy('platform_detail', kwargs={'pk': self.object.pk})
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Platform updated successfully.')
-        return super().form_valid(form)
-
-
-class PlatformDeleteView(DeleteView):
-    model = RemoteMiningPlatform
-    template_name = 'mining/platform_confirm_delete.html'
-    success_url = reverse_lazy('platform_list')
-    
-    def delete(self, request, *args, **kwargs):
-        messages.success(request, "Platform deleted successfully!")
-        return super().delete(request, *args, **kwargs)
-
-
-# Miner Views
-class MinerListView(ListView):
-    model = Miner
-    template_name = 'mining/miner_list.html'
-    context_object_name = 'miners'
-    paginate_by = 50
-    queryset = Miner.objects.select_related('platform')
-
-
-class MinerDetailView(DetailView):
-    model = Miner
-    template_name = 'mining/miner_detail.html'
-    context_object_name = 'miner'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        current_miner = self.get_object()
-        
-        # Get previous miner (lower ID)
-        previous_miner = Miner.objects.filter(
-            id__lt=current_miner.id
-        ).order_by('-id').first()
-        
-        # Get next miner (higher ID)
-        next_miner = Miner.objects.filter(
-            id__gt=current_miner.id
-        ).order_by('id').first()
-        
-        context['previous_miner'] = previous_miner
-        context['next_miner'] = next_miner
-        return context
-
-
-class MinerCreateView(CreateView):
-    model = Miner
-    form_class = MinerForm
-    template_name = 'mining/miner_form.html'
-    
-    def get_success_url(self):
-        return reverse_lazy('miner_detail', kwargs={'pk': self.object.pk})
-
-    def form_valid(self, form):
-        messages.success(self.request, "Miner created successfully!")
-        return super().form_valid(form)
-
-
-class MinerUpdateView(UpdateView):
-    model = Miner
-    form_class = MinerForm
-    template_name = 'mining/miner_form.html'
-    
-    def get_success_url(self):
-        return reverse_lazy('miner_detail', kwargs={'pk': self.object.pk})
-
-    def form_valid(self, form):
-        messages.success(self.request, "Miner updated successfully!")
-        return super().form_valid(form)
-
-
-class MinerDeleteView(DeleteView):
-    model = Miner
-    template_name = 'mining/miner_confirm_delete.html'
-    success_url = reverse_lazy('miner_list')
-    context_object_name = 'miner'
-
-    def delete(self, request, *args, **kwargs):
-        messages.success(request, "Miner deleted successfully!")
-        return super().delete(request, *args, **kwargs)
-
-
-@require_POST
-def toggle_miner_active(request, pk):
-    """Toggle a miner's is_active status (on/off)"""
-    miner = get_object_or_404(Miner, pk=pk)
-    miner.is_active = not miner.is_active
-    miner.save(update_fields=['is_active'])
-    status = "ON" if miner.is_active else "OFF"
-    messages.success(request, f"{miner.model} turned {status}.")
-    return redirect('miner_detail', pk=pk)
-
-
-# Payout Views
-class PayoutListView(ListView):
-    model = Payout
-    template_name = 'mining/payout_list.html'
-    context_object_name = 'payouts'
-    paginate_by = 50
-    queryset = Payout.objects.select_related('platform')
-
-
-class PayoutDetailView(DetailView):
-    model = Payout
-    template_name = 'mining/payout_detail.html'
-    context_object_name = 'payout'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        current_payout = self.get_object()
-        
-        # Navigate by payout_date (matching list view order: newest first)
-        # Previous = newer payout (appears before in list)
-        previous_payout = Payout.objects.filter(
-            Q(payout_date__gt=current_payout.payout_date) |
-            Q(payout_date=current_payout.payout_date, id__gt=current_payout.id)
-        ).order_by('payout_date', 'id').first()
-        
-        # Next = older payout (appears after in list)
-        next_payout = Payout.objects.filter(
-            Q(payout_date__lt=current_payout.payout_date) |
-            Q(payout_date=current_payout.payout_date, id__lt=current_payout.id)
-        ).order_by('-payout_date', '-id').first()
-        
-        context['previous_payout'] = previous_payout
-        context['next_payout'] = next_payout
-        return context
-
-
-class PayoutCreateView(CreateView):
-    model = Payout
-    form_class = PayoutForm
-    template_name = 'mining/payout_form.html'
-    
-    def get_success_url(self):
-        return reverse_lazy('payout_detail', kwargs={'pk': self.object.pk})
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Payout added successfully!')
-        return super().form_valid(form)
-
-
-class PayoutUpdateView(UpdateView):
-    model = Payout
-    form_class = PayoutForm
-    template_name = 'mining/payout_form.html'
-    
-    def get_success_url(self):
-        return reverse_lazy('payout_detail', kwargs={'pk': self.object.pk})
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Payout updated successfully!')
-        return super().form_valid(form)
-
-
-class PayoutDeleteView(DeleteView):
-    model = Payout
-    template_name = 'mining/payout_confirm_delete.html'
-    success_url = reverse_lazy('payout_list')
-    context_object_name = 'payout'
-    
-    def delete(self, request, *args, **kwargs):
-        messages.success(self.request, 'Payout deleted successfully!')
-        return super().delete(request, *args, **kwargs)
-
-
-@require_POST
-def fetch_closing_price(request, payout_id):
-    """Fetch historical BTC price for payout date and update closing_price field"""
-    try:
-        payout = get_object_or_404(Payout, pk=payout_id)
-
-        if not payout.payout_date:
-            return JsonResponse({
-                'success': False,
-                'error': 'Payout date is required to fetch closing price'
-            })
-
-        # Fetch historical BTC price for the payout date
-        historical_price = get_historical_btc_price(payout.payout_date)
-
-        # Update the payout's closing_price and fetched_at fields
-        payout.closing_price = Decimal(str(historical_price))
-        payout.closing_price_fetched_at = date.today()
-        payout.save()
-
-        return JsonResponse({
-            'success': True,
-            'closing_price': float(payout.closing_price),
-            'formatted_price': f'${payout.closing_price:,.2f}'
-        })
-
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Failed to fetch closing price: {str(e)}'
-        })
-
-
-# Background task state via Django cache (shareable across processes)
-# For multi-process production, configure a shared cache backend (Redis, Memcached, or database)
-# in settings.py. The default LocMemCache works for single-process dev servers.
-from django.core.cache import cache
-
-_BULK_FETCH_CACHE_KEY = 'bulk_fetch_closing_prices_status'
-_API_FETCH_CACHE_KEY = 'api_fetch_status'
-_CACHE_TIMEOUT = 3600  # 1 hour
-
-_bulk_fetch_lock = threading.Lock()
-_api_fetch_lock = threading.Lock()
-
-
-def _get_bulk_fetch_status():
-    return cache.get(_BULK_FETCH_CACHE_KEY, {
-        'running': False, 'total': 0, 'processed': 0,
-        'updated': 0, 'skipped': 0, 'errors': 0,
-        'error_details': [], 'message': '',
-    })
-
-
-def _set_bulk_fetch_status(status):
-    cache.set(_BULK_FETCH_CACHE_KEY, status, _CACHE_TIMEOUT)
-
-
-def _get_api_fetch_status():
-    return cache.get(_API_FETCH_CACHE_KEY, {
-        'running': False, 'message': '', 'success': None,
-    })
-
-
-def _set_api_fetch_status(status):
-    cache.set(_API_FETCH_CACHE_KEY, status, _CACHE_TIMEOUT)
-
-
-def _bulk_fetch_closing_prices_task():
-    """Background task: fetch closing prices in sub-batches with delay to respect API rate limits."""
-    from .api_utils import get_historical_btc_price as fetch_price
-
-    BATCH_SIZE = 5
-    DELAY_BETWEEN_BATCHES = 3  # seconds
-
-    today = date.today()
-
-    payouts = list(
-        Payout.objects.filter(payout_date__isnull=False).order_by('payout_date')
-    )
-
-    payouts_to_fetch = []
-    for p in payouts:
-        if p.closing_price_fetched_at is None:
-            payouts_to_fetch.append(p)
-        elif p.closing_price_fetched_at <= p.payout_date:
-            payouts_to_fetch.append(p)
-
-    status = _get_bulk_fetch_status()
-    status.update({
-        'total': len(payouts_to_fetch), 'processed': 0,
-        'updated': 0, 'skipped': 0, 'errors': 0,
-        'error_details': [],
-        'message': f'Processing {len(payouts_to_fetch)} payouts...',
-    })
-    _set_bulk_fetch_status(status)
-
-    for i in range(0, len(payouts_to_fetch), BATCH_SIZE):
-        batch = payouts_to_fetch[i:i + BATCH_SIZE]
-
-        for payout in batch:
-            try:
-                historical_price = fetch_price(payout.payout_date)
-                payout.closing_price = Decimal(str(historical_price))
-                payout.closing_price_fetched_at = today
-                payout.save()
-                status = _get_bulk_fetch_status()
-                status['updated'] += 1
-            except Exception as e:
-                status = _get_bulk_fetch_status()
-                status['errors'] += 1
-                status['error_details'].append(
-                    f'Payout #{payout.pk} ({payout.payout_date}): {str(e)}'
-                )
-
-            status['processed'] += 1
-            _set_bulk_fetch_status(status)
-
-        if i + BATCH_SIZE < len(payouts_to_fetch):
-            time.sleep(DELAY_BETWEEN_BATCHES)
-
-    status = _get_bulk_fetch_status()
-    skipped = len(payouts) - len(payouts_to_fetch)
-    status['skipped'] = skipped
-    status['message'] = (
-        f'Completed: {status["updated"]} updated, '
-        f'{skipped} skipped, '
-        f'{status["errors"]} errors.'
-    )
-    status['running'] = False
-    _set_bulk_fetch_status(status)
-
-
-@require_POST
-def bulk_fetch_closing_prices(request):
-    """Trigger bulk closing price fetch as a background task."""
-    with _bulk_fetch_lock:
-        status = _get_bulk_fetch_status()
-        if status['running']:
-            return JsonResponse({
-                'success': False,
-                'error': 'A bulk fetch is already in progress.'
-            })
-        status = {
-            'running': True, 'total': 0, 'processed': 0,
-            'updated': 0, 'skipped': 0, 'errors': 0,
-            'error_details': [], 'message': 'Starting...',
-        }
-        _set_bulk_fetch_status(status)
-
-    thread = threading.Thread(target=_bulk_fetch_closing_prices_task, daemon=True)
-    thread.start()
-
-    return JsonResponse({'success': True, 'message': 'Bulk fetch started.'})
-
-
-def bulk_fetch_closing_prices_status(request):
-    """Return the current status of the bulk closing price fetch task."""
-    status = _get_bulk_fetch_status()
-    return JsonResponse({
-        'running': status['running'],
-        'total': status['total'],
-        'processed': status['processed'],
-        'updated': status['updated'],
-        'skipped': status['skipped'],
-        'errors': status['errors'],
-        'message': status['message'],
-        'error_details': list(status['error_details']),
-    })
-
-
-def _fetch_api_data_task():
-    """Background task: fetch all API data and save to database."""
-    try:
-        status = _get_api_fetch_status()
-        status['message'] = 'Fetching API data...'
-        _set_api_fetch_status(status)
-
-        result = fetch_all_api_data()
-
-        if result['success']:
-            api_data = APIData.get_api_data()
-            api_data.bitcoin_price_usd = result['bitcoin_price_usd']
-            api_data.network_hashrate_ehs = result['network_hashrate_ehs']
-            api_data.network_difficulty = result['network_difficulty']
-            api_data.avg_block_fees_24h = result['avg_block_fees_24h']
-            api_data.save()
-
-            status = _get_api_fetch_status()
-            status['message'] = result['message']
-            status['success'] = True
-        else:
-            status = _get_api_fetch_status()
-            status['message'] = result['message']
-            status['success'] = False
-    except Exception as e:
-        status = _get_api_fetch_status()
-        status['message'] = f'Unexpected error: {str(e)}'
-        status['success'] = False
-    finally:
-        status['running'] = False
-        _set_api_fetch_status(status)
-
-
-@require_POST
-def trigger_fetch_api_data(request):
-    """Trigger API data fetch as a background task."""
-    with _api_fetch_lock:
-        status = _get_api_fetch_status()
-        if status['running']:
-            return JsonResponse({
-                'success': False,
-                'error': 'API fetch is already in progress.'
-            })
-        _set_api_fetch_status({
-            'running': True, 'message': 'Starting...', 'success': None,
-        })
-
-    thread = threading.Thread(target=_fetch_api_data_task, daemon=True)
-    thread.start()
-
-    return JsonResponse({'success': True, 'message': 'API fetch started.'})
-
-
-def fetch_api_data_status(request):
-    """Return the current status of the API data fetch task."""
-    status = _get_api_fetch_status()
-    return JsonResponse({
-        'running': status['running'],
-        'message': status['message'],
-        'success': status['success'],
-    })
-
-
-def api_data_view(request):
-    """API Data page view"""
-    api_data = APIData.get_api_data()
-    return render(request, 'mining/api_data.html', {'api_data': api_data})
-
-
-def settings_view(request):
-    """Settings page view"""
-    settings = Settings.get_settings()
-    
-    if request.method == 'POST':
-        form = SettingsForm(request.POST, instance=settings)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Settings saved successfully!')
-            return redirect('settings')
-    else:
-        form = SettingsForm(instance=settings)
-    
-    return render(request, 'mining/settings.html', {'form': form, 'settings': settings})
-
-
-# Expense Views
-class ExpenseListView(ListView):
-    model = Expense
-    template_name = 'mining/expense_list.html'
-    context_object_name = 'expenses'
-    paginate_by = 50
-    queryset = Expense.objects.select_related('platform')
-
-
-class ExpenseDetailView(DetailView):
-    model = Expense
-    template_name = 'mining/expense_detail.html'
-    context_object_name = 'expense'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        current_expense = self.get_object()
-        
-        # Navigate by expense_date (matching list view order: newest first)
-        # Previous = newer expense (appears before in list)
-        previous_expense = Expense.objects.filter(
-            Q(expense_date__gt=current_expense.expense_date) |
-            Q(expense_date=current_expense.expense_date, id__gt=current_expense.id)
-        ).order_by('expense_date', 'id').first()
-        
-        # Next = older expense (appears after in list)
-        next_expense = Expense.objects.filter(
-            Q(expense_date__lt=current_expense.expense_date) |
-            Q(expense_date=current_expense.expense_date, id__lt=current_expense.id)
-        ).order_by('-expense_date', '-id').first()
-        
-        context['previous_expense'] = previous_expense
-        context['next_expense'] = next_expense
-        return context
-
-
-class ExpenseCreateView(CreateView):
-    model = Expense
-    form_class = ExpenseForm
-    template_name = 'mining/expense_form.html'
-    
-    def get_success_url(self):
-        return reverse_lazy('expense_detail', kwargs={'pk': self.object.pk})
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Expense created successfully!')
-        return super().form_valid(form)
-
-
-class ExpenseUpdateView(UpdateView):
-    model = Expense
-    form_class = ExpenseForm
-    template_name = 'mining/expense_form.html'
-    
-    def get_success_url(self):
-        return reverse_lazy('expense_detail', kwargs={'pk': self.object.pk})
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Expense updated successfully!')
-        return super().form_valid(form)
-
-
-class ExpenseDeleteView(DeleteView):
-    model = Expense
-    template_name = 'mining/expense_confirm_delete.html'
-    success_url = reverse_lazy('expense_list')
-    context_object_name = 'expense'
-    
-    def delete(self, request, *args, **kwargs):
-        messages.success(self.request, 'Expense deleted successfully!')
-        return super().delete(request, *args, **kwargs)
-
-
-# Dashboard Views
-def overview_dashboard(request):
-    """Overview Dashboard with comprehensive mining analytics"""
-    selected_platform = resolve_selected_platform(request.GET.get('platform', ''))
-    data = get_overview_data(selected_platform)
-    return render(request, 'mining/overview_dashboard.html', data)
-
-
-# Import Template Download Views
 def download_platform_template(request):
     """Download import template for Remote Mining Platforms"""
     wb = Workbook()
@@ -985,6 +340,8 @@ def download_platform_template(request):
         wb.remove(wb['Sheet'])
     wb.save(response)
     return response
+
+
 
 
 def download_miner_template(request):
@@ -1010,6 +367,8 @@ def download_miner_template(request):
     return response
 
 
+
+
 def download_payout_template(request):
     """Download import template for Payouts"""
     wb = Workbook()
@@ -1032,6 +391,8 @@ def download_payout_template(request):
 
 
 # Data Export Views
+
+
 def export_platform_data(request):
     """Export all platform data to Excel file"""
     wb = Workbook()
@@ -1065,6 +426,8 @@ def export_platform_data(request):
         wb.remove(wb['Sheet'])
     wb.save(response)
     return response
+
+
 
 
 def export_miner_data(request):
@@ -1107,6 +470,8 @@ def export_miner_data(request):
     return response
 
 
+
+
 def export_payout_data(request):
     """Export all payout data to Excel file"""
     wb = Workbook()
@@ -1136,6 +501,8 @@ def export_payout_data(request):
         wb.remove(wb['Sheet'])
     wb.save(response)
     return response
+
+
 
 
 def export_overview_data(request):
@@ -1353,188 +720,8 @@ def export_overview_data(request):
 
 
 # Data Import Views
-def import_platform_data(request):
-    """Import platform data from uploaded Excel file"""
-    if request.method == 'POST' and request.FILES.get('import_file'):
-        try:
-            file = request.FILES['import_file']
-            wb = load_workbook(file)
-            ws = wb.active
-            
-            # Get headers from first row
-            headers = []
-            for col in range(1, ws.max_column + 1):
-                header = ws.cell(row=1, column=col).value
-                if header:
-                    headers.append(str(header).strip())
-
-            # Process data rows
-            imported_count = 0
-            valid_fields = {f.name for f in RemoteMiningPlatform._meta.get_fields()}
-            for row in range(2, ws.max_row + 1):
-                row_data = {}
-                for col_idx, header in enumerate(headers):
-                    cell_value = ws.cell(row=row, column=col_idx + 1).value
-                    if cell_value is not None:
-                        if isinstance(cell_value, datetime):
-                            row_data[header] = cell_value.date()
-                        elif isinstance(cell_value, str):
-                            row_data[header] = cell_value.strip()
-                        else:
-                            row_data[header] = cell_value
-
-                if row_data:
-                    platform_data = {}
-                    for field, value in row_data.items():
-                        if field in valid_fields and value:
-                            if field == 'energy_price':
-                                platform_data[field] = Decimal(str(value))
-                            else:
-                                platform_data[field] = value
-
-                    if platform_data:
-                        RemoteMiningPlatform.objects.create(**platform_data)
-                        imported_count += 1
-
-            messages.success(request, f'Successfully imported {imported_count} platforms!')
-            return redirect('platform_list')
-            
-        except Exception as e:
-            messages.error(request, 'Wrong import file format or data. Please check your file and try again.')
-            return redirect('platform_list')
-    
-    return redirect('platform_list')
 
 
-def import_miner_data(request):
-    """Import miner data from uploaded Excel file"""
-    if request.method == 'POST' and request.FILES.get('import_file'):
-        try:
-            file = request.FILES['import_file']
-            wb = load_workbook(file)
-            ws = wb.active
-            
-            # Get headers from first row
-            headers = []
-            for col in range(1, ws.max_column + 1):
-                header = ws.cell(row=1, column=col).value
-                if header:
-                    headers.append(str(header).strip())
-
-            # Process data rows
-            imported_count = 0
-            valid_fields = {f.name for f in Miner._meta.get_fields()}
-            for row in range(2, ws.max_row + 1):
-                row_data = {}
-                for col_idx, header in enumerate(headers):
-                    cell_value = ws.cell(row=row, column=col_idx + 1).value
-                    if cell_value is not None:
-                        if isinstance(cell_value, datetime):
-                            row_data[header] = cell_value.date()
-                        elif isinstance(cell_value, str):
-                            row_data[header] = cell_value.strip()
-                        else:
-                            row_data[header] = cell_value
-
-                if row_data:
-                    miner_data = {}
-                    for field, value in row_data.items():
-                        if field in valid_fields and value:
-                            if field == 'platform':
-                                try:
-                                    platform = RemoteMiningPlatform.objects.get(pk=int(float(value)))
-                                    miner_data[field] = platform
-                                except (RemoteMiningPlatform.DoesNotExist, ValueError, TypeError):
-                                    continue
-                            elif field in ['hashrate', 'power', 'efficiency', 'purchase_price']:
-                                miner_data[field] = Decimal(str(value))
-                            elif field in ['purchase_date', 'start_date']:
-                                if isinstance(value, str):
-                                    miner_data[field] = datetime.strptime(value, '%Y-%m-%d').date()
-                                else:
-                                    miner_data[field] = value
-                            else:
-                                miner_data[field] = value
-
-                    if miner_data:
-                        Miner.objects.create(**miner_data)
-                        imported_count += 1
-
-            messages.success(request, f'Successfully imported {imported_count} miners!')
-            return redirect('miner_list')
-            
-        except Exception as e:
-            messages.error(request, 'Wrong import file format or data. Please check your file and try again.')
-            return redirect('miner_list')
-    
-    return redirect('miner_list')
-
-
-def import_payout_data(request):
-    """Import payout data from uploaded Excel file"""
-    if request.method == 'POST' and request.FILES.get('import_file'):
-        try:
-            file = request.FILES['import_file']
-            wb = load_workbook(file)
-            ws = wb.active
-            
-            # Get headers from first row
-            headers = []
-            for col in range(1, ws.max_column + 1):
-                header = ws.cell(row=1, column=col).value
-                if header:
-                    headers.append(str(header).strip())
-
-            # Process data rows
-            imported_count = 0
-            valid_fields = {f.name for f in Payout._meta.get_fields()}
-            for row in range(2, ws.max_row + 1):
-                row_data = {}
-                for col_idx, header in enumerate(headers):
-                    cell_value = ws.cell(row=row, column=col_idx + 1).value
-                    if cell_value is not None:
-                        if isinstance(cell_value, datetime):
-                            row_data[header] = cell_value.date()
-                        elif isinstance(cell_value, str):
-                            row_data[header] = cell_value.strip()
-                        else:
-                            row_data[header] = cell_value
-
-                if row_data:
-                    payout_data = {}
-                    for field, value in row_data.items():
-                        if field in valid_fields and value:
-                            if field == 'platform':
-                                try:
-                                    platform = RemoteMiningPlatform.objects.get(pk=int(float(value)))
-                                    payout_data[field] = platform
-                                except (RemoteMiningPlatform.DoesNotExist, ValueError, TypeError):
-                                    continue
-                            elif field in ['payout_amount', 'closing_price']:
-                                payout_data[field] = Decimal(str(value))
-                            elif field == 'payout_date':
-                                if isinstance(value, str):
-                                    payout_data[field] = datetime.strptime(value, '%Y-%m-%d').date()
-                                else:
-                                    payout_data[field] = value
-                            else:
-                                payout_data[field] = value
-
-                    if payout_data:
-                        Payout.objects.create(**payout_data)
-                        imported_count += 1
-
-            messages.success(request, f'Successfully imported {imported_count} payouts!')
-            return redirect('payout_list')
-            
-        except Exception as e:
-            messages.error(request, 'Wrong import file format or data. Please check your file and try again.')
-            return redirect('payout_list')
-    
-    return redirect('payout_list')
-
-
-# Expense Import/Export Functions
 def download_expense_template(request):
     """Download import template for Expenses"""
     wb = Workbook()
@@ -1554,6 +741,8 @@ def download_expense_template(request):
         wb.remove(wb['Sheet'])
     wb.save(response)
     return response
+
+
 
 
 def export_expense_data(request):
@@ -1589,152 +778,6 @@ def export_expense_data(request):
     return response
 
 
-def import_expense_data(request):
-    """Import expense data from uploaded Excel file"""
-    if request.method == 'POST' and request.FILES.get('import_file'):
-        try:
-            file = request.FILES['import_file']
-            wb = load_workbook(file)
-            ws = wb.active
-            
-            # Get headers from first row
-            headers = []
-            for col in range(1, ws.max_column + 1):
-                header = ws.cell(row=1, column=col).value
-                if header:
-                    headers.append(str(header).lower().strip())
-
-            # Process data rows
-            imported_count = 0
-            for row in range(2, ws.max_row + 1):
-                expense_data = {}
-
-                for col_idx, header in enumerate(headers):
-                    cell_value = ws.cell(row=row, column=col_idx + 1).value
-
-                    if header == 'expense_date' and cell_value:
-                        try:
-                            if isinstance(cell_value, datetime):
-                                expense_data['expense_date'] = cell_value.date()
-                            else:
-                                expense_data['expense_date'] = datetime.strptime(str(cell_value), '%Y-%m-%d').date()
-                        except (ValueError, TypeError) as e:
-                            logger.warning("Expense import: bad date at row %d: %s", row, e)
-                            continue
-                    elif header == 'platform' and cell_value:
-                        try:
-                            platform_id = int(float(cell_value))
-                            platform = RemoteMiningPlatform.objects.get(pk=platform_id)
-                            expense_data['platform'] = platform
-                        except (RemoteMiningPlatform.DoesNotExist, ValueError, TypeError):
-                            pass
-                    elif header == 'category' and cell_value:
-                        category_value = str(cell_value).upper().strip()
-                        if category_value in ['CAPEX', 'OPEX']:
-                            expense_data['category'] = category_value
-                    elif header == 'description' and cell_value:
-                        expense_data['description'] = str(cell_value)
-                    elif header == 'expense_amount' and cell_value:
-                        try:
-                            expense_data['expense_amount'] = Decimal(str(cell_value))
-                        except (ValueError, InvalidOperation):
-                            pass
-                    elif header == 'invoice_link' and cell_value:
-                        expense_data['invoice_link'] = str(cell_value)
-                    elif header == 'receipt_link' and cell_value:
-                        expense_data['receipt_link'] = str(cell_value)
-                    elif header == 'notes' and cell_value:
-                        expense_data['notes'] = str(cell_value)
-                
-                # Create expense if we have required fields
-                if 'expense_date' in expense_data and 'category' in expense_data and 'expense_amount' in expense_data:
-                    Expense.objects.create(**expense_data)
-                    imported_count += 1
-            
-            messages.success(request, f'Successfully imported {imported_count} expenses!')
-            return redirect('expense_list')
-            
-        except Exception as e:
-            messages.error(request, 'Wrong import file format or data. Please check your file and try again.')
-            return redirect('expense_list')
-    
-    return redirect('expense_list')
-
-
-# ===== TOP-UP VIEWS =====
-
-class TopUpListView(ListView):
-    model = TopUp
-    template_name = 'mining/topup_list.html'
-    context_object_name = 'topups'
-    paginate_by = 50
-    queryset = TopUp.objects.select_related('platform')
-
-
-class TopUpDetailView(DetailView):
-    model = TopUp
-    template_name = 'mining/topup_detail.html'
-    context_object_name = 'topup'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        # Navigate by topup_date (matching list view order: newest first)
-        topup = self.get_object()
-        # Previous = newer top-up (appears before in list)
-        context['previous_topup'] = TopUp.objects.filter(
-            Q(topup_date__gt=topup.topup_date) |
-            Q(topup_date=topup.topup_date, id__gt=topup.id)
-        ).order_by('topup_date', 'id').first()
-        
-        # Next = older top-up (appears after in list)
-        context['next_topup'] = TopUp.objects.filter(
-            Q(topup_date__lt=topup.topup_date) |
-            Q(topup_date=topup.topup_date, id__lt=topup.id)
-        ).order_by('-topup_date', '-id').first()
-        
-        return context
-
-
-class TopUpCreateView(CreateView):
-    model = TopUp
-    form_class = TopUpForm
-    template_name = 'mining/topup_form.html'
-    
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, 'Top-Up created successfully!')
-        return response
-    
-    def get_success_url(self):
-        return reverse('topup_detail', kwargs={'pk': self.object.pk})
-
-
-class TopUpUpdateView(UpdateView):
-    model = TopUp
-    form_class = TopUpForm
-    template_name = 'mining/topup_form.html'
-    
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, 'Top-Up updated successfully!')
-        return response
-    
-    def get_success_url(self):
-        return reverse('topup_detail', kwargs={'pk': self.object.pk})
-
-
-class TopUpDeleteView(DeleteView):
-    model = TopUp
-    template_name = 'mining/topup_confirm_delete.html'
-    
-    def delete(self, request, *args, **kwargs):
-        response = super().delete(request, *args, **kwargs)
-        messages.success(request, 'Top-Up deleted successfully!')
-        return response
-    
-    def get_success_url(self):
-        return reverse('topup_list')
 
 
 def download_topup_template(request):
@@ -1756,6 +799,8 @@ def download_topup_template(request):
         wb.remove(wb['Sheet'])
     wb.save(response)
     return response
+
+
 
 
 def export_topup_data(request):
@@ -1788,75 +833,6 @@ def export_topup_data(request):
     return response
 
 
-def import_topup_data(request):
-    """Import top-up data from uploaded Excel file"""
-    if request.method == 'POST' and request.FILES.get('import_file'):
-        try:
-            file = request.FILES['import_file']
-            wb = load_workbook(file)
-            ws = wb.active
-            
-            # Get headers from first row
-            headers = [str(ws.cell(row=1, column=col).value).lower().strip() for col in range(1, ws.max_column + 1)]
-
-            imported_count = 0
-
-            # Process each row (skip header row)
-            for row in range(2, ws.max_row + 1):
-                topup_data = {}
-
-                for col_idx, header in enumerate(headers):
-                    cell_value = ws.cell(row=row, column=col_idx + 1).value
-
-                    if header == 'topup_date' and cell_value:
-                        try:
-                            if isinstance(cell_value, datetime):
-                                topup_data['topup_date'] = cell_value.date()
-                            else:
-                                topup_data['topup_date'] = datetime.strptime(str(cell_value), '%Y-%m-%d').date()
-                        except (ValueError, TypeError) as e:
-                            logger.warning("Top-up import: bad date at row %d: %s", row, e)
-                            continue
-                    elif header == 'platform' and cell_value:
-                        try:
-                            # Try to find platform by ID or name
-                            if isinstance(cell_value, float):
-                                platform = RemoteMiningPlatform.objects.get(id=int(cell_value))
-                            else:
-                                platform = RemoteMiningPlatform.objects.get(name=str(cell_value))
-                            topup_data['platform'] = platform
-                        except RemoteMiningPlatform.DoesNotExist:
-                            continue
-                    elif header == 'topup_amount' and cell_value:
-                        try:
-                            topup_data['topup_amount'] = float(cell_value)
-                        except (ValueError, TypeError):
-                            continue
-                    elif header == 'description' and cell_value:
-                        topup_data['description'] = str(cell_value)
-                    elif header == 'receipt_link' and cell_value:
-                        topup_data['receipt_link'] = str(cell_value)
-                
-                # Create top-up if we have required fields
-                if 'topup_date' in topup_data and 'platform' in topup_data and 'topup_amount' in topup_data:
-                    TopUp.objects.create(**topup_data)
-                    imported_count += 1
-            
-            messages.success(request, f'Successfully imported {imported_count} top-ups!')
-            return redirect('topup_list')
-            
-        except Exception as e:
-            messages.error(request, 'Wrong import file format or data. Please check your file and try again.')
-            return redirect('topup_list')
-    
-    return redirect('topup_list')
-
-
-def forecasting_dashboard(request):
-    """Forecasting Dashboard with BTC mining profitability calculations"""
-    selected_platform = resolve_selected_platform(request.GET.get('platform', ''))
-    data = get_forecasting_data(selected_platform)
-    return render(request, 'mining/forecasting_dashboard.html', data)
 
 
 def export_forecasting_data(request):
