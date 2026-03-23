@@ -247,7 +247,7 @@ function handleImportFile() {
 <!-- Hidden import form -->
 <form id="platformImportForm" method="post" action="{% url 'import_platform_data' %}" enctype="multipart/form-data" style="display: none;">
     {% csrf_token %}
-    <input type="file" id="platformImportFile" name="import_file" accept=".xls" onchange="handleImportFile()">
+    <input type="file" id="platformImportFile" name="import_file" accept=".xlsx" onchange="handleImportFile()">
 </form>
 
 {% endblock %}

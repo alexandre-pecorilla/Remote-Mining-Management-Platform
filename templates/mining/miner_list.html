@@ -289,7 +289,7 @@ function handleMinerImportFile() {
 <!-- Hidden import form -->
 <form id="minerImportForm" method="post" action="{% url 'import_miner_data' %}" enctype="multipart/form-data" style="display: none;">
     {% csrf_token %}
-    <input type="file" id="minerImportFile" name="import_file" accept=".xls" onchange="handleMinerImportFile()">
+    <input type="file" id="minerImportFile" name="import_file" accept=".xlsx" onchange="handleMinerImportFile()">
 </form>
 
 {% endblock %}

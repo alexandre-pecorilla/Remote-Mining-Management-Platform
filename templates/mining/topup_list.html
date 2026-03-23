@@ -130,7 +130,7 @@
 <!-- Hidden file input for import -->
 <form id="topupImportForm" method="post" action="{% url 'import_topup_data' %}" enctype="multipart/form-data" style="display: none;">
     {% csrf_token %}
-    <input type="file" id="topupImportFile" name="import_file" accept=".xlsx,.xls" onchange="submitImportForm('topupImportForm')">
+    <input type="file" id="topupImportFile" name="import_file" accept=".xlsx" onchange="submitImportForm('topupImportForm')">
 </form>
 
 <script>

@@ -145,7 +145,7 @@
 <!-- Hidden file input for import -->
 <form id="expenseImportForm" style="display: none;" method="post" action="{% url 'import_expense_data' %}" enctype="multipart/form-data">
     {% csrf_token %}
-    <input type="file" id="expenseImportFile" name="import_file" accept=".xls" onchange="handleImportFile('expense')">
+    <input type="file" id="expenseImportFile" name="import_file" accept=".xlsx" onchange="handleImportFile('expense')">
 </form>
 
 <script>

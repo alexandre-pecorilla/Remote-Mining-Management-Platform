@@ -6,8 +6,7 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.views.decorators.http import require_POST
 from django.db.models import Sum, Q
 from django.db.models.functions import TruncMonth
-import xlwt
-import xlrd
+from openpyxl import Workbook, load_workbook
 from decimal import Decimal, InvalidOperation
 from datetime import datetime, date, timedelta
 import json
@@ -38,7 +37,7 @@ def capex_opex_dashboard(request):
 def export_capex_opex_data(request):
     """Export CAPEX/OPEX dashboard data to Excel file"""
     
-    wb = xlwt.Workbook()
+    wb = Workbook()
     data = get_capex_opex_data()
     total_expenses = data['total_expenses']
     total_capex = data['total_capex']
@@ -51,59 +50,59 @@ def export_capex_opex_data(request):
     all_months = data['all_months']
 
     # Sheet 1: Total Expenses Summary
-    ws_summary = wb.add_sheet('Total Expenses Summary')
+    ws_summary = wb.create_sheet(title='Total Expenses Summary')
     
     # Headers
-    ws_summary.write(0, 0, 'Expense Type')
-    ws_summary.write(0, 1, 'Amount (USD)')
+    ws_summary.cell(row=1, column=1, value='Expense Type')
+    ws_summary.cell(row=1, column=2, value='Amount (USD)')
     
     # Data rows
-    ws_summary.write(1, 0, 'Total Expenses')
-    ws_summary.write(1, 1, float(total_expenses))
+    ws_summary.cell(row=2, column=1, value='Total Expenses')
+    ws_summary.cell(row=2, column=2, value=float(total_expenses))
     
-    ws_summary.write(2, 0, 'Total CAPEX')
-    ws_summary.write(2, 1, float(total_capex))
+    ws_summary.cell(row=3, column=1, value='Total CAPEX')
+    ws_summary.cell(row=3, column=2, value=float(total_capex))
     
-    ws_summary.write(3, 0, 'Total OPEX')
-    ws_summary.write(3, 1, float(total_opex))
+    ws_summary.cell(row=4, column=1, value='Total OPEX')
+    ws_summary.cell(row=4, column=2, value=float(total_opex))
     
     # Sheet 2: Expenses by Platform
     if platform_expenses:
-        ws_platform = wb.add_sheet('Expenses by Platform')
+        ws_platform = wb.create_sheet(title='Expenses by Platform')
         
         # Headers
-        ws_platform.write(0, 0, 'Platform')
-        ws_platform.write(0, 1, 'Total Expenses (USD)')
-        ws_platform.write(0, 2, 'CAPEX (USD)')
-        ws_platform.write(0, 3, 'OPEX (USD)')
+        ws_platform.cell(row=1, column=1, value='Platform')
+        ws_platform.cell(row=1, column=2, value='Total Expenses (USD)')
+        ws_platform.cell(row=1, column=3, value='CAPEX (USD)')
+        ws_platform.cell(row=1, column=4, value='OPEX (USD)')
         
         # Data rows
         for row, item in enumerate(platform_expenses, start=1):
-            ws_platform.write(row, 0, item['platform'].name)
-            ws_platform.write(row, 1, float(item['total']))
-            ws_platform.write(row, 2, float(item['capex']))
-            ws_platform.write(row, 3, float(item['opex']))
+            ws_platform.cell(row=row + 1, column=1, value=item['platform'].name)
+            ws_platform.cell(row=row + 1, column=2, value=float(item['total']))
+            ws_platform.cell(row=row + 1, column=3, value=float(item['capex']))
+            ws_platform.cell(row=row + 1, column=4, value=float(item['opex']))
     
     # Sheet 3: Monthly CAPEX
     if monthly_capex and all_months:
-        ws_monthly_capex = wb.add_sheet('Monthly CAPEX')
+        ws_monthly_capex = wb.create_sheet(title='Monthly CAPEX')
         
         # Headers
-        ws_monthly_capex.write(0, 0, 'Month')
-        ws_monthly_capex.write(0, 1, 'Total CAPEX (USD)')
+        ws_monthly_capex.cell(row=1, column=1, value='Month')
+        ws_monthly_capex.cell(row=1, column=2, value='Total CAPEX (USD)')
         
         # Platform headers
         col = 2
         platform_cols = {}
         for platform in monthly_capex_by_platform.keys():
-            ws_monthly_capex.write(0, col, f'{platform.name} CAPEX (USD)')
+            ws_monthly_capex.cell(row=1, column=col + 1, value=f'{platform.name} CAPEX (USD)')
             platform_cols[platform] = col
             col += 1
         
         # Data rows
         for row, month in enumerate(all_months, start=1):
             if month:
-                ws_monthly_capex.write(row, 0, month.strftime('%Y-%m'))
+                ws_monthly_capex.cell(row=row + 1, column=1, value=month.strftime('%Y-%m'))
                 
                 # Total CAPEX for this month
                 month_total = Decimal('0')
@@ -111,7 +110,7 @@ def export_capex_opex_data(request):
                     if item['month'] == month:
                         month_total = item['total']
                         break
-                ws_monthly_capex.write(row, 1, float(month_total))
+                ws_monthly_capex.cell(row=row + 1, column=2, value=float(month_total))
                 
                 # Platform CAPEX for this month
                 for platform, platform_data in monthly_capex_by_platform.items():
@@ -120,28 +119,28 @@ def export_capex_opex_data(request):
                         if item['month'] == month:
                             platform_month_total = item['total']
                             break
-                    ws_monthly_capex.write(row, platform_cols[platform], float(platform_month_total))
+                    ws_monthly_capex.cell(row=row + 1, column=platform_cols[platform] + 1, value=float(platform_month_total))
     
     # Sheet 4: Monthly OPEX
     if monthly_opex and all_months:
-        ws_monthly_opex = wb.add_sheet('Monthly OPEX')
+        ws_monthly_opex = wb.create_sheet(title='Monthly OPEX')
         
         # Headers
-        ws_monthly_opex.write(0, 0, 'Month')
-        ws_monthly_opex.write(0, 1, 'Total OPEX (USD)')
+        ws_monthly_opex.cell(row=1, column=1, value='Month')
+        ws_monthly_opex.cell(row=1, column=2, value='Total OPEX (USD)')
         
         # Platform headers
         col = 2
         platform_cols = {}
         for platform in monthly_opex_by_platform.keys():
-            ws_monthly_opex.write(0, col, f'{platform.name} OPEX (USD)')
+            ws_monthly_opex.cell(row=1, column=col + 1, value=f'{platform.name} OPEX (USD)')
             platform_cols[platform] = col
             col += 1
         
         # Data rows
         for row, month in enumerate(all_months, start=1):
             if month:
-                ws_monthly_opex.write(row, 0, month.strftime('%Y-%m'))
+                ws_monthly_opex.cell(row=row + 1, column=1, value=month.strftime('%Y-%m'))
                 
                 # Total OPEX for this month
                 month_total = Decimal('0')
@@ -149,7 +148,7 @@ def export_capex_opex_data(request):
                     if item['month'] == month:
                         month_total = item['total']
                         break
-                ws_monthly_opex.write(row, 1, float(month_total))
+                ws_monthly_opex.cell(row=row + 1, column=2, value=float(month_total))
                 
                 # Platform OPEX for this month
                 for platform, platform_data in monthly_opex_by_platform.items():
@@ -158,12 +157,14 @@ def export_capex_opex_data(request):
                         if item['month'] == month:
                             platform_month_total = item['total']
                             break
-                    ws_monthly_opex.write(row, platform_cols[platform], float(platform_month_total))
+                    ws_monthly_opex.cell(row=row + 1, column=platform_cols[platform] + 1, value=float(platform_month_total))
     
     # Generate response
-    response = HttpResponse(content_type='application/vnd.ms-excel')
-    response['Content-Disposition'] = f'attachment; filename="capex_opex_dashboard_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xls"'
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="capex_opex_dashboard_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx"'
     
+    if 'Sheet' in wb.sheetnames:
+        wb.remove(wb['Sheet'])
     wb.save(response)
     return response
 
@@ -233,7 +234,7 @@ def income_dashboard(request):
 def export_income_data(request):
     """Export Income dashboard data to Excel file"""
     
-    wb = xlwt.Workbook()
+    wb = Workbook()
     data = get_income_data()
     current_btc_price = data['current_btc_price']
     total_income_btc = data['total_income_btc']
@@ -245,59 +246,59 @@ def export_income_data(request):
     all_months = data['all_months']
 
     # Sheet 1: Total Income Summary
-    ws_summary = wb.add_sheet('Total Income Summary')
+    ws_summary = wb.create_sheet(title='Total Income Summary')
     
     # Headers
-    ws_summary.write(0, 0, 'Income Type')
-    ws_summary.write(0, 1, 'Amount')
+    ws_summary.cell(row=1, column=1, value='Income Type')
+    ws_summary.cell(row=1, column=2, value='Amount')
     
     # Data rows
-    ws_summary.write(1, 0, 'Total Income BTC')
-    ws_summary.write(1, 1, float(total_income_btc))
+    ws_summary.cell(row=2, column=1, value='Total Income BTC')
+    ws_summary.cell(row=2, column=2, value=float(total_income_btc))
     
-    ws_summary.write(2, 0, 'Total Income USD (then)')
-    ws_summary.write(2, 1, float(total_income_usd_then))
+    ws_summary.cell(row=3, column=1, value='Total Income USD (then)')
+    ws_summary.cell(row=3, column=2, value=float(total_income_usd_then))
     
-    ws_summary.write(3, 0, 'Total Income USD (now)')
-    ws_summary.write(3, 1, float(total_income_usd_now))
+    ws_summary.cell(row=4, column=1, value='Total Income USD (now)')
+    ws_summary.cell(row=4, column=2, value=float(total_income_usd_now))
     
     # Sheet 2: Income by Platform
     if platform_income:
-        ws_platform = wb.add_sheet('Income by Platform')
+        ws_platform = wb.create_sheet(title='Income by Platform')
         
         # Headers
-        ws_platform.write(0, 0, 'Platform')
-        ws_platform.write(0, 1, 'Total Income BTC')
-        ws_platform.write(0, 2, 'Total Income USD (then)')
-        ws_platform.write(0, 3, 'Total Income USD (now)')
+        ws_platform.cell(row=1, column=1, value='Platform')
+        ws_platform.cell(row=1, column=2, value='Total Income BTC')
+        ws_platform.cell(row=1, column=3, value='Total Income USD (then)')
+        ws_platform.cell(row=1, column=4, value='Total Income USD (now)')
         
         # Data rows
         for row, item in enumerate(platform_income, start=1):
-            ws_platform.write(row, 0, item['platform'].name)
-            ws_platform.write(row, 1, float(item['total_btc']))
-            ws_platform.write(row, 2, float(item['total_usd_then']))
-            ws_platform.write(row, 3, float(item['total_usd_now']))
+            ws_platform.cell(row=row + 1, column=1, value=item['platform'].name)
+            ws_platform.cell(row=row + 1, column=2, value=float(item['total_btc']))
+            ws_platform.cell(row=row + 1, column=3, value=float(item['total_usd_then']))
+            ws_platform.cell(row=row + 1, column=4, value=float(item['total_usd_now']))
     
     # Sheet 3: Monthly Income BTC
     if monthly_income_btc and all_months:
-        ws_monthly_btc = wb.add_sheet('Monthly Income BTC')
+        ws_monthly_btc = wb.create_sheet(title='Monthly Income BTC')
         
         # Headers
-        ws_monthly_btc.write(0, 0, 'Month')
-        ws_monthly_btc.write(0, 1, 'Total Income BTC')
+        ws_monthly_btc.cell(row=1, column=1, value='Month')
+        ws_monthly_btc.cell(row=1, column=2, value='Total Income BTC')
         
         # Platform headers
         col = 2
         platform_cols = {}
         for platform in monthly_income_by_platform.keys():
-            ws_monthly_btc.write(0, col, f'{platform.name} BTC')
+            ws_monthly_btc.cell(row=1, column=col + 1, value=f'{platform.name} BTC')
             platform_cols[platform] = col
             col += 1
         
         # Data rows
         for row, month in enumerate(all_months, start=1):
             if month:
-                ws_monthly_btc.write(row, 0, month.strftime('%Y-%m'))
+                ws_monthly_btc.cell(row=row + 1, column=1, value=month.strftime('%Y-%m'))
                 
                 # Total BTC for this month
                 month_total = Decimal('0')
@@ -305,7 +306,7 @@ def export_income_data(request):
                     if item['month'] == month:
                         month_total = item['total_btc']
                         break
-                ws_monthly_btc.write(row, 1, float(month_total))
+                ws_monthly_btc.cell(row=row + 1, column=2, value=float(month_total))
                 
                 # Platform BTC for this month
                 for platform, platform_data in monthly_income_by_platform.items():
@@ -314,28 +315,28 @@ def export_income_data(request):
                         if item['month'] == month:
                             platform_month_total = item['total_btc']
                             break
-                    ws_monthly_btc.write(row, platform_cols[platform], float(platform_month_total))
+                    ws_monthly_btc.cell(row=row + 1, column=platform_cols[platform] + 1, value=float(platform_month_total))
     
     # Sheet 4: Monthly Income USD (then)
     if monthly_income_btc and all_months:
-        ws_monthly_usd_then = wb.add_sheet('Monthly Income USD then')
+        ws_monthly_usd_then = wb.create_sheet(title='Monthly Income USD then')
         
         # Headers
-        ws_monthly_usd_then.write(0, 0, 'Month')
-        ws_monthly_usd_then.write(0, 1, 'Total Income USD (then)')
+        ws_monthly_usd_then.cell(row=1, column=1, value='Month')
+        ws_monthly_usd_then.cell(row=1, column=2, value='Total Income USD (then)')
         
         # Platform headers
         col = 2
         platform_cols = {}
         for platform in monthly_income_by_platform.keys():
-            ws_monthly_usd_then.write(0, col, f'{platform.name} USD (then)')
+            ws_monthly_usd_then.cell(row=1, column=col + 1, value=f'{platform.name} USD (then)')
             platform_cols[platform] = col
             col += 1
         
         # Data rows
         for row, month in enumerate(all_months, start=1):
             if month:
-                ws_monthly_usd_then.write(row, 0, month.strftime('%Y-%m'))
+                ws_monthly_usd_then.cell(row=row + 1, column=1, value=month.strftime('%Y-%m'))
                 
                 # Total USD then for this month
                 month_total = Decimal('0')
@@ -343,7 +344,7 @@ def export_income_data(request):
                     if item['month'] == month:
                         month_total = item['total_usd_then']
                         break
-                ws_monthly_usd_then.write(row, 1, float(month_total))
+                ws_monthly_usd_then.cell(row=row + 1, column=2, value=float(month_total))
                 
                 # Platform USD then for this month
                 for platform, platform_data in monthly_income_by_platform.items():
@@ -352,28 +353,28 @@ def export_income_data(request):
                         if item['month'] == month:
                             platform_month_total = item['total_usd_then']
                             break
-                    ws_monthly_usd_then.write(row, platform_cols[platform], float(platform_month_total))
+                    ws_monthly_usd_then.cell(row=row + 1, column=platform_cols[platform] + 1, value=float(platform_month_total))
     
     # Sheet 5: Monthly Income USD (now)
     if monthly_income_btc and all_months:
-        ws_monthly_usd_now = wb.add_sheet('Monthly Income USD now')
+        ws_monthly_usd_now = wb.create_sheet(title='Monthly Income USD now')
         
         # Headers
-        ws_monthly_usd_now.write(0, 0, 'Month')
-        ws_monthly_usd_now.write(0, 1, 'Total Income USD (now)')
+        ws_monthly_usd_now.cell(row=1, column=1, value='Month')
+        ws_monthly_usd_now.cell(row=1, column=2, value='Total Income USD (now)')
         
         # Platform headers
         col = 2
         platform_cols = {}
         for platform in monthly_income_by_platform.keys():
-            ws_monthly_usd_now.write(0, col, f'{platform.name} USD (now)')
+            ws_monthly_usd_now.cell(row=1, column=col + 1, value=f'{platform.name} USD (now)')
             platform_cols[platform] = col
             col += 1
         
         # Data rows
         for row, month in enumerate(all_months, start=1):
             if month:
-                ws_monthly_usd_now.write(row, 0, month.strftime('%Y-%m'))
+                ws_monthly_usd_now.cell(row=row + 1, column=1, value=month.strftime('%Y-%m'))
                 
                 # Total USD now for this month
                 month_total = Decimal('0')
@@ -381,7 +382,7 @@ def export_income_data(request):
                     if item['month'] == month:
                         month_total = item['total_usd_now']
                         break
-                ws_monthly_usd_now.write(row, 1, float(month_total))
+                ws_monthly_usd_now.cell(row=row + 1, column=2, value=float(month_total))
                 
                 # Platform USD now for this month
                 for platform, platform_data in monthly_income_by_platform.items():
@@ -390,12 +391,14 @@ def export_income_data(request):
                         if item['month'] == month:
                             platform_month_total = item['total_usd_now']
                             break
-                    ws_monthly_usd_now.write(row, platform_cols[platform], float(platform_month_total))
+                    ws_monthly_usd_now.cell(row=row + 1, column=platform_cols[platform] + 1, value=float(platform_month_total))
     
     # Generate response
-    response = HttpResponse(content_type='application/vnd.ms-excel')
-    response['Content-Disposition'] = f'attachment; filename="income_dashboard_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xls"'
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="income_dashboard_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx"'
     
+    if 'Sheet' in wb.sheetnames:
+        wb.remove(wb['Sheet'])
     wb.save(response)
     return response
 
@@ -964,28 +967,30 @@ def overview_dashboard(request):
 # Import Template Download Views
 def download_platform_template(request):
     """Download import template for Remote Mining Platforms"""
-    wb = xlwt.Workbook()
-    ws = wb.add_sheet('Platform Import Template')
+    wb = Workbook()
+    ws = wb.create_sheet(title='Platform Import Template')
     
     # Add headers based on form fields
     headers = ['name', 'website_link', 'portal_url', 'point_of_contact_name', 
                'point_of_contact_email', 'point_of_contact_phone', 'point_of_contact_telegram', 'energy_price']
     
     for col, header in enumerate(headers):
-        ws.write(0, col, header)
+        ws.cell(row=1, column=col + 1, value=header)
     
     response = HttpResponse(
-        content_type='application/vnd.ms-excel'
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename="platform_import_template.xls"'
+    response['Content-Disposition'] = 'attachment; filename="platform_import_template.xlsx"'
+    if 'Sheet' in wb.sheetnames:
+        wb.remove(wb['Sheet'])
     wb.save(response)
     return response
 
 
 def download_miner_template(request):
     """Download import template for Miners"""
-    wb = xlwt.Workbook()
-    ws = wb.add_sheet('Miner Import Template')
+    wb = Workbook()
+    ws = wb.create_sheet(title='Miner Import Template')
     
     # Add headers based on form fields (excluding image field for import)
     headers = ['model', 'manufacturer', 'product_link', 'serial_number', 
@@ -993,31 +998,35 @@ def download_miner_template(request):
                'purchase_price', 'purchase_date', 'start_date', 'location']
     
     for col, header in enumerate(headers):
-        ws.write(0, col, header)
+        ws.cell(row=1, column=col + 1, value=header)
     
     response = HttpResponse(
-        content_type='application/vnd.ms-excel'
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename="miner_import_template.xls"'
+    response['Content-Disposition'] = 'attachment; filename="miner_import_template.xlsx"'
+    if 'Sheet' in wb.sheetnames:
+        wb.remove(wb['Sheet'])
     wb.save(response)
     return response
 
 
 def download_payout_template(request):
     """Download import template for Payouts"""
-    wb = xlwt.Workbook()
-    ws = wb.add_sheet('Payout Import Template')
+    wb = Workbook()
+    ws = wb.create_sheet(title='Payout Import Template')
     
     # Add headers based on form fields
     headers = ['payout_date', 'payout_amount', 'platform', 'transaction_id', 'closing_price', 'value_at_payout (read-only)']
     
     for col, header in enumerate(headers):
-        ws.write(0, col, header)
+        ws.cell(row=1, column=col + 1, value=header)
     
     response = HttpResponse(
-        content_type='application/vnd.ms-excel'
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename="payout_import_template.xls"'
+    response['Content-Disposition'] = 'attachment; filename="payout_import_template.xlsx"'
+    if 'Sheet' in wb.sheetnames:
+        wb.remove(wb['Sheet'])
     wb.save(response)
     return response
 
@@ -1025,8 +1034,8 @@ def download_payout_template(request):
 # Data Export Views
 def export_platform_data(request):
     """Export all platform data to Excel file"""
-    wb = xlwt.Workbook()
-    ws = wb.add_sheet('Platform Data')
+    wb = Workbook()
+    ws = wb.create_sheet(title='Platform Data')
     
     # Add headers
     headers = ['name', 'website_link', 'portal_url', 'point_of_contact_name', 
@@ -1034,32 +1043,34 @@ def export_platform_data(request):
                'point_of_contact_telegram', 'energy_price']
     
     for col, header in enumerate(headers):
-        ws.write(0, col, header)
+        ws.cell(row=1, column=col + 1, value=header)
     
     # Add data rows
     platforms = RemoteMiningPlatform.objects.all()
     for row, platform in enumerate(platforms, start=1):
-        ws.write(row, 0, platform.name or '')
-        ws.write(row, 1, platform.website_link or '')
-        ws.write(row, 2, platform.portal_url or '')
-        ws.write(row, 3, platform.point_of_contact_name or '')
-        ws.write(row, 4, platform.point_of_contact_email or '')
-        ws.write(row, 5, platform.point_of_contact_phone or '')
-        ws.write(row, 6, platform.point_of_contact_telegram or '')
-        ws.write(row, 7, float(platform.energy_price) if platform.energy_price else '')
+        ws.cell(row=row + 1, column=1, value=platform.name or '')
+        ws.cell(row=row + 1, column=2, value=platform.website_link or '')
+        ws.cell(row=row + 1, column=3, value=platform.portal_url or '')
+        ws.cell(row=row + 1, column=4, value=platform.point_of_contact_name or '')
+        ws.cell(row=row + 1, column=5, value=platform.point_of_contact_email or '')
+        ws.cell(row=row + 1, column=6, value=platform.point_of_contact_phone or '')
+        ws.cell(row=row + 1, column=7, value=platform.point_of_contact_telegram or '')
+        ws.cell(row=row + 1, column=8, value=float(platform.energy_price) if platform.energy_price else '')
     
     response = HttpResponse(
-        content_type='application/vnd.ms-excel'
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename="platform_data_export.xls"'
+    response['Content-Disposition'] = 'attachment; filename="platform_data_export.xlsx"'
+    if 'Sheet' in wb.sheetnames:
+        wb.remove(wb['Sheet'])
     wb.save(response)
     return response
 
 
 def export_miner_data(request):
     """Export all miner data to Excel file"""
-    wb = xlwt.Workbook()
-    ws = wb.add_sheet('Miner Data')
+    wb = Workbook()
+    ws = wb.create_sheet(title='Miner Data')
     
     # Add headers
     headers = ['model', 'manufacturer', 'product_link', 'serial_number', 
@@ -1067,65 +1078,69 @@ def export_miner_data(request):
                'purchase_price', 'purchase_date', 'start_date', 'location']
     
     for col, header in enumerate(headers):
-        ws.write(0, col, header)
+        ws.cell(row=1, column=col + 1, value=header)
     
     # Add data rows
     miners = Miner.objects.select_related('platform').all()
     for row, miner in enumerate(miners, start=1):
-        ws.write(row, 0, miner.model or '')
-        ws.write(row, 1, miner.manufacturer or '')
-        ws.write(row, 2, miner.product_link or '')
-        ws.write(row, 3, miner.serial_number or '')
-        ws.write(row, 4, miner.platform.pk if miner.platform else '')
-        ws.write(row, 5, miner.platform_internal_id or '')
-        ws.write(row, 6, float(miner.hashrate) if miner.hashrate else '')
-        ws.write(row, 7, float(miner.power) if miner.power else '')
-        ws.write(row, 8, float(miner.efficiency) if miner.efficiency else '')
-        ws.write(row, 9, float(miner.purchase_price) if miner.purchase_price else '')
-        ws.write(row, 10, miner.purchase_date.strftime('%Y-%m-%d') if miner.purchase_date else '')
-        ws.write(row, 11, miner.start_date.strftime('%Y-%m-%d') if miner.start_date else '')
-        ws.write(row, 12, miner.location or '')
+        ws.cell(row=row + 1, column=1, value=miner.model or '')
+        ws.cell(row=row + 1, column=2, value=miner.manufacturer or '')
+        ws.cell(row=row + 1, column=3, value=miner.product_link or '')
+        ws.cell(row=row + 1, column=4, value=miner.serial_number or '')
+        ws.cell(row=row + 1, column=5, value=miner.platform.pk if miner.platform else '')
+        ws.cell(row=row + 1, column=6, value=miner.platform_internal_id or '')
+        ws.cell(row=row + 1, column=7, value=float(miner.hashrate) if miner.hashrate else '')
+        ws.cell(row=row + 1, column=8, value=float(miner.power) if miner.power else '')
+        ws.cell(row=row + 1, column=9, value=float(miner.efficiency) if miner.efficiency else '')
+        ws.cell(row=row + 1, column=10, value=float(miner.purchase_price) if miner.purchase_price else '')
+        ws.cell(row=row + 1, column=11, value=miner.purchase_date.strftime('%Y-%m-%d') if miner.purchase_date else '')
+        ws.cell(row=row + 1, column=12, value=miner.start_date.strftime('%Y-%m-%d') if miner.start_date else '')
+        ws.cell(row=row + 1, column=13, value=miner.location or '')
     
     response = HttpResponse(
-        content_type='application/vnd.ms-excel'
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename="miner_data_export.xls"'
+    response['Content-Disposition'] = 'attachment; filename="miner_data_export.xlsx"'
+    if 'Sheet' in wb.sheetnames:
+        wb.remove(wb['Sheet'])
     wb.save(response)
     return response
 
 
 def export_payout_data(request):
     """Export all payout data to Excel file"""
-    wb = xlwt.Workbook()
-    ws = wb.add_sheet('Payout Data')
+    wb = Workbook()
+    ws = wb.create_sheet(title='Payout Data')
     
     # Add headers
     headers = ['payout_date', 'payout_amount', 'platform', 'transaction_id', 'closing_price', 'value_at_payout']
     
     for col, header in enumerate(headers):
-        ws.write(0, col, header)
+        ws.cell(row=1, column=col + 1, value=header)
     
     # Add data rows
     payouts = Payout.objects.select_related('platform').all()
     for row, payout in enumerate(payouts, start=1):
-        ws.write(row, 0, payout.payout_date.strftime('%Y-%m-%d'))
-        ws.write(row, 1, float(payout.payout_amount))
-        ws.write(row, 2, payout.platform.pk if payout.platform else '')
-        ws.write(row, 3, payout.transaction_id or '')
-        ws.write(row, 4, float(payout.closing_price) if payout.closing_price else '')
-        ws.write(row, 5, float(payout.value_at_payout) if payout.value_at_payout else '')
+        ws.cell(row=row + 1, column=1, value=payout.payout_date.strftime('%Y-%m-%d'))
+        ws.cell(row=row + 1, column=2, value=float(payout.payout_amount))
+        ws.cell(row=row + 1, column=3, value=payout.platform.pk if payout.platform else '')
+        ws.cell(row=row + 1, column=4, value=payout.transaction_id or '')
+        ws.cell(row=row + 1, column=5, value=float(payout.closing_price) if payout.closing_price else '')
+        ws.cell(row=row + 1, column=6, value=float(payout.value_at_payout) if payout.value_at_payout else '')
     
     response = HttpResponse(
-        content_type='application/vnd.ms-excel'
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename="payout_data_export.xls"'
+    response['Content-Disposition'] = 'attachment; filename="payout_data_export.xlsx"'
+    if 'Sheet' in wb.sheetnames:
+        wb.remove(wb['Sheet'])
     wb.save(response)
     return response
 
 
 def export_overview_data(request):
     """Export overview dashboard data to Excel file"""
-    wb = xlwt.Workbook()
+    wb = Workbook()
     selected_platform = resolve_selected_platform(request.GET.get('platform', ''))
     data = get_overview_data(selected_platform)
     selected_platform_name = selected_platform.name if selected_platform else 'All Platforms'
@@ -1150,187 +1165,189 @@ def export_overview_data(request):
     total_payouts = data['total_payouts']
 
     # Sheet 1: Overview Summary
-    ws_summary = wb.add_sheet('Overview Summary')
+    ws_summary = wb.create_sheet(title='Overview Summary')
     
     # Headers
-    ws_summary.write(0, 0, 'Metric Category')
-    ws_summary.write(0, 1, 'Metric Name')
-    ws_summary.write(0, 2, 'Value')
-    ws_summary.write(0, 3, 'Unit')
+    ws_summary.cell(row=1, column=1, value='Metric Category')
+    ws_summary.cell(row=1, column=2, value='Metric Name')
+    ws_summary.cell(row=1, column=3, value='Value')
+    ws_summary.cell(row=1, column=4, value='Unit')
     
     # Data rows
     row = 1
     
     # Platform Filter
-    ws_summary.write(row, 0, 'Filter')
-    ws_summary.write(row, 1, 'Platform')
-    ws_summary.write(row, 2, selected_platform_name)
-    ws_summary.write(row, 3, '')
+    ws_summary.cell(row=row + 1, column=1, value='Filter')
+    ws_summary.cell(row=row + 1, column=2, value='Platform')
+    ws_summary.cell(row=row + 1, column=3, value=selected_platform_name)
+    ws_summary.cell(row=row + 1, column=4, value='')
     row += 1
     
     # Network Data
-    ws_summary.write(row, 0, 'Network Data')
-    ws_summary.write(row, 1, 'Bitcoin Spot Price')
-    ws_summary.write(row, 2, float(bitcoin_price))
-    ws_summary.write(row, 3, 'USD')
+    ws_summary.cell(row=row + 1, column=1, value='Network Data')
+    ws_summary.cell(row=row + 1, column=2, value='Bitcoin Spot Price')
+    ws_summary.cell(row=row + 1, column=3, value=float(bitcoin_price))
+    ws_summary.cell(row=row + 1, column=4, value='USD')
     row += 1
     
-    ws_summary.write(row, 0, 'Network Data')
-    ws_summary.write(row, 1, 'Total Network Hashrate')
-    ws_summary.write(row, 2, float(network_hashrate))
-    ws_summary.write(row, 3, 'EH/s')
+    ws_summary.cell(row=row + 1, column=1, value='Network Data')
+    ws_summary.cell(row=row + 1, column=2, value='Total Network Hashrate')
+    ws_summary.cell(row=row + 1, column=3, value=float(network_hashrate))
+    ws_summary.cell(row=row + 1, column=4, value='EH/s')
     row += 1
     
-    ws_summary.write(row, 0, 'Network Data')
-    ws_summary.write(row, 1, 'Network Difficulty')
-    ws_summary.write(row, 2, float(network_difficulty))
-    ws_summary.write(row, 3, '')
+    ws_summary.cell(row=row + 1, column=1, value='Network Data')
+    ws_summary.cell(row=row + 1, column=2, value='Network Difficulty')
+    ws_summary.cell(row=row + 1, column=3, value=float(network_difficulty))
+    ws_summary.cell(row=row + 1, column=4, value='')
     row += 1
     
-    ws_summary.write(row, 0, 'Network Data')
-    ws_summary.write(row, 1, '24h Avg Block Fees')
-    ws_summary.write(row, 2, float(avg_block_fees_24h))
-    ws_summary.write(row, 3, 'BTC')
+    ws_summary.cell(row=row + 1, column=1, value='Network Data')
+    ws_summary.cell(row=row + 1, column=2, value='24h Avg Block Fees')
+    ws_summary.cell(row=row + 1, column=3, value=float(avg_block_fees_24h))
+    ws_summary.cell(row=row + 1, column=4, value='BTC')
     row += 1
     
     # Fleet Data
-    ws_summary.write(row, 0, 'Fleet Data')
-    ws_summary.write(row, 1, 'Miner Count')
-    ws_summary.write(row, 2, miner_count)
-    ws_summary.write(row, 3, 'units')
+    ws_summary.cell(row=row + 1, column=1, value='Fleet Data')
+    ws_summary.cell(row=row + 1, column=2, value='Miner Count')
+    ws_summary.cell(row=row + 1, column=3, value=miner_count)
+    ws_summary.cell(row=row + 1, column=4, value='units')
     row += 1
     
-    ws_summary.write(row, 0, 'Fleet Data')
-    ws_summary.write(row, 1, 'Total Hashrate')
-    ws_summary.write(row, 2, float(total_hashrate))
-    ws_summary.write(row, 3, 'TH/s')
+    ws_summary.cell(row=row + 1, column=1, value='Fleet Data')
+    ws_summary.cell(row=row + 1, column=2, value='Total Hashrate')
+    ws_summary.cell(row=row + 1, column=3, value=float(total_hashrate))
+    ws_summary.cell(row=row + 1, column=4, value='TH/s')
     row += 1
     
-    ws_summary.write(row, 0, 'Fleet Data')
-    ws_summary.write(row, 1, 'Total Power')
+    ws_summary.cell(row=row + 1, column=1, value='Fleet Data')
+    ws_summary.cell(row=row + 1, column=2, value='Total Power')
     ws_summary.write(row, 2, round(float(total_power), 2))  # Power already stored in kW in database
-    ws_summary.write(row, 3, 'kW')
+    ws_summary.cell(row=row + 1, column=4, value='kW')
     row += 1
     
-    ws_summary.write(row, 0, 'Fleet Data')
-    ws_summary.write(row, 1, 'Total Hardware Cost')
-    ws_summary.write(row, 2, float(total_capex))
-    ws_summary.write(row, 3, 'USD')
+    ws_summary.cell(row=row + 1, column=1, value='Fleet Data')
+    ws_summary.cell(row=row + 1, column=2, value='Total Hardware Cost')
+    ws_summary.cell(row=row + 1, column=3, value=float(total_capex))
+    ws_summary.cell(row=row + 1, column=4, value='USD')
     row += 1
     
     # Efficiency Data
-    ws_summary.write(row, 0, 'Efficiency Data')
-    ws_summary.write(row, 1, 'Average Efficiency')
-    ws_summary.write(row, 2, float(avg_efficiency))
-    ws_summary.write(row, 3, 'W/TH')
+    ws_summary.cell(row=row + 1, column=1, value='Efficiency Data')
+    ws_summary.cell(row=row + 1, column=2, value='Average Efficiency')
+    ws_summary.cell(row=row + 1, column=3, value=float(avg_efficiency))
+    ws_summary.cell(row=row + 1, column=4, value='W/TH')
     row += 1
     
-    ws_summary.write(row, 0, 'Efficiency Data')
-    ws_summary.write(row, 1, 'Hashrate Weighted Avg Efficiency')
-    ws_summary.write(row, 2, float(hashrate_weighted_efficiency))
-    ws_summary.write(row, 3, 'W/TH')
+    ws_summary.cell(row=row + 1, column=1, value='Efficiency Data')
+    ws_summary.cell(row=row + 1, column=2, value='Hashrate Weighted Avg Efficiency')
+    ws_summary.cell(row=row + 1, column=3, value=float(hashrate_weighted_efficiency))
+    ws_summary.cell(row=row + 1, column=4, value='W/TH')
     row += 1
     
     # Energy Data
-    ws_summary.write(row, 0, 'Energy Data')
-    ws_summary.write(row, 1, 'Average Energy Cost')
-    ws_summary.write(row, 2, float(avg_energy_cost))
-    ws_summary.write(row, 3, '$/kWh')
+    ws_summary.cell(row=row + 1, column=1, value='Energy Data')
+    ws_summary.cell(row=row + 1, column=2, value='Average Energy Cost')
+    ws_summary.cell(row=row + 1, column=3, value=float(avg_energy_cost))
+    ws_summary.cell(row=row + 1, column=4, value='$/kWh')
     row += 1
     
-    ws_summary.write(row, 0, 'Energy Data')
-    ws_summary.write(row, 1, 'Hashrate Weighted Avg Energy Cost')
-    ws_summary.write(row, 2, float(hashrate_weighted_energy_cost))
-    ws_summary.write(row, 3, '$/kWh')
+    ws_summary.cell(row=row + 1, column=1, value='Energy Data')
+    ws_summary.cell(row=row + 1, column=2, value='Hashrate Weighted Avg Energy Cost')
+    ws_summary.cell(row=row + 1, column=3, value=float(hashrate_weighted_energy_cost))
+    ws_summary.cell(row=row + 1, column=4, value='$/kWh')
     row += 1
     
     # Revenue Data
-    ws_summary.write(row, 0, 'Revenue Data')
-    ws_summary.write(row, 1, 'Total BTC Mined')
-    ws_summary.write(row, 2, float(total_btc_mined))
-    ws_summary.write(row, 3, 'BTC')
+    ws_summary.cell(row=row + 1, column=1, value='Revenue Data')
+    ws_summary.cell(row=row + 1, column=2, value='Total BTC Mined')
+    ws_summary.cell(row=row + 1, column=3, value=float(total_btc_mined))
+    ws_summary.cell(row=row + 1, column=4, value='BTC')
     row += 1
     
-    ws_summary.write(row, 0, 'Revenue Data')
-    ws_summary.write(row, 1, 'Current Gross Value')
-    ws_summary.write(row, 2, round(float(current_gross_value), 2))
-    ws_summary.write(row, 3, 'USD')
+    ws_summary.cell(row=row + 1, column=1, value='Revenue Data')
+    ws_summary.cell(row=row + 1, column=2, value='Current Gross Value')
+    ws_summary.cell(row=row + 1, column=3, value=round(float(current_gross_value), 2))
+    ws_summary.cell(row=row + 1, column=4, value='USD')
     row += 1
     
-    ws_summary.write(row, 0, 'Revenue Data')
-    ws_summary.write(row, 1, 'Gross Value at Payout')
-    ws_summary.write(row, 2, round(float(gross_value_at_payout), 2))
-    ws_summary.write(row, 3, 'USD')
+    ws_summary.cell(row=row + 1, column=1, value='Revenue Data')
+    ws_summary.cell(row=row + 1, column=2, value='Gross Value at Payout')
+    ws_summary.cell(row=row + 1, column=3, value=round(float(gross_value_at_payout), 2))
+    ws_summary.cell(row=row + 1, column=4, value='USD')
     row += 1
     
-    ws_summary.write(row, 0, 'Revenue Data')
-    ws_summary.write(row, 1, 'Appreciation')
-    ws_summary.write(row, 2, round(float(appreciation), 2))
-    ws_summary.write(row, 3, 'USD')
+    ws_summary.cell(row=row + 1, column=1, value='Revenue Data')
+    ws_summary.cell(row=row + 1, column=2, value='Appreciation')
+    ws_summary.cell(row=row + 1, column=3, value=round(float(appreciation), 2))
+    ws_summary.cell(row=row + 1, column=4, value='USD')
     row += 1
     
-    ws_summary.write(row, 0, 'Revenue Data')
-    ws_summary.write(row, 1, 'Total Payouts')
-    ws_summary.write(row, 2, total_payouts)
-    ws_summary.write(row, 3, 'count')
+    ws_summary.cell(row=row + 1, column=1, value='Revenue Data')
+    ws_summary.cell(row=row + 1, column=2, value='Total Payouts')
+    ws_summary.cell(row=row + 1, column=3, value=total_payouts)
+    ws_summary.cell(row=row + 1, column=4, value='count')
     row += 1
     
-    ws_summary.write(row, 0, 'Revenue Data')
-    ws_summary.write(row, 1, 'Total OPEX')
-    ws_summary.write(row, 2, round(float(total_opex), 2))
-    ws_summary.write(row, 3, 'USD')
+    ws_summary.cell(row=row + 1, column=1, value='Revenue Data')
+    ws_summary.cell(row=row + 1, column=2, value='Total OPEX')
+    ws_summary.cell(row=row + 1, column=3, value=round(float(total_opex), 2))
+    ws_summary.cell(row=row + 1, column=4, value='USD')
     row += 1
     
-    ws_summary.write(row, 0, 'Revenue Data')
-    ws_summary.write(row, 1, 'Current Net Value')
-    ws_summary.write(row, 2, round(float(current_net_value), 2))
-    ws_summary.write(row, 3, 'USD')
+    ws_summary.cell(row=row + 1, column=1, value='Revenue Data')
+    ws_summary.cell(row=row + 1, column=2, value='Current Net Value')
+    ws_summary.cell(row=row + 1, column=3, value=round(float(current_net_value), 2))
+    ws_summary.cell(row=row + 1, column=4, value='USD')
     row += 1
     
     # Sheet 2: Hashrate by Platform
-    ws_hashrate_platform = wb.add_sheet('Hashrate by Platform')
-    ws_hashrate_platform.write(0, 0, 'Platform')
-    ws_hashrate_platform.write(0, 1, 'Hashrate (TH/s)')
+    ws_hashrate_platform = wb.create_sheet(title='Hashrate by Platform')
+    ws_hashrate_platform.cell(row=1, column=1, value='Platform')
+    ws_hashrate_platform.cell(row=1, column=2, value='Hashrate (TH/s)')
 
     platform_row = 1
     for item in data['hashrate_by_platform']:
-        ws_hashrate_platform.write(platform_row, 0, item['platform'])
-        ws_hashrate_platform.write(platform_row, 1, item['hashrate'])
+        ws_hashrate_platform.cell(row=platform_row + 1, column=1, value=item['platform'])
+        ws_hashrate_platform.cell(row=platform_row + 1, column=2, value=item['hashrate'])
         platform_row += 1
 
     # Sheet 3: Hashrate by Location
-    ws_hashrate_location = wb.add_sheet('Hashrate by Location')
-    ws_hashrate_location.write(0, 0, 'Location')
-    ws_hashrate_location.write(0, 1, 'Hashrate (TH/s)')
+    ws_hashrate_location = wb.create_sheet(title='Hashrate by Location')
+    ws_hashrate_location.cell(row=1, column=1, value='Location')
+    ws_hashrate_location.cell(row=1, column=2, value='Hashrate (TH/s)')
 
     location_row = 1
     for item in data['hashrate_by_location']:
-        ws_hashrate_location.write(location_row, 0, item['location'])
-        ws_hashrate_location.write(location_row, 1, item['hashrate'])
+        ws_hashrate_location.cell(row=location_row + 1, column=1, value=item['location'])
+        ws_hashrate_location.cell(row=location_row + 1, column=2, value=item['hashrate'])
         location_row += 1
 
     # Sheet 4: Revenue by Platform
-    ws_revenue_platform = wb.add_sheet('Revenue by Platform')
-    ws_revenue_platform.write(0, 0, 'Platform')
-    ws_revenue_platform.write(0, 1, 'BTC Mined')
-    ws_revenue_platform.write(0, 2, 'Gross Value (USD)')
-    ws_revenue_platform.write(0, 3, 'Gross Value at Payout (USD)')
-    ws_revenue_platform.write(0, 4, 'Payout Count')
+    ws_revenue_platform = wb.create_sheet(title='Revenue by Platform')
+    ws_revenue_platform.cell(row=1, column=1, value='Platform')
+    ws_revenue_platform.cell(row=1, column=2, value='BTC Mined')
+    ws_revenue_platform.cell(row=1, column=3, value='Gross Value (USD)')
+    ws_revenue_platform.cell(row=1, column=4, value='Gross Value at Payout (USD)')
+    ws_revenue_platform.cell(row=1, column=5, value='Payout Count')
 
     revenue_row = 1
     for item in data['revenue_by_platform']:
-        ws_revenue_platform.write(revenue_row, 0, item['platform'])
-        ws_revenue_platform.write(revenue_row, 1, item['btc_mined'])
-        ws_revenue_platform.write(revenue_row, 2, round(item['gross_value'], 2))
-        ws_revenue_platform.write(revenue_row, 3, round(item['gross_value_at_payout'], 2))
-        ws_revenue_platform.write(revenue_row, 4, item['payout_count'])
+        ws_revenue_platform.cell(row=revenue_row + 1, column=1, value=item['platform'])
+        ws_revenue_platform.cell(row=revenue_row + 1, column=2, value=item['btc_mined'])
+        ws_revenue_platform.cell(row=revenue_row + 1, column=3, value=round(item['gross_value'], 2))
+        ws_revenue_platform.cell(row=revenue_row + 1, column=4, value=round(item['gross_value_at_payout'], 2))
+        ws_revenue_platform.cell(row=revenue_row + 1, column=5, value=item['payout_count'])
         revenue_row += 1
     
     response = HttpResponse(
-        content_type='application/vnd.ms-excel'
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     platform_suffix = f'_{selected_platform_name.replace(" ", "_")}' if selected_platform else ''
-    response['Content-Disposition'] = f'attachment; filename="overview_dashboard{platform_suffix}_export.xls"'
+    response['Content-Disposition'] = f'attachment; filename="overview_dashboard{platform_suffix}_export.xlsx"'
+    if 'Sheet' in wb.sheetnames:
+        wb.remove(wb['Sheet'])
     wb.save(response)
     return response
 
@@ -1341,50 +1358,44 @@ def import_platform_data(request):
     if request.method == 'POST' and request.FILES.get('import_file'):
         try:
             file = request.FILES['import_file']
-            wb = xlrd.open_workbook(file_contents=file.read())
-            ws = wb.sheet_by_index(0)
+            wb = load_workbook(file)
+            ws = wb.active
             
             # Get headers from first row
             headers = []
-            for col in range(ws.ncols):
-                header = ws.cell_value(0, col)
+            for col in range(1, ws.max_column + 1):
+                header = ws.cell(row=1, column=col).value
                 if header:
                     headers.append(str(header).strip())
-            
+
             # Process data rows
             imported_count = 0
-            for row in range(1, ws.nrows):
+            valid_fields = {f.name for f in RemoteMiningPlatform._meta.get_fields()}
+            for row in range(2, ws.max_row + 1):
                 row_data = {}
-                for col, header in enumerate(headers):
-                    if col < ws.ncols:
-                        cell_value = ws.cell_value(row, col)
-                        cell_type = ws.cell_type(row, col)
-                        if cell_value:
-                            # Handle different cell types
-                            if cell_type == 3:  # Date type
-                                # Convert Excel date serial number to Python date
-                                date_tuple = xlrd.xldate_as_tuple(cell_value, wb.datemode)
-                                row_data[header] = datetime(*date_tuple).date()
-                            elif cell_type == 2:  # Number type
-                                row_data[header] = cell_value
-                            else:  # Text type
-                                row_data[header] = str(cell_value).strip()
-                
-                if row_data:  # Skip empty rows
-                    # Create platform instance
-                    valid_fields = {f.name for f in RemoteMiningPlatform._meta.get_fields()}
+                for col_idx, header in enumerate(headers):
+                    cell_value = ws.cell(row=row, column=col_idx + 1).value
+                    if cell_value is not None:
+                        if isinstance(cell_value, datetime):
+                            row_data[header] = cell_value.date()
+                        elif isinstance(cell_value, str):
+                            row_data[header] = cell_value.strip()
+                        else:
+                            row_data[header] = cell_value
+
+                if row_data:
                     platform_data = {}
                     for field, value in row_data.items():
                         if field in valid_fields and value:
-                            if field == 'energy_price' and value:
+                            if field == 'energy_price':
                                 platform_data[field] = Decimal(str(value))
                             else:
                                 platform_data[field] = value
-                    
+
                     if platform_data:
                         RemoteMiningPlatform.objects.create(**platform_data)
                         imported_count += 1
-            
+
             messages.success(request, f'Successfully imported {imported_count} platforms!')
             return redirect('platform_list')
             
@@ -1400,62 +1411,55 @@ def import_miner_data(request):
     if request.method == 'POST' and request.FILES.get('import_file'):
         try:
             file = request.FILES['import_file']
-            wb = xlrd.open_workbook(file_contents=file.read())
-            ws = wb.sheet_by_index(0)
+            wb = load_workbook(file)
+            ws = wb.active
             
             # Get headers from first row
             headers = []
-            for col in range(ws.ncols):
-                header = ws.cell_value(0, col)
+            for col in range(1, ws.max_column + 1):
+                header = ws.cell(row=1, column=col).value
                 if header:
                     headers.append(str(header).strip())
-            
+
             # Process data rows
             imported_count = 0
-            for row in range(1, ws.nrows):
+            valid_fields = {f.name for f in Miner._meta.get_fields()}
+            for row in range(2, ws.max_row + 1):
                 row_data = {}
-                for col, header in enumerate(headers):
-                    if col < ws.ncols:
-                        cell_value = ws.cell_value(row, col)
-                        cell_type = ws.cell_type(row, col)
-                        if cell_value:
-                            # Handle different cell types
-                            if cell_type == 3:  # Date type
-                                # Convert Excel date serial number to Python date
-                                date_tuple = xlrd.xldate_as_tuple(cell_value, wb.datemode)
-                                row_data[header] = datetime(*date_tuple).date()
-                            elif cell_type == 2:  # Number type
-                                row_data[header] = cell_value
-                            else:  # Text type
-                                row_data[header] = str(cell_value).strip()
-                
-                if row_data:  # Skip empty rows
-                    # Create miner instance
-                    valid_fields = {f.name for f in Miner._meta.get_fields()}
+                for col_idx, header in enumerate(headers):
+                    cell_value = ws.cell(row=row, column=col_idx + 1).value
+                    if cell_value is not None:
+                        if isinstance(cell_value, datetime):
+                            row_data[header] = cell_value.date()
+                        elif isinstance(cell_value, str):
+                            row_data[header] = cell_value.strip()
+                        else:
+                            row_data[header] = cell_value
+
+                if row_data:
                     miner_data = {}
                     for field, value in row_data.items():
                         if field in valid_fields and value:
                             if field == 'platform':
-                                # Handle foreign key - expect platform ID
                                 try:
                                     platform = RemoteMiningPlatform.objects.get(pk=int(float(value)))
                                     miner_data[field] = platform
                                 except (RemoteMiningPlatform.DoesNotExist, ValueError, TypeError):
                                     continue
-                            elif field in ['hashrate', 'power', 'efficiency', 'purchase_price'] and value:
+                            elif field in ['hashrate', 'power', 'efficiency', 'purchase_price']:
                                 miner_data[field] = Decimal(str(value))
-                            elif field in ['purchase_date', 'start_date'] and value:
+                            elif field in ['purchase_date', 'start_date']:
                                 if isinstance(value, str):
                                     miner_data[field] = datetime.strptime(value, '%Y-%m-%d').date()
                                 else:
                                     miner_data[field] = value
                             else:
                                 miner_data[field] = value
-                    
+
                     if miner_data:
                         Miner.objects.create(**miner_data)
                         imported_count += 1
-            
+
             messages.success(request, f'Successfully imported {imported_count} miners!')
             return redirect('miner_list')
             
@@ -1471,64 +1475,55 @@ def import_payout_data(request):
     if request.method == 'POST' and request.FILES.get('import_file'):
         try:
             file = request.FILES['import_file']
-            wb = xlrd.open_workbook(file_contents=file.read())
-            ws = wb.sheet_by_index(0)
+            wb = load_workbook(file)
+            ws = wb.active
             
             # Get headers from first row
             headers = []
-            for col in range(ws.ncols):
-                header = ws.cell_value(0, col)
+            for col in range(1, ws.max_column + 1):
+                header = ws.cell(row=1, column=col).value
                 if header:
                     headers.append(str(header).strip())
-            
+
             # Process data rows
             imported_count = 0
-            for row in range(1, ws.nrows):
+            valid_fields = {f.name for f in Payout._meta.get_fields()}
+            for row in range(2, ws.max_row + 1):
                 row_data = {}
-                for col, header in enumerate(headers):
-                    if col < ws.ncols:
-                        cell_value = ws.cell_value(row, col)
-                        cell_type = ws.cell_type(row, col)
-                        if cell_value:
-                            # Handle different cell types
-                            if cell_type == 3:  # Date type
-                                # Convert Excel date serial number to Python date
-                                date_tuple = xlrd.xldate_as_tuple(cell_value, wb.datemode)
-                                row_data[header] = datetime(*date_tuple).date()
-                            elif cell_type == 2:  # Number type
-                                row_data[header] = cell_value
-                            else:  # Text type
-                                row_data[header] = str(cell_value).strip()
-                
-                if row_data:  # Skip empty rows
-                    # Create payout instance
-                    valid_fields = {f.name for f in Payout._meta.get_fields()}
+                for col_idx, header in enumerate(headers):
+                    cell_value = ws.cell(row=row, column=col_idx + 1).value
+                    if cell_value is not None:
+                        if isinstance(cell_value, datetime):
+                            row_data[header] = cell_value.date()
+                        elif isinstance(cell_value, str):
+                            row_data[header] = cell_value.strip()
+                        else:
+                            row_data[header] = cell_value
+
+                if row_data:
                     payout_data = {}
                     for field, value in row_data.items():
                         if field in valid_fields and value:
                             if field == 'platform':
-                                # Handle foreign key - expect platform ID
                                 try:
                                     platform = RemoteMiningPlatform.objects.get(pk=int(float(value)))
                                     payout_data[field] = platform
                                 except (RemoteMiningPlatform.DoesNotExist, ValueError, TypeError):
                                     continue
-                            elif field == 'payout_amount' and value:
+                            elif field in ['payout_amount', 'closing_price']:
                                 payout_data[field] = Decimal(str(value))
-                            elif field == 'closing_price' and value:
-                                payout_data[field] = Decimal(str(value))
-                            elif field == 'payout_date' and value:
+                            elif field == 'payout_date':
                                 if isinstance(value, str):
                                     payout_data[field] = datetime.strptime(value, '%Y-%m-%d').date()
                                 else:
                                     payout_data[field] = value
                             else:
                                 payout_data[field] = value
-                    
+
                     if payout_data:
                         Payout.objects.create(**payout_data)
                         imported_count += 1
-            
+
             messages.success(request, f'Successfully imported {imported_count} payouts!')
             return redirect('payout_list')
             
@@ -1542,50 +1537,54 @@ def import_payout_data(request):
 # Expense Import/Export Functions
 def download_expense_template(request):
     """Download import template for Expenses"""
-    wb = xlwt.Workbook()
-    ws = wb.add_sheet('Expense Import Template')
+    wb = Workbook()
+    ws = wb.create_sheet(title='Expense Import Template')
     
     # Add headers based on form fields
     headers = ['expense_date', 'platform', 'category', 'description', 'expense_amount', 'invoice_link', 'receipt_link', 'notes']
     
     for col, header in enumerate(headers):
-        ws.write(0, col, header)
+        ws.cell(row=1, column=col + 1, value=header)
     
     response = HttpResponse(
-        content_type='application/vnd.ms-excel'
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename="expense_import_template.xls"'
+    response['Content-Disposition'] = 'attachment; filename="expense_import_template.xlsx"'
+    if 'Sheet' in wb.sheetnames:
+        wb.remove(wb['Sheet'])
     wb.save(response)
     return response
 
 
 def export_expense_data(request):
     """Export all expense data to Excel file"""
-    wb = xlwt.Workbook()
-    ws = wb.add_sheet('Expense Data')
+    wb = Workbook()
+    ws = wb.create_sheet(title='Expense Data')
     
     # Add headers
     headers = ['expense_date', 'platform', 'category', 'description', 'expense_amount', 'invoice_link', 'receipt_link', 'notes']
     
     for col, header in enumerate(headers):
-        ws.write(0, col, header)
+        ws.cell(row=1, column=col + 1, value=header)
     
     # Add data rows
     expenses = Expense.objects.select_related('platform').all().order_by('-expense_date')
     for row, expense in enumerate(expenses, start=1):
-        ws.write(row, 0, expense.expense_date.strftime('%Y-%m-%d') if expense.expense_date else '')
-        ws.write(row, 1, expense.platform.id if expense.platform else '')
-        ws.write(row, 2, expense.category or '')
-        ws.write(row, 3, expense.description or '')
-        ws.write(row, 4, float(expense.expense_amount) if expense.expense_amount else '')
-        ws.write(row, 5, expense.invoice_link or '')
-        ws.write(row, 6, expense.receipt_link or '')
-        ws.write(row, 7, expense.notes or '')
+        ws.cell(row=row + 1, column=1, value=expense.expense_date.strftime('%Y-%m-%d') if expense.expense_date else '')
+        ws.cell(row=row + 1, column=2, value=expense.platform.id if expense.platform else '')
+        ws.cell(row=row + 1, column=3, value=expense.category or '')
+        ws.cell(row=row + 1, column=4, value=expense.description or '')
+        ws.cell(row=row + 1, column=5, value=float(expense.expense_amount) if expense.expense_amount else '')
+        ws.cell(row=row + 1, column=6, value=expense.invoice_link or '')
+        ws.cell(row=row + 1, column=7, value=expense.receipt_link or '')
+        ws.cell(row=row + 1, column=8, value=expense.notes or '')
     
     response = HttpResponse(
-        content_type='application/vnd.ms-excel'
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename="expense_data_export.xls"'
+    response['Content-Disposition'] = 'attachment; filename="expense_data_export.xlsx"'
+    if 'Sheet' in wb.sheetnames:
+        wb.remove(wb['Sheet'])
     wb.save(response)
     return response
 
@@ -1595,33 +1594,29 @@ def import_expense_data(request):
     if request.method == 'POST' and request.FILES.get('import_file'):
         try:
             file = request.FILES['import_file']
-            wb = xlrd.open_workbook(file_contents=file.read())
-            ws = wb.sheet_by_index(0)
+            wb = load_workbook(file)
+            ws = wb.active
             
             # Get headers from first row
             headers = []
-            for col in range(ws.ncols):
-                header = ws.cell_value(0, col)
-                headers.append(header.lower().strip())
-            
+            for col in range(1, ws.max_column + 1):
+                header = ws.cell(row=1, column=col).value
+                if header:
+                    headers.append(str(header).lower().strip())
+
             # Process data rows
             imported_count = 0
-            for row in range(1, ws.nrows):
+            for row in range(2, ws.max_row + 1):
                 expense_data = {}
-                
-                for col, header in enumerate(headers):
-                    if col >= ws.ncols:
-                        continue
-                        
-                    cell_value = ws.cell_value(row, col)
-                    
+
+                for col_idx, header in enumerate(headers):
+                    cell_value = ws.cell(row=row, column=col_idx + 1).value
+
                     if header == 'expense_date' and cell_value:
                         try:
-                            if isinstance(cell_value, float):
-                                # Excel date as float
-                                expense_data['expense_date'] = xlrd.xldate_as_datetime(cell_value, wb.datemode).date()
+                            if isinstance(cell_value, datetime):
+                                expense_data['expense_date'] = cell_value.date()
                             else:
-                                # String date
                                 expense_data['expense_date'] = datetime.strptime(str(cell_value), '%Y-%m-%d').date()
                         except (ValueError, TypeError) as e:
                             logger.warning("Expense import: bad date at row %d: %s", row, e)
@@ -1744,47 +1739,51 @@ class TopUpDeleteView(DeleteView):
 
 def download_topup_template(request):
     """Download Excel template for Top-Up import"""
-    wb = xlwt.Workbook()
-    ws = wb.add_sheet('TopUp Template')
+    wb = Workbook()
+    ws = wb.create_sheet(title='TopUp Template')
     
     # Add headers
     headers = ['topup_date', 'platform', 'topup_amount', 'description', 'receipt_link']
     
     for col, header in enumerate(headers):
-        ws.write(0, col, header)
+        ws.cell(row=1, column=col + 1, value=header)
     
     response = HttpResponse(
-        content_type='application/vnd.ms-excel'
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename="topup_import_template.xls"'
+    response['Content-Disposition'] = 'attachment; filename="topup_import_template.xlsx"'
+    if 'Sheet' in wb.sheetnames:
+        wb.remove(wb['Sheet'])
     wb.save(response)
     return response
 
 
 def export_topup_data(request):
     """Export all top-up data to Excel file"""
-    wb = xlwt.Workbook()
-    ws = wb.add_sheet('TopUp Data')
+    wb = Workbook()
+    ws = wb.create_sheet(title='TopUp Data')
     
     # Add headers
     headers = ['topup_date', 'platform', 'topup_amount', 'description', 'receipt_link']
     
     for col, header in enumerate(headers):
-        ws.write(0, col, header)
+        ws.cell(row=1, column=col + 1, value=header)
     
     # Add data rows
     topups = TopUp.objects.select_related('platform').all().order_by('-topup_date')
     for row, topup in enumerate(topups, start=1):
-        ws.write(row, 0, str(topup.topup_date) if topup.topup_date else '')
-        ws.write(row, 1, topup.platform.name if topup.platform else '')
-        ws.write(row, 2, float(topup.topup_amount) if topup.topup_amount else '')
-        ws.write(row, 3, topup.description or '')
-        ws.write(row, 4, topup.receipt_link or '')
+        ws.cell(row=row + 1, column=1, value=str(topup.topup_date) if topup.topup_date else '')
+        ws.cell(row=row + 1, column=2, value=topup.platform.name if topup.platform else '')
+        ws.cell(row=row + 1, column=3, value=float(topup.topup_amount) if topup.topup_amount else '')
+        ws.cell(row=row + 1, column=4, value=topup.description or '')
+        ws.cell(row=row + 1, column=5, value=topup.receipt_link or '')
     
     response = HttpResponse(
-        content_type='application/vnd.ms-excel'
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename="topup_data_export.xls"'
+    response['Content-Disposition'] = 'attachment; filename="topup_data_export.xlsx"'
+    if 'Sheet' in wb.sheetnames:
+        wb.remove(wb['Sheet'])
     wb.save(response)
     return response
 
@@ -1794,40 +1793,30 @@ def import_topup_data(request):
     if request.method == 'POST' and request.FILES.get('import_file'):
         try:
             file = request.FILES['import_file']
-            wb = xlrd.open_workbook(file_contents=file.read())
-            ws = wb.sheet_by_index(0)
+            wb = load_workbook(file)
+            ws = wb.active
             
             # Get headers from first row
-            headers = [str(ws.cell_value(0, col)).lower().strip() for col in range(ws.ncols)]
-            
+            headers = [str(ws.cell(row=1, column=col).value).lower().strip() for col in range(1, ws.max_column + 1)]
+
             imported_count = 0
-            
+
             # Process each row (skip header row)
-            for row in range(1, ws.nrows):
+            for row in range(2, ws.max_row + 1):
                 topup_data = {}
-                
-                # Process each column
-                for col, header in enumerate(headers):
-                    if col >= ws.ncols:
-                        break
-                        
-                    cell_value = ws.cell_value(row, col)
-                    
+
+                for col_idx, header in enumerate(headers):
+                    cell_value = ws.cell(row=row, column=col_idx + 1).value
+
                     if header == 'topup_date' and cell_value:
-                        # Handle date conversion
-                        if isinstance(cell_value, float):
-                            try:
-                                dt = xlrd.xldate_as_datetime(cell_value, wb.datemode)
-                                topup_data['topup_date'] = dt.date()
-                            except (ValueError, TypeError) as e:
-                                logger.warning("Top-up import: bad date at row %d: %s", row, e)
-                                continue
-                        else:
-                            try:
+                        try:
+                            if isinstance(cell_value, datetime):
+                                topup_data['topup_date'] = cell_value.date()
+                            else:
                                 topup_data['topup_date'] = datetime.strptime(str(cell_value), '%Y-%m-%d').date()
-                            except (ValueError, TypeError) as e:
-                                logger.warning("Top-up import: bad date at row %d: %s", row, e)
-                                continue
+                        except (ValueError, TypeError) as e:
+                            logger.warning("Top-up import: bad date at row %d: %s", row, e)
+                            continue
                     elif header == 'platform' and cell_value:
                         try:
                             # Try to find platform by ID or name
@@ -1872,7 +1861,7 @@ def forecasting_dashboard(request):
 
 def export_forecasting_data(request):
     """Export forecasting dashboard data to Excel file"""
-    wb = xlwt.Workbook()
+    wb = Workbook()
     selected_platform = resolve_selected_platform(request.GET.get('platform', ''))
     data = get_forecasting_data(selected_platform)
     selected_platform_name = selected_platform.name if selected_platform else 'All Platforms'
@@ -1892,8 +1881,8 @@ def export_forecasting_data(request):
 
     # Check if we have required data
     if results is None:
-        ws = wb.add_sheet('Error')
-        ws.write(0, 0, 'Error: Insufficient data (missing miners, API data, or network difficulty)')
+        ws = wb.create_sheet(title='Error')
+        ws.cell(row=1, column=1, value='Error: Insufficient data (missing miners, API data, or network difficulty)')
     else:
         power_watts = results['power_consumption_watts']
         margin = results['margin']
@@ -1915,276 +1904,278 @@ def export_forecasting_data(request):
         time_to_mine_small_btc = format_time_breakdown(days_to_mine_small_btc)
 
         # Sheet 1: Forecasting Summary
-        ws_summary = wb.add_sheet('Forecasting Summary')
-        ws_summary.write(0, 0, 'Metric Category')
-        ws_summary.write(0, 1, 'Metric Name')
-        ws_summary.write(0, 2, 'Value')
-        ws_summary.write(0, 3, 'Unit')
+        ws_summary = wb.create_sheet(title='Forecasting Summary')
+        ws_summary.cell(row=1, column=1, value='Metric Category')
+        ws_summary.cell(row=1, column=2, value='Metric Name')
+        ws_summary.cell(row=1, column=3, value='Value')
+        ws_summary.cell(row=1, column=4, value='Unit')
         
         row = 1
         
         # Platform Filter
-        ws_summary.write(row, 0, 'Filter')
-        ws_summary.write(row, 1, 'Platform')
-        ws_summary.write(row, 2, selected_platform_name)
-        ws_summary.write(row, 3, '')
+        ws_summary.cell(row=row + 1, column=1, value='Filter')
+        ws_summary.cell(row=row + 1, column=2, value='Platform')
+        ws_summary.cell(row=row + 1, column=3, value=selected_platform_name)
+        ws_summary.cell(row=row + 1, column=4, value='')
         row += 1
         
         # Network Overview
-        ws_summary.write(row, 0, 'Network Overview')
-        ws_summary.write(row, 1, 'Network Difficulty')
-        ws_summary.write(row, 2, network_difficulty)
-        ws_summary.write(row, 3, '')
+        ws_summary.cell(row=row + 1, column=1, value='Network Overview')
+        ws_summary.cell(row=row + 1, column=2, value='Network Difficulty')
+        ws_summary.cell(row=row + 1, column=3, value=network_difficulty)
+        ws_summary.cell(row=row + 1, column=4, value='')
         row += 1
         
-        ws_summary.write(row, 0, 'Network Overview')
-        ws_summary.write(row, 1, 'Network Hashrate')
-        ws_summary.write(row, 2, network_hashrate_ehs)
-        ws_summary.write(row, 3, 'EH/s')
+        ws_summary.cell(row=row + 1, column=1, value='Network Overview')
+        ws_summary.cell(row=row + 1, column=2, value='Network Hashrate')
+        ws_summary.cell(row=row + 1, column=3, value=network_hashrate_ehs)
+        ws_summary.cell(row=row + 1, column=4, value='EH/s')
         row += 1
         
-        ws_summary.write(row, 0, 'Network Overview')
-        ws_summary.write(row, 1, 'Avg Block Fees (24h)')
-        ws_summary.write(row, 2, round(avg_tx_fees, 8))
-        ws_summary.write(row, 3, 'BTC')
+        ws_summary.cell(row=row + 1, column=1, value='Network Overview')
+        ws_summary.cell(row=row + 1, column=2, value='Avg Block Fees (24h)')
+        ws_summary.cell(row=row + 1, column=3, value=round(avg_tx_fees, 8))
+        ws_summary.cell(row=row + 1, column=4, value='BTC')
         row += 1
         
-        ws_summary.write(row, 0, 'Network Overview')
-        ws_summary.write(row, 1, 'BTC Price')
-        ws_summary.write(row, 2, round(btc_price_usd, 2))
-        ws_summary.write(row, 3, 'USD')
+        ws_summary.cell(row=row + 1, column=1, value='Network Overview')
+        ws_summary.cell(row=row + 1, column=2, value='BTC Price')
+        ws_summary.cell(row=row + 1, column=3, value=round(btc_price_usd, 2))
+        ws_summary.cell(row=row + 1, column=4, value='USD')
         row += 1
         
         # My Fleet Overview
-        ws_summary.write(row, 0, 'My Fleet Overview')
-        ws_summary.write(row, 1, 'Miners Accounted For')
-        ws_summary.write(row, 2, miner_count)
-        ws_summary.write(row, 3, f'of {total_miner_count}')
+        ws_summary.cell(row=row + 1, column=1, value='My Fleet Overview')
+        ws_summary.cell(row=row + 1, column=2, value='Miners Accounted For')
+        ws_summary.cell(row=row + 1, column=3, value=miner_count)
+        ws_summary.cell(row=row + 1, column=4, value=f'of {total_miner_count}')
         row += 1
         
-        ws_summary.write(row, 0, 'My Fleet Overview')
-        ws_summary.write(row, 1, 'My Hashrate')
-        ws_summary.write(row, 2, float(total_hashrate))
-        ws_summary.write(row, 3, 'TH/s')
+        ws_summary.cell(row=row + 1, column=1, value='My Fleet Overview')
+        ws_summary.cell(row=row + 1, column=2, value='My Hashrate')
+        ws_summary.cell(row=row + 1, column=3, value=float(total_hashrate))
+        ws_summary.cell(row=row + 1, column=4, value='TH/s')
         row += 1
         
-        ws_summary.write(row, 0, 'My Fleet Overview')
-        ws_summary.write(row, 1, 'Pool Fee')
-        ws_summary.write(row, 2, pool_fee)
-        ws_summary.write(row, 3, '%')
+        ws_summary.cell(row=row + 1, column=1, value='My Fleet Overview')
+        ws_summary.cell(row=row + 1, column=2, value='Pool Fee')
+        ws_summary.cell(row=row + 1, column=3, value=pool_fee)
+        ws_summary.cell(row=row + 1, column=4, value='%')
         row += 1
         
-        ws_summary.write(row, 0, 'My Fleet Overview')
-        ws_summary.write(row, 1, 'Power Consumption')
-        ws_summary.write(row, 2, round(power_watts / 1000, 2))
-        ws_summary.write(row, 3, 'kW')
+        ws_summary.cell(row=row + 1, column=1, value='My Fleet Overview')
+        ws_summary.cell(row=row + 1, column=2, value='Power Consumption')
+        ws_summary.cell(row=row + 1, column=3, value=round(power_watts / 1000, 2))
+        ws_summary.cell(row=row + 1, column=4, value='kW')
         row += 1
         
-        ws_summary.write(row, 0, 'My Fleet Overview')
-        ws_summary.write(row, 1, 'Net Profit Margin')
-        ws_summary.write(row, 2, round(margin, 2))
-        ws_summary.write(row, 3, '%')
+        ws_summary.cell(row=row + 1, column=1, value='My Fleet Overview')
+        ws_summary.cell(row=row + 1, column=2, value='Net Profit Margin')
+        ws_summary.cell(row=row + 1, column=3, value=round(margin, 2))
+        ws_summary.cell(row=row + 1, column=4, value='%')
         row += 1
         
         # Efficiency Data
-        ws_summary.write(row, 0, 'Efficiency Data')
-        ws_summary.write(row, 1, 'Average Efficiency')
-        ws_summary.write(row, 2, float(avg_efficiency))
-        ws_summary.write(row, 3, 'W/TH')
+        ws_summary.cell(row=row + 1, column=1, value='Efficiency Data')
+        ws_summary.cell(row=row + 1, column=2, value='Average Efficiency')
+        ws_summary.cell(row=row + 1, column=3, value=float(avg_efficiency))
+        ws_summary.cell(row=row + 1, column=4, value='W/TH')
         row += 1
         
-        ws_summary.write(row, 0, 'Efficiency Data')
-        ws_summary.write(row, 1, 'Hashrate Weighted Avg Efficiency')
-        ws_summary.write(row, 2, round(float(hashrate_weighted_efficiency), 2))
-        ws_summary.write(row, 3, 'W/TH')
+        ws_summary.cell(row=row + 1, column=1, value='Efficiency Data')
+        ws_summary.cell(row=row + 1, column=2, value='Hashrate Weighted Avg Efficiency')
+        ws_summary.cell(row=row + 1, column=3, value=round(float(hashrate_weighted_efficiency), 2))
+        ws_summary.cell(row=row + 1, column=4, value='W/TH')
         row += 1
         
         # Energy Data
-        ws_summary.write(row, 0, 'Energy Data')
-        ws_summary.write(row, 1, 'Average Energy Cost')
-        ws_summary.write(row, 2, float(avg_energy_cost))
-        ws_summary.write(row, 3, '$/kWh')
+        ws_summary.cell(row=row + 1, column=1, value='Energy Data')
+        ws_summary.cell(row=row + 1, column=2, value='Average Energy Cost')
+        ws_summary.cell(row=row + 1, column=3, value=float(avg_energy_cost))
+        ws_summary.cell(row=row + 1, column=4, value='$/kWh')
         row += 1
         
-        ws_summary.write(row, 0, 'Energy Data')
-        ws_summary.write(row, 1, 'Hashrate Weighted Avg Energy Cost')
-        ws_summary.write(row, 2, round(float(hashrate_weighted_energy_cost), 6))
-        ws_summary.write(row, 3, '$/kWh')
+        ws_summary.cell(row=row + 1, column=1, value='Energy Data')
+        ws_summary.cell(row=row + 1, column=2, value='Hashrate Weighted Avg Energy Cost')
+        ws_summary.cell(row=row + 1, column=3, value=round(float(hashrate_weighted_energy_cost), 6))
+        ws_summary.cell(row=row + 1, column=4, value='$/kWh')
         row += 1
         
         # Key Metrics
-        ws_summary.write(row, 0, 'Key Metrics')
-        ws_summary.write(row, 1, 'Time to mine 1 BTC')
-        ws_summary.write(row, 2, time_to_mine_1_btc)
-        ws_summary.write(row, 3, '')
+        ws_summary.cell(row=row + 1, column=1, value='Key Metrics')
+        ws_summary.cell(row=row + 1, column=2, value='Time to mine 1 BTC')
+        ws_summary.cell(row=row + 1, column=3, value=time_to_mine_1_btc)
+        ws_summary.cell(row=row + 1, column=4, value='')
         row += 1
         
-        ws_summary.write(row, 0, 'Key Metrics')
-        ws_summary.write(row, 1, 'Time to mine 0.005 BTC')
-        ws_summary.write(row, 2, time_to_mine_small_btc)
-        ws_summary.write(row, 3, '')
+        ws_summary.cell(row=row + 1, column=1, value='Key Metrics')
+        ws_summary.cell(row=row + 1, column=2, value='Time to mine 0.005 BTC')
+        ws_summary.cell(row=row + 1, column=3, value=time_to_mine_small_btc)
+        ws_summary.cell(row=row + 1, column=4, value='')
         row += 1
         
         if roi_data:
             roi_display = f"{roi_data['time_breakdown']['years']} years, {roi_data['time_breakdown']['months']} months, {roi_data['time_breakdown']['days']} days" if roi_data['days_to_roi'] != float('inf') else "Never (not profitable)"
-            ws_summary.write(row, 0, 'Key Metrics')
-            ws_summary.write(row, 1, 'ROI')
-            ws_summary.write(row, 2, roi_display)
-            ws_summary.write(row, 3, '')
+            ws_summary.cell(row=row + 1, column=1, value='Key Metrics')
+            ws_summary.cell(row=row + 1, column=2, value='ROI')
+            ws_summary.cell(row=row + 1, column=3, value=roi_display)
+            ws_summary.cell(row=row + 1, column=4, value='')
             row += 1
         
         # Sheet 2: Daily Projections
-        ws_daily = wb.add_sheet('Daily Projections')
-        ws_daily.write(0, 0, 'Projection Type')
-        ws_daily.write(0, 1, 'BTC Amount')
-        ws_daily.write(0, 2, 'USD Amount')
+        ws_daily = wb.create_sheet(title='Daily Projections')
+        ws_daily.cell(row=1, column=1, value='Projection Type')
+        ws_daily.cell(row=1, column=2, value='BTC Amount')
+        ws_daily.cell(row=1, column=3, value='USD Amount')
         
         row = 1
-        ws_daily.write(row, 0, 'Gross Payout (before pool fee)')
-        ws_daily.write(row, 1, round(daily_btc_gross_before_fee, 8))
-        ws_daily.write(row, 2, round(daily_usd_gross, 2))
+        ws_daily.cell(row=row + 1, column=1, value='Gross Payout (before pool fee)')
+        ws_daily.cell(row=row + 1, column=2, value=round(daily_btc_gross_before_fee, 8))
+        ws_daily.cell(row=row + 1, column=3, value=round(daily_usd_gross, 2))
         row += 1
         
-        ws_daily.write(row, 0, 'Pool Fee')
-        ws_daily.write(row, 1, round(pool_fee_btc, 8))
-        ws_daily.write(row, 2, round(pool_fee_btc * btc_price_usd, 2))
+        ws_daily.cell(row=row + 1, column=1, value='Pool Fee')
+        ws_daily.cell(row=row + 1, column=2, value=round(pool_fee_btc, 8))
+        ws_daily.cell(row=row + 1, column=3, value=round(pool_fee_btc * btc_price_usd, 2))
         row += 1
         
-        ws_daily.write(row, 0, 'After Pool Fee')
-        ws_daily.write(row, 1, round(daily_btc_after_fee, 8))
-        ws_daily.write(row, 2, round(daily_usd_after_fee, 2))
+        ws_daily.cell(row=row + 1, column=1, value='After Pool Fee')
+        ws_daily.cell(row=row + 1, column=2, value=round(daily_btc_after_fee, 8))
+        ws_daily.cell(row=row + 1, column=3, value=round(daily_usd_after_fee, 2))
         row += 1
         
-        ws_daily.write(row, 0, 'Electricity Cost')
-        ws_daily.write(row, 1, round(daily_electricity_cost_usd / btc_price_usd, 8) if btc_price_usd > 0 else 0)
-        ws_daily.write(row, 2, round(daily_electricity_cost_usd, 2))
+        ws_daily.cell(row=row + 1, column=1, value='Electricity Cost')
+        ws_daily.cell(row=row + 1, column=2, value=round(daily_electricity_cost_usd / btc_price_usd, 8) if btc_price_usd > 0 else 0)
+        ws_daily.cell(row=row + 1, column=3, value=round(daily_electricity_cost_usd, 2))
         row += 1
         
-        ws_daily.write(row, 0, 'Net Profit')
-        ws_daily.write(row, 1, round(daily_btc_net, 8))
-        ws_daily.write(row, 2, round(daily_usd_net, 2))
+        ws_daily.cell(row=row + 1, column=1, value='Net Profit')
+        ws_daily.cell(row=row + 1, column=2, value=round(daily_btc_net, 8))
+        ws_daily.cell(row=row + 1, column=3, value=round(daily_usd_net, 2))
         row += 1
         
         # Sheet 3: Monthly Projections
-        ws_monthly = wb.add_sheet('Monthly Projections')
-        ws_monthly.write(0, 0, 'Projection Type')
-        ws_monthly.write(0, 1, 'BTC Amount')
-        ws_monthly.write(0, 2, 'USD Amount')
+        ws_monthly = wb.create_sheet(title='Monthly Projections')
+        ws_monthly.cell(row=1, column=1, value='Projection Type')
+        ws_monthly.cell(row=1, column=2, value='BTC Amount')
+        ws_monthly.cell(row=1, column=3, value='USD Amount')
         
         row = 1
-        ws_monthly.write(row, 0, 'Gross Payout (before pool fee)')
-        ws_monthly.write(row, 1, round(daily_btc_gross_before_fee * 30, 8))
-        ws_monthly.write(row, 2, round(daily_usd_gross * 30, 2))
+        ws_monthly.cell(row=row + 1, column=1, value='Gross Payout (before pool fee)')
+        ws_monthly.cell(row=row + 1, column=2, value=round(daily_btc_gross_before_fee * 30, 8))
+        ws_monthly.cell(row=row + 1, column=3, value=round(daily_usd_gross * 30, 2))
         row += 1
         
-        ws_monthly.write(row, 0, 'Pool Fee')
-        ws_monthly.write(row, 1, round(pool_fee_btc * 30, 8))
-        ws_monthly.write(row, 2, round(pool_fee_btc * btc_price_usd * 30, 2))
+        ws_monthly.cell(row=row + 1, column=1, value='Pool Fee')
+        ws_monthly.cell(row=row + 1, column=2, value=round(pool_fee_btc * 30, 8))
+        ws_monthly.cell(row=row + 1, column=3, value=round(pool_fee_btc * btc_price_usd * 30, 2))
         row += 1
         
-        ws_monthly.write(row, 0, 'After Pool Fee')
-        ws_monthly.write(row, 1, round(daily_btc_after_fee * 30, 8))
-        ws_monthly.write(row, 2, round(daily_usd_after_fee * 30, 2))
+        ws_monthly.cell(row=row + 1, column=1, value='After Pool Fee')
+        ws_monthly.cell(row=row + 1, column=2, value=round(daily_btc_after_fee * 30, 8))
+        ws_monthly.cell(row=row + 1, column=3, value=round(daily_usd_after_fee * 30, 2))
         row += 1
         
-        ws_monthly.write(row, 0, 'Electricity Cost')
-        ws_monthly.write(row, 1, round(daily_electricity_cost_usd / btc_price_usd * 30, 8) if btc_price_usd > 0 else 0)
-        ws_monthly.write(row, 2, round(daily_electricity_cost_usd * 30, 2))
+        ws_monthly.cell(row=row + 1, column=1, value='Electricity Cost')
+        ws_monthly.cell(row=row + 1, column=2, value=round(daily_electricity_cost_usd / btc_price_usd * 30, 8) if btc_price_usd > 0 else 0)
+        ws_monthly.cell(row=row + 1, column=3, value=round(daily_electricity_cost_usd * 30, 2))
         row += 1
         
-        ws_monthly.write(row, 0, 'Net Profit')
-        ws_monthly.write(row, 1, round(daily_btc_net * 30, 8))
-        ws_monthly.write(row, 2, round(daily_usd_net * 30, 2))
+        ws_monthly.cell(row=row + 1, column=1, value='Net Profit')
+        ws_monthly.cell(row=row + 1, column=2, value=round(daily_btc_net * 30, 8))
+        ws_monthly.cell(row=row + 1, column=3, value=round(daily_usd_net * 30, 2))
         row += 1
         
         # Sheet 4: Yearly Projections
-        ws_yearly = wb.add_sheet('Yearly Projections')
-        ws_yearly.write(0, 0, 'Projection Type')
-        ws_yearly.write(0, 1, 'BTC Amount')
-        ws_yearly.write(0, 2, 'USD Amount')
+        ws_yearly = wb.create_sheet(title='Yearly Projections')
+        ws_yearly.cell(row=1, column=1, value='Projection Type')
+        ws_yearly.cell(row=1, column=2, value='BTC Amount')
+        ws_yearly.cell(row=1, column=3, value='USD Amount')
         
         row = 1
-        ws_yearly.write(row, 0, 'Gross Payout (before pool fee)')
-        ws_yearly.write(row, 1, round(daily_btc_gross_before_fee * 365, 8))
-        ws_yearly.write(row, 2, round(daily_usd_gross * 365, 2))
+        ws_yearly.cell(row=row + 1, column=1, value='Gross Payout (before pool fee)')
+        ws_yearly.cell(row=row + 1, column=2, value=round(daily_btc_gross_before_fee * 365, 8))
+        ws_yearly.cell(row=row + 1, column=3, value=round(daily_usd_gross * 365, 2))
         row += 1
         
-        ws_yearly.write(row, 0, 'Pool Fee')
-        ws_yearly.write(row, 1, round(pool_fee_btc * 365, 8))
-        ws_yearly.write(row, 2, round(pool_fee_btc * btc_price_usd * 365, 2))
+        ws_yearly.cell(row=row + 1, column=1, value='Pool Fee')
+        ws_yearly.cell(row=row + 1, column=2, value=round(pool_fee_btc * 365, 8))
+        ws_yearly.cell(row=row + 1, column=3, value=round(pool_fee_btc * btc_price_usd * 365, 2))
         row += 1
         
-        ws_yearly.write(row, 0, 'After Pool Fee')
-        ws_yearly.write(row, 1, round(daily_btc_after_fee * 365, 8))
-        ws_yearly.write(row, 2, round(daily_usd_after_fee * 365, 2))
+        ws_yearly.cell(row=row + 1, column=1, value='After Pool Fee')
+        ws_yearly.cell(row=row + 1, column=2, value=round(daily_btc_after_fee * 365, 8))
+        ws_yearly.cell(row=row + 1, column=3, value=round(daily_usd_after_fee * 365, 2))
         row += 1
         
-        ws_yearly.write(row, 0, 'Electricity Cost')
-        ws_yearly.write(row, 1, round(daily_electricity_cost_usd / btc_price_usd * 365, 8) if btc_price_usd > 0 else 0)
-        ws_yearly.write(row, 2, round(daily_electricity_cost_usd * 365, 2))
+        ws_yearly.cell(row=row + 1, column=1, value='Electricity Cost')
+        ws_yearly.cell(row=row + 1, column=2, value=round(daily_electricity_cost_usd / btc_price_usd * 365, 8) if btc_price_usd > 0 else 0)
+        ws_yearly.cell(row=row + 1, column=3, value=round(daily_electricity_cost_usd * 365, 2))
         row += 1
         
-        ws_yearly.write(row, 0, 'Net Profit')
-        ws_yearly.write(row, 1, round(daily_btc_net * 365, 8))
-        ws_yearly.write(row, 2, round(daily_usd_net * 365, 2))
+        ws_yearly.cell(row=row + 1, column=1, value='Net Profit')
+        ws_yearly.cell(row=row + 1, column=2, value=round(daily_btc_net * 365, 8))
+        ws_yearly.cell(row=row + 1, column=3, value=round(daily_usd_net * 365, 2))
         row += 1
         
         # Sheet 5: Cost Basis Analysis
-        ws_cost = wb.add_sheet('Cost Basis Analysis')
-        ws_cost.write(0, 0, 'Cost Analysis')
-        ws_cost.write(0, 1, 'Value')
-        ws_cost.write(0, 2, 'Unit')
+        ws_cost = wb.create_sheet(title='Cost Basis Analysis')
+        ws_cost.cell(row=1, column=1, value='Cost Analysis')
+        ws_cost.cell(row=1, column=2, value='Value')
+        ws_cost.cell(row=1, column=3, value='Unit')
         
         row = 1
-        ws_cost.write(row, 0, 'Market Price per BTC')
-        ws_cost.write(row, 1, round(btc_price_usd, 2))
-        ws_cost.write(row, 2, 'USD')
+        ws_cost.cell(row=row + 1, column=1, value='Market Price per BTC')
+        ws_cost.cell(row=row + 1, column=2, value=round(btc_price_usd, 2))
+        ws_cost.cell(row=row + 1, column=3, value='USD')
         row += 1
         
-        ws_cost.write(row, 0, 'My Cost Basis per BTC')
-        ws_cost.write(row, 1, round(cost_basis_usd_per_btc, 2))
-        ws_cost.write(row, 2, 'USD')
+        ws_cost.cell(row=row + 1, column=1, value='My Cost Basis per BTC')
+        ws_cost.cell(row=row + 1, column=2, value=round(cost_basis_usd_per_btc, 2))
+        ws_cost.cell(row=row + 1, column=3, value='USD')
         row += 1
         
-        ws_cost.write(row, 0, 'Discount vs Market')
-        ws_cost.write(row, 1, round(discount_vs_market_pct, 2))
-        ws_cost.write(row, 2, '%')
+        ws_cost.cell(row=row + 1, column=1, value='Discount vs Market')
+        ws_cost.cell(row=row + 1, column=2, value=round(discount_vs_market_pct, 2))
+        ws_cost.cell(row=row + 1, column=3, value='%')
         row += 1
         
         # Sheet 6: Energy Metrics
-        ws_energy = wb.add_sheet('Energy Metrics')
-        ws_energy.write(0, 0, 'Energy Metric')
-        ws_energy.write(0, 1, 'Value')
-        ws_energy.write(0, 2, 'Unit')
+        ws_energy = wb.create_sheet(title='Energy Metrics')
+        ws_energy.cell(row=1, column=1, value='Energy Metric')
+        ws_energy.cell(row=1, column=2, value='Value')
+        ws_energy.cell(row=1, column=3, value='Unit')
         
         row = 1
-        ws_energy.write(row, 0, 'Power Consumption')
-        ws_energy.write(row, 1, round(power_watts / 1000, 2))
-        ws_energy.write(row, 2, 'kW')
+        ws_energy.cell(row=row + 1, column=1, value='Power Consumption')
+        ws_energy.cell(row=row + 1, column=2, value=round(power_watts / 1000, 2))
+        ws_energy.cell(row=row + 1, column=3, value='kW')
         row += 1
         
-        ws_energy.write(row, 0, 'Daily Energy Usage')
-        ws_energy.write(row, 1, round(daily_energy_kwh, 2))
-        ws_energy.write(row, 2, 'kWh')
+        ws_energy.cell(row=row + 1, column=1, value='Daily Energy Usage')
+        ws_energy.cell(row=row + 1, column=2, value=round(daily_energy_kwh, 2))
+        ws_energy.cell(row=row + 1, column=3, value='kWh')
         row += 1
         
-        ws_energy.write(row, 0, 'Electricity Price')
-        ws_energy.write(row, 1, round(price_per_kwh, 5))
-        ws_energy.write(row, 2, '$/kWh')
+        ws_energy.cell(row=row + 1, column=1, value='Electricity Price')
+        ws_energy.cell(row=row + 1, column=2, value=round(price_per_kwh, 5))
+        ws_energy.cell(row=row + 1, column=3, value='$/kWh')
         row += 1
         
-        ws_energy.write(row, 0, 'Mining Efficiency')
-        ws_energy.write(row, 1, round(efficiency_w_th, 2))
-        ws_energy.write(row, 2, 'W/TH')
+        ws_energy.cell(row=row + 1, column=1, value='Mining Efficiency')
+        ws_energy.cell(row=row + 1, column=2, value=round(efficiency_w_th, 2))
+        ws_energy.cell(row=row + 1, column=3, value='W/TH')
         row += 1
         
-        ws_energy.write(row, 0, 'Energy to Mining Ratio')
-        ws_energy.write(row, 1, round(energy_cost_percentage, 2))
-        ws_energy.write(row, 2, '%')
+        ws_energy.cell(row=row + 1, column=1, value='Energy to Mining Ratio')
+        ws_energy.cell(row=row + 1, column=2, value=round(energy_cost_percentage, 2))
+        ws_energy.cell(row=row + 1, column=3, value='%')
         row += 1
     
-    response = HttpResponse(content_type='application/vnd.ms-excel')
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     platform_suffix = f'_{selected_platform_name.replace(" ", "_")}' if selected_platform else ''
-    response['Content-Disposition'] = f'attachment; filename="forecasting_dashboard{platform_suffix}_export.xls"'
+    response['Content-Disposition'] = f'attachment; filename="forecasting_dashboard{platform_suffix}_export.xlsx"'
+    if 'Sheet' in wb.sheetnames:
+        wb.remove(wb['Sheet'])
     wb.save(response)
     return response

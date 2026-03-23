@@ -1,7 +1,8 @@
 # Status
 
 ## Recent Changes
-- `PENDING` Combine duplicate mempool.space API calls into single get_bitcoin_hashrate_and_difficulty() function
+- `PENDING` Migrate from xlwt/xlrd (.xls) to openpyxl (.xlsx): replace all imports/exports, update templates, update requirements.txt
+- `507b498` Combine duplicate mempool.space API calls into single get_bitcoin_hashrate_and_difficulty() function
 - `baab179` Add @require_POST to state-changing endpoints: toggle_miner_active, fetch_closing_price, bulk_fetch_closing_prices, trigger_fetch_api_data
 - `4ad5880` Replace hasattr field validation in imports with _meta.get_fields() to prevent matching methods/properties/reverse relations
 - `9a0fcd2` Replace all bare except: clauses with specific exception types and add logging to import functions and context_processors

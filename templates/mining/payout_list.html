@@ -167,7 +167,7 @@ function handlePayoutImportFile() {
 <!-- Hidden import form -->
 <form id="payoutImportForm" method="post" action="{% url 'import_payout_data' %}" enctype="multipart/form-data" style="display: none;">
     {% csrf_token %}
-    <input type="file" id="payoutImportFile" name="import_file" accept=".xls" onchange="handlePayoutImportFile()">
+    <input type="file" id="payoutImportFile" name="import_file" accept=".xlsx" onchange="handlePayoutImportFile()">
 </form>
 
 {% endblock %}
