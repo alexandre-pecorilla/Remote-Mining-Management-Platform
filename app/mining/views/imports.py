@@ -304,13 +304,9 @@ def import_topup_data(request):
                             continue
                     elif header == 'platform' and cell_value:
                         try:
-                            # Try to find platform by ID or name
-                            if isinstance(cell_value, float):
-                                platform = RemoteMiningPlatform.objects.get(id=int(cell_value))
-                            else:
-                                platform = RemoteMiningPlatform.objects.get(name=str(cell_value))
+                            platform = RemoteMiningPlatform.objects.get(pk=int(float(cell_value)))
                             topup_data['platform'] = platform
-                        except RemoteMiningPlatform.DoesNotExist:
+                        except (RemoteMiningPlatform.DoesNotExist, ValueError, TypeError):
                             continue
                     elif header == 'topup_amount' and cell_value:
                         try:

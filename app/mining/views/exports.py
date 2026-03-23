@@ -818,7 +818,7 @@ def export_topup_data(request):
     topups = TopUp.objects.select_related('platform').all().order_by('-topup_date')
     for row, topup in enumerate(topups, start=1):
         ws.cell(row=row + 1, column=1, value=str(topup.topup_date) if topup.topup_date else '')
-        ws.cell(row=row + 1, column=2, value=topup.platform.name if topup.platform else '')
+        ws.cell(row=row + 1, column=2, value=topup.platform.pk if topup.platform else '')
         ws.cell(row=row + 1, column=3, value=float(topup.topup_amount) if topup.topup_amount else '')
         ws.cell(row=row + 1, column=4, value=topup.description or '')
         ws.cell(row=row + 1, column=5, value=topup.receipt_link or '')
