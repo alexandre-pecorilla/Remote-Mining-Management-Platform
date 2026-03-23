@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
 from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.views.decorators.http import require_POST
 from django.db.models import Sum, Q
 from django.db.models.functions import TruncMonth
 import xlwt
@@ -539,14 +540,14 @@ class MinerDeleteView(DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
+@require_POST
 def toggle_miner_active(request, pk):
     """Toggle a miner's is_active status (on/off)"""
-    if request.method == 'POST':
-        miner = get_object_or_404(Miner, pk=pk)
-        miner.is_active = not miner.is_active
-        miner.save(update_fields=['is_active'])
-        status = "ON" if miner.is_active else "OFF"
-        messages.success(request, f"{miner.model} turned {status}.")
+    miner = get_object_or_404(Miner, pk=pk)
+    miner.is_active = not miner.is_active
+    miner.save(update_fields=['is_active'])
+    status = "ON" if miner.is_active else "OFF"
+    messages.success(request, f"{miner.model} turned {status}.")
     return redirect('miner_detail', pk=pk)
 
 
@@ -623,39 +624,37 @@ class PayoutDeleteView(DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
+@require_POST
 def fetch_closing_price(request, payout_id):
     """Fetch historical BTC price for payout date and update closing_price field"""
-    if request.method == 'POST':
-        try:
-            payout = get_object_or_404(Payout, pk=payout_id)
-            
-            if not payout.payout_date:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Payout date is required to fetch closing price'
-                })
-            
-            # Fetch historical BTC price for the payout date
-            historical_price = get_historical_btc_price(payout.payout_date)
-            
-            # Update the payout's closing_price and fetched_at fields
-            payout.closing_price = Decimal(str(historical_price))
-            payout.closing_price_fetched_at = date.today()
-            payout.save()
-            
-            return JsonResponse({
-                'success': True,
-                'closing_price': float(payout.closing_price),
-                'formatted_price': f'${payout.closing_price:,.2f}'
-            })
-            
-        except Exception as e:
+    try:
+        payout = get_object_or_404(Payout, pk=payout_id)
+
+        if not payout.payout_date:
             return JsonResponse({
                 'success': False,
-                'error': f'Failed to fetch closing price: {str(e)}'
+                'error': 'Payout date is required to fetch closing price'
             })
-    
-    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+        # Fetch historical BTC price for the payout date
+        historical_price = get_historical_btc_price(payout.payout_date)
+
+        # Update the payout's closing_price and fetched_at fields
+        payout.closing_price = Decimal(str(historical_price))
+        payout.closing_price_fetched_at = date.today()
+        payout.save()
+
+        return JsonResponse({
+            'success': True,
+            'closing_price': float(payout.closing_price),
+            'formatted_price': f'${payout.closing_price:,.2f}'
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Failed to fetch closing price: {str(e)}'
+        })
 
 
 # Background task state via Django cache (shareable across processes)
@@ -758,29 +757,27 @@ def _bulk_fetch_closing_prices_task():
     _set_bulk_fetch_status(status)
 
 
+@require_POST
 def bulk_fetch_closing_prices(request):
     """Trigger bulk closing price fetch as a background task."""
-    if request.method == 'POST':
-        with _bulk_fetch_lock:
-            status = _get_bulk_fetch_status()
-            if status['running']:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'A bulk fetch is already in progress.'
-                })
-            status = {
-                'running': True, 'total': 0, 'processed': 0,
-                'updated': 0, 'skipped': 0, 'errors': 0,
-                'error_details': [], 'message': 'Starting...',
-            }
-            _set_bulk_fetch_status(status)
+    with _bulk_fetch_lock:
+        status = _get_bulk_fetch_status()
+        if status['running']:
+            return JsonResponse({
+                'success': False,
+                'error': 'A bulk fetch is already in progress.'
+            })
+        status = {
+            'running': True, 'total': 0, 'processed': 0,
+            'updated': 0, 'skipped': 0, 'errors': 0,
+            'error_details': [], 'message': 'Starting...',
+        }
+        _set_bulk_fetch_status(status)
 
-        thread = threading.Thread(target=_bulk_fetch_closing_prices_task, daemon=True)
-        thread.start()
+    thread = threading.Thread(target=_bulk_fetch_closing_prices_task, daemon=True)
+    thread.start()
 
-        return JsonResponse({'success': True, 'message': 'Bulk fetch started.'})
-
-    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+    return JsonResponse({'success': True, 'message': 'Bulk fetch started.'})
 
 
 def bulk_fetch_closing_prices_status(request):
@@ -831,26 +828,24 @@ def _fetch_api_data_task():
         _set_api_fetch_status(status)
 
 
+@require_POST
 def trigger_fetch_api_data(request):
     """Trigger API data fetch as a background task."""
-    if request.method == 'POST':
-        with _api_fetch_lock:
-            status = _get_api_fetch_status()
-            if status['running']:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'API fetch is already in progress.'
-                })
-            _set_api_fetch_status({
-                'running': True, 'message': 'Starting...', 'success': None,
+    with _api_fetch_lock:
+        status = _get_api_fetch_status()
+        if status['running']:
+            return JsonResponse({
+                'success': False,
+                'error': 'API fetch is already in progress.'
             })
+        _set_api_fetch_status({
+            'running': True, 'message': 'Starting...', 'success': None,
+        })
 
-        thread = threading.Thread(target=_fetch_api_data_task, daemon=True)
-        thread.start()
+    thread = threading.Thread(target=_fetch_api_data_task, daemon=True)
+    thread.start()
 
-        return JsonResponse({'success': True, 'message': 'API fetch started.'})
-
-    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+    return JsonResponse({'success': True, 'message': 'API fetch started.'})
 
 
 def fetch_api_data_status(request):

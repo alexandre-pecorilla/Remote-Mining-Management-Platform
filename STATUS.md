@@ -1,7 +1,8 @@
 # Status
 
 ## Recent Changes
-- `PENDING` Replace hasattr field validation in imports with _meta.get_fields() to prevent matching methods/properties/reverse relations
+- `PENDING` Add @require_POST to state-changing endpoints: toggle_miner_active, fetch_closing_price, bulk_fetch_closing_prices, trigger_fetch_api_data
+- `4ad5880` Replace hasattr field validation in imports with _meta.get_fields() to prevent matching methods/properties/reverse relations
 - `9a0fcd2` Replace all bare except: clauses with specific exception types and add logging to import functions and context_processors
 - `9d80b70` Replace module-level mutable dicts for background task state with Django cache framework, making status shareable across processes in production
 - `1470588` Fix broken import in import_expense_data: replace nonexistent xldate module with xlrd.xldate_as_datetime
