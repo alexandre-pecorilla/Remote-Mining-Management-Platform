@@ -185,6 +185,15 @@ docker compose exec web python manage.py migrate
 docker compose exec web python manage.py createsuperuser
 ```
 
+### Updating After a Git Pull
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+Migrations and static file collection run automatically on container start.
+
 ### Full Reset
 
 ```bash
