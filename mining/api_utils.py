@@ -54,45 +54,27 @@ def get_historical_btc_price(date):
     return float(price)
 
 
-def get_bitcoin_hashrate_in_ehs():
+def get_bitcoin_hashrate_and_difficulty():
     """
-    Fetches the current Bitcoin network hashrate from mempool.space
-    and returns it in exahashes per second (EH/s), rounded up to the nearest integer.
-    
+    Fetches the current Bitcoin network hashrate and difficulty from mempool.space
+    in a single API call.
+
     Returns:
-        int: The current network hashrate in EH/s, rounded up.
+        tuple: (hashrate_ehs, difficulty)
+            - hashrate_ehs (int): Network hashrate in EH/s, rounded up.
+            - difficulty (int): Current network difficulty.
     """
     url = 'https://mempool.space/api/v1/mining/hashrate/3d'
-    
+
     response = requests.get(url, timeout=30)
     response.raise_for_status()
-    
+
     data = response.json()
-    
-    # Extract the current hashrate in EH/s and round up to the nearest integer
+
     hashrate_ehs = math.ceil(data['currentHashrate'] / 1e18)
-    
-    return hashrate_ehs
+    difficulty = data['currentDifficulty']
 
-
-def get_bitcoin_difficulty():
-    """
-    Fetches the current Bitcoin network difficulty from mempool.space.
-    
-    Returns:
-        int: The current network difficulty as an integer.
-    """
-    url = 'https://mempool.space/api/v1/mining/hashrate/3d'
-    
-    response = requests.get(url, timeout=30)
-    response.raise_for_status()
-    
-    data = response.json()
-    
-    # Extract the current difficulty
-    current_difficulty = data['currentDifficulty']
-    
-    return current_difficulty
+    return hashrate_ehs, difficulty
 
 
 def get_24h_avg_block_fees():
@@ -127,8 +109,7 @@ def fetch_all_api_data():
         btc_price = get_btc_price()
         
         # Fetch mempool.space data
-        hashrate = get_bitcoin_hashrate_in_ehs()
-        difficulty = get_bitcoin_difficulty()
+        hashrate, difficulty = get_bitcoin_hashrate_and_difficulty()
         avg_block_fees = get_24h_avg_block_fees()
         
         return {
