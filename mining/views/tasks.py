@@ -1,4 +1,5 @@
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 from django.core.cache import cache
 from decimal import Decimal
@@ -9,6 +10,11 @@ from ..models import APIData, Payout
 from ..api_utils import fetch_all_api_data, get_historical_btc_price
 
 
+# Background task state via Django cache (shareable across processes)
+# For multi-process production, configure a shared cache backend (Redis, Memcached, or database)
+# in settings.py. The default LocMemCache works for single-process dev servers.
+_BULK_FETCH_CACHE_KEY = 'bulk_fetch_closing_prices_status'
+_API_FETCH_CACHE_KEY = 'api_fetch_status'
 _CACHE_TIMEOUT = 3600  # 1 hour
 
 _bulk_fetch_lock = threading.Lock()
@@ -37,12 +43,8 @@ def _set_api_fetch_status(status):
     cache.set(_API_FETCH_CACHE_KEY, status, _CACHE_TIMEOUT)
 
 
-
-
 def _bulk_fetch_closing_prices_task():
     """Background task: fetch closing prices in sub-batches with delay to respect API rate limits."""
-    from .api_utils import get_historical_btc_price as fetch_price
-
     BATCH_SIZE = 5
     DELAY_BETWEEN_BATCHES = 3  # seconds
 
@@ -73,7 +75,7 @@ def _bulk_fetch_closing_prices_task():
 
         for payout in batch:
             try:
-                historical_price = fetch_price(payout.payout_date)
+                historical_price = get_historical_btc_price(payout.payout_date)
                 payout.closing_price = Decimal(str(historical_price))
                 payout.closing_price_fetched_at = today
                 payout.save()
@@ -102,8 +104,6 @@ def _bulk_fetch_closing_prices_task():
     )
     status['running'] = False
     _set_bulk_fetch_status(status)
-
-
 
 
 @require_POST
@@ -139,21 +139,6 @@ def fetch_closing_price(request, payout_id):
         })
 
 
-# Background task state via Django cache (shareable across processes)
-# For multi-process production, configure a shared cache backend (Redis, Memcached, or database)
-# in settings.py. The default LocMemCache works for single-process dev servers.
-from django.core.cache import cache
-
-_BULK_FETCH_CACHE_KEY = 'bulk_fetch_closing_prices_status'
-_API_FETCH_CACHE_KEY = 'api_fetch_status'
-_CACHE_TIMEOUT = 3600  # 1 hour
-
-_bulk_fetch_lock = threading.Lock()
-_api_fetch_lock = threading.Lock()
-
-
-
-
 @require_POST
 def bulk_fetch_closing_prices(request):
     """Trigger bulk closing price fetch as a background task."""
@@ -177,8 +162,6 @@ def bulk_fetch_closing_prices(request):
     return JsonResponse({'success': True, 'message': 'Bulk fetch started.'})
 
 
-
-
 def bulk_fetch_closing_prices_status(request):
     """Return the current status of the bulk closing price fetch task."""
     status = _get_bulk_fetch_status()
@@ -192,8 +175,6 @@ def bulk_fetch_closing_prices_status(request):
         'message': status['message'],
         'error_details': list(status['error_details']),
     })
-
-
 
 
 def _fetch_api_data_task():
@@ -229,8 +210,6 @@ def _fetch_api_data_task():
         _set_api_fetch_status(status)
 
 
-
-
 @require_POST
 def trigger_fetch_api_data(request):
     """Trigger API data fetch as a background task."""
@@ -251,8 +230,6 @@ def trigger_fetch_api_data(request):
     return JsonResponse({'success': True, 'message': 'API fetch started.'})
 
 
-
-
 def fetch_api_data_status(request):
     """Return the current status of the API data fetch task."""
     status = _get_api_fetch_status()
@@ -261,5 +238,3 @@ def fetch_api_data_status(request):
         'message': status['message'],
         'success': status['success'],
     })
-
-

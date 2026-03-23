@@ -1,7 +1,8 @@
 # Status
 
 ## Recent Changes
-- `PENDING` Fix API fetch hanging: add connect+read timeout tuple (10s, 30s) and User-Agent header to all requests in api_utils.py
+- `PENDING` Fix tasks.py: broken import path for get_historical_btc_price, missing get_object_or_404 import, duplicate declarations
+- `58f7c28` Fix API fetch hanging: add connect+read timeout tuple (10s, 30s) and User-Agent header to all requests in api_utils.py
 - `e68b1e7` Add Meta.ordering to Miner model to fix UnorderedObjectListWarning on paginated list views
 - `602eb16` Split views.py into views/ package: dashboards.py, crud.py, exports.py, imports.py, tasks.py
 - `606a65a` Add db_index=True to Payout.payout_date, Expense.expense_date, Expense.category, Miner.is_active
