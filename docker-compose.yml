@@ -20,11 +20,10 @@ services:
     volumes:
       - ./app:/app
       - ./media:/app/media
-      - static_files:/app/staticfiles
+      - ./staticfiles:/app/staticfiles
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   postgres_data:
-  static_files:

@@ -91,7 +91,7 @@ server {
     client_max_body_size 20M;
 
     location /static/ {
-        alias /opt/mining/app/staticfiles/;
+        alias /opt/mining/staticfiles/;
     }
 
     location /media/ {
@@ -119,16 +119,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-### 2. Collect static files to host filesystem
-
-Nginx needs direct access to static files. Copy them from the Docker volume:
-
-```bash
-docker compose exec web python manage.py collectstatic --noinput
-docker compose cp web:/app/staticfiles /opt/mining/app/staticfiles
-```
-
-### 3. Obtain TLS certificate with Certbot
+### 2. Obtain TLS certificate with Certbot
 
 ```bash
 sudo certbot --nginx -d mining.example.com
@@ -263,7 +254,7 @@ server {
     client_max_body_size 20M;
 
     location /static/ {
-        alias /opt/mining/app/staticfiles/;
+        alias /opt/mining/staticfiles/;
     }
 
     location /media/ {
@@ -289,14 +280,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-### 3. Collect static files to host filesystem
-
-```bash
-docker compose exec web python manage.py collectstatic --noinput
-docker compose cp web:/app/staticfiles /opt/mining/app/staticfiles
-```
-
-### 4. Import the CA certificate into browsers
+### 3. Import the CA certificate into browsers
 
 Copy `ca.crt` from the server to your client machine:
 
@@ -389,11 +373,7 @@ git pull
 docker compose up -d --build
 ```
 
-The entrypoint script automatically runs migrations and collects static files on every container start. After updating, refresh the Nginx static files:
-
-```bash
-docker compose cp web:/app/staticfiles /opt/mining/app/staticfiles
-```
+The entrypoint script automatically runs migrations and collects static files on every container start. Static files are bind-mounted to the host, so Nginx picks up changes automatically.
 
 ---
 

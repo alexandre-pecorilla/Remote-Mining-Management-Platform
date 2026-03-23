@@ -1,7 +1,8 @@
 # Status
 
 ## Recent Changes
-- `PENDING` Add DEPLOYMENT.md (VPS + LAN deployment with Nginx, Certbot, self-signed certs) and update README.md with git pull update instructions
+- `PENDING` Switch staticfiles from named Docker volume to bind mount, remove manual copy steps from DEPLOYMENT.md
+- `bc6d9aa` Add DEPLOYMENT.md (VPS + LAN deployment with Nginx, Certbot, self-signed certs) and update README.md with git pull update instructions
 - `19e4ced` Add README.md with project description, installation guide, Docker commands, and project structure
 - `e7f20ec` Add tmp_dir/ to .gitignore
 - `2ac4151` Dockerize app: move code to app/, add Dockerfile (Python 3.13 + Gunicorn), docker-compose.yml (web + PostgreSQL 17), entrypoint.sh, switch DB from SQLite to PostgreSQL, configurable GUNICORN_WORKERS/WEB_PORT/ALLOWED_HOSTS
