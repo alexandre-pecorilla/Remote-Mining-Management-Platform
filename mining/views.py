@@ -764,6 +764,7 @@ class MinerListView(ListView):
     template_name = 'mining/miner_list.html'
     context_object_name = 'miners'
     paginate_by = 50
+    queryset = Miner.objects.select_related('platform')
 
 
 class MinerDetailView(DetailView):
@@ -844,6 +845,7 @@ class PayoutListView(ListView):
     template_name = 'mining/payout_list.html'
     context_object_name = 'payouts'
     paginate_by = 50
+    queryset = Payout.objects.select_related('platform')
 
 
 class PayoutDetailView(DetailView):
@@ -1171,6 +1173,7 @@ class ExpenseListView(ListView):
     template_name = 'mining/expense_list.html'
     context_object_name = 'expenses'
     paginate_by = 50
+    queryset = Expense.objects.select_related('platform')
 
 
 class ExpenseDetailView(DetailView):
@@ -1263,19 +1266,19 @@ def overview_dashboard(request):
     avg_block_fees_24h = api_data.avg_block_fees_24h or 0
     
     # FLEET DATA
-    miners = Miner.objects.filter(hashrate__isnull=False, power__isnull=False)
+    miners = Miner.objects.select_related('platform').filter(hashrate__isnull=False, power__isnull=False)
     if selected_platform:
         miners = miners.filter(platform=selected_platform)
     miner_count = miners.count()
     total_hashrate = miners.aggregate(total=Sum('hashrate'))['total'] or 0
     total_power = miners.aggregate(total=Sum('power'))['total'] or 0
     total_capex = miners.aggregate(total=Sum('purchase_price'))['total'] or 0
-    
+
     # EFFICIENCY DATA
     avg_efficiency = miners.aggregate(avg=Avg('efficiency'))['avg'] or 0
     if avg_efficiency:
         avg_efficiency = round(float(avg_efficiency), 2)
-    
+
     # Hashrate weighted average efficiency
     hashrate_weighted_efficiency = 0
     if total_hashrate > 0:
@@ -1283,14 +1286,14 @@ def overview_dashboard(request):
         for miner in miners.filter(efficiency__isnull=False):
             efficiency_sum += float(miner.hashrate) * float(miner.efficiency)
         hashrate_weighted_efficiency = round(efficiency_sum / float(total_hashrate), 2)
-    
+
     # ENERGY DATA
     # Get miners with platforms that have energy prices
     miners_with_energy = miners.filter(platform__energy_price__isnull=False)
     avg_energy_cost = miners_with_energy.aggregate(avg=Avg('platform__energy_price'))['avg'] or 0
     if avg_energy_cost:
         avg_energy_cost = round(float(avg_energy_cost), 6)
-    
+
     # Hashrate weighted average energy cost
     hashrate_weighted_energy_cost = 0
     if total_hashrate > 0:
@@ -1301,7 +1304,7 @@ def overview_dashboard(request):
             total_hashrate_with_energy += float(miner.hashrate)
         if total_hashrate_with_energy > 0:
             hashrate_weighted_energy_cost = round(energy_cost_sum / total_hashrate_with_energy, 6)
-    
+
     # HASHRATE DISTRIBUTION DATA
     hashrate_by_platform = []
     platform_list = [selected_platform] if selected_platform else RemoteMiningPlatform.objects.all()
@@ -1523,7 +1526,7 @@ def export_miner_data(request):
         ws.write(0, col, header)
     
     # Add data rows
-    miners = Miner.objects.all()
+    miners = Miner.objects.select_related('platform').all()
     for row, miner in enumerate(miners, start=1):
         ws.write(row, 0, miner.model or '')
         ws.write(row, 1, miner.manufacturer or '')
@@ -1559,7 +1562,7 @@ def export_payout_data(request):
         ws.write(0, col, header)
     
     # Add data rows
-    payouts = Payout.objects.all()
+    payouts = Payout.objects.select_related('platform').all()
     for row, payout in enumerate(payouts, start=1):
         ws.write(row, 0, payout.payout_date.strftime('%Y-%m-%d'))
         ws.write(row, 1, float(payout.payout_amount))
@@ -1604,19 +1607,19 @@ def export_overview_data(request):
     avg_block_fees_24h = api_data.avg_block_fees_24h or 0
     
     # FLEET DATA
-    miners = Miner.objects.filter(hashrate__isnull=False, power__isnull=False)
+    miners = Miner.objects.select_related('platform').filter(hashrate__isnull=False, power__isnull=False)
     if selected_platform:
         miners = miners.filter(platform=selected_platform)
     miner_count = miners.count()
     total_hashrate = miners.aggregate(total=Sum('hashrate'))['total'] or 0
     total_power = miners.aggregate(total=Sum('power'))['total'] or 0
     total_capex = miners.aggregate(total=Sum('purchase_price'))['total'] or 0
-    
+
     # EFFICIENCY DATA
     avg_efficiency = miners.aggregate(avg=Avg('efficiency'))['avg'] or 0
     if avg_efficiency:
         avg_efficiency = round(float(avg_efficiency), 2)
-    
+
     # Hashrate weighted average efficiency
     hashrate_weighted_efficiency = 0
     if total_hashrate > 0:
@@ -1624,13 +1627,13 @@ def export_overview_data(request):
         for miner in miners.filter(efficiency__isnull=False):
             efficiency_sum += float(miner.hashrate) * float(miner.efficiency)
         hashrate_weighted_efficiency = round(efficiency_sum / float(total_hashrate), 2)
-    
+
     # ENERGY DATA
     miners_with_energy = miners.filter(platform__energy_price__isnull=False)
     avg_energy_cost = miners_with_energy.aggregate(avg=Avg('platform__energy_price'))['avg'] or 0
     if avg_energy_cost:
         avg_energy_cost = round(float(avg_energy_cost), 6)
-    
+
     # Hashrate weighted average energy cost
     hashrate_weighted_energy_cost = 0
     if total_hashrate > 0:
@@ -1641,7 +1644,7 @@ def export_overview_data(request):
             total_hashrate_with_energy += float(miner.hashrate)
         if total_hashrate_with_energy > 0:
             hashrate_weighted_energy_cost = round(energy_cost_sum / total_hashrate_with_energy, 6)
-    
+
     # REVENUES DATA
     payouts = Payout.objects.all()
     if selected_platform:
@@ -2100,7 +2103,7 @@ def export_expense_data(request):
         ws.write(0, col, header)
     
     # Add data rows
-    expenses = Expense.objects.all().order_by('-expense_date')
+    expenses = Expense.objects.select_related('platform').all().order_by('-expense_date')
     for row, expense in enumerate(expenses, start=1):
         ws.write(row, 0, expense.expense_date.strftime('%Y-%m-%d') if expense.expense_date else '')
         ws.write(row, 1, expense.platform.id if expense.platform else '')
@@ -2203,6 +2206,7 @@ class TopUpListView(ListView):
     template_name = 'mining/topup_list.html'
     context_object_name = 'topups'
     paginate_by = 50
+    queryset = TopUp.objects.select_related('platform')
 
 
 class TopUpDetailView(DetailView):
@@ -2302,7 +2306,7 @@ def export_topup_data(request):
         ws.write(0, col, header)
     
     # Add data rows
-    topups = TopUp.objects.all().order_by('-topup_date')
+    topups = TopUp.objects.select_related('platform').all().order_by('-topup_date')
     for row, topup in enumerate(topups, start=1):
         ws.write(row, 0, str(topup.topup_date) if topup.topup_date else '')
         ws.write(row, 1, topup.platform.name if topup.platform else '')
@@ -2413,19 +2417,19 @@ def forecasting_dashboard(request):
     
     # Get miners with valid hashrate and power data, only active miners
     total_miner_count = Miner.objects.count()
-    miners = Miner.objects.filter(hashrate__isnull=False, power__isnull=False, is_active=True)
+    miners = Miner.objects.select_related('platform').filter(hashrate__isnull=False, power__isnull=False, is_active=True)
     if selected_platform:
         miners = miners.filter(platform=selected_platform)
-    
+
     # Get total hashrate
     total_hashrate = miners.aggregate(total=Sum('hashrate'))['total'] or Decimal('0')
-    
+
     # Get miner count (accounted for on dashboard)
     miner_count = miners.count()
-    
+
     # Get total hardware cost (sum of miner purchase prices)
     total_capex = miners.aggregate(total=Sum('purchase_price'))['total'] or Decimal('0')
-    
+
     # Calculate hashrate weighted average efficiency
     hashrate_weighted_efficiency = Decimal('0')
     if total_hashrate > 0:
@@ -2433,7 +2437,7 @@ def forecasting_dashboard(request):
         for miner in miners.filter(efficiency__isnull=False):
             total_weighted += miner.hashrate * miner.efficiency
         hashrate_weighted_efficiency = total_weighted / total_hashrate if total_weighted > 0 else Decimal('0')
-    
+
     # Calculate hashrate weighted average energy cost (denominator = only miners with energy prices)
     hashrate_weighted_energy_cost = Decimal('0')
     if total_hashrate > 0:
@@ -2444,18 +2448,18 @@ def forecasting_dashboard(request):
             total_hashrate_with_energy += miner.hashrate
         if total_hashrate_with_energy > 0:
             hashrate_weighted_energy_cost = total_weighted / total_hashrate_with_energy
-    
+
     # Simple average efficiency
     avg_efficiency = miners.filter(efficiency__isnull=False).aggregate(avg=Avg('efficiency'))['avg'] or Decimal('0')
     if avg_efficiency:
         avg_efficiency = round(float(avg_efficiency), 2)
-    
+
     # Simple average energy cost
     miners_with_energy = miners.filter(platform__energy_price__isnull=False)
     avg_energy_cost = miners_with_energy.aggregate(avg=Avg('platform__energy_price'))['avg'] or Decimal('0')
     if avg_energy_cost:
         avg_energy_cost = round(float(avg_energy_cost), 6)
-    
+
     # Get data from API and settings
     network_difficulty = api_data.network_difficulty or 0
     network_hashrate_ehs = float(api_data.network_hashrate_ehs or Decimal('0'))
@@ -2465,7 +2469,7 @@ def forecasting_dashboard(request):
     price_per_kwh = float(hashrate_weighted_energy_cost)
     efficiency_w_th = float(hashrate_weighted_efficiency)
     hardware_cost_usd = float(total_capex)
-    
+
     # Perform calculations using difficulty-based formula
     results = None
     if total_hashrate > 0 and network_difficulty > 0 and btc_price_usd > 0:
@@ -2654,19 +2658,19 @@ def export_forecasting_data(request):
     
     # Get miners with valid hashrate and power data, only active miners
     total_miner_count = Miner.objects.count()
-    miners = Miner.objects.filter(hashrate__isnull=False, power__isnull=False, is_active=True)
+    miners = Miner.objects.select_related('platform').filter(hashrate__isnull=False, power__isnull=False, is_active=True)
     if selected_platform:
         miners = miners.filter(platform=selected_platform)
-    
+
     # Get total hashrate
     total_hashrate = miners.aggregate(total=Sum('hashrate'))['total'] or Decimal('0')
-    
+
     # Get miner count (accounted for on dashboard)
     miner_count = miners.count()
-    
+
     # Get total hardware cost (sum of miner purchase prices)
     total_capex = miners.aggregate(total=Sum('purchase_price'))['total'] or Decimal('0')
-    
+
     # Calculate hashrate weighted average efficiency
     hashrate_weighted_efficiency = Decimal('0')
     if total_hashrate > 0:
@@ -2674,7 +2678,7 @@ def export_forecasting_data(request):
         for miner in miners.filter(efficiency__isnull=False):
             total_weighted += miner.hashrate * miner.efficiency
         hashrate_weighted_efficiency = total_weighted / total_hashrate if total_weighted > 0 else Decimal('0')
-    
+
     # Calculate hashrate weighted average energy cost (denominator = only miners with energy prices)
     hashrate_weighted_energy_cost = Decimal('0')
     if total_hashrate > 0:
@@ -2685,12 +2689,12 @@ def export_forecasting_data(request):
             total_hashrate_with_energy += miner.hashrate
         if total_hashrate_with_energy > 0:
             hashrate_weighted_energy_cost = total_weighted / total_hashrate_with_energy
-    
+
     # Simple average efficiency
     avg_efficiency = miners.filter(efficiency__isnull=False).aggregate(avg=Avg('efficiency'))['avg'] or Decimal('0')
     if avg_efficiency:
         avg_efficiency = round(float(avg_efficiency), 2)
-    
+
     # Simple average energy cost
     miners_with_energy = miners.filter(platform__energy_price__isnull=False)
     avg_energy_cost = miners_with_energy.aggregate(avg=Avg('platform__energy_price'))['avg'] or Decimal('0')
