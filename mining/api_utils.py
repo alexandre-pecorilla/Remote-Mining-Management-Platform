@@ -4,23 +4,28 @@ import math
 from datetime import datetime
 from .models import Settings
 
+# (connect timeout, read timeout) in seconds
+REQUEST_TIMEOUT = (10, 30)
+REQUEST_HEADERS = {'User-Agent': 'MiningDashboard/1.0'}
+
 
 def fetch_cmc_data(endpoint):
     """Fetch data from CoinMarketCap API"""
     settings = Settings.get_settings()
     api_key = settings.coinmarketcap_api_key
-    
+
     if not api_key:
         raise ValueError("CoinMarketCap API key not configured in settings")
-    
+
     url = f'https://pro-api.coinmarketcap.com/v1/{endpoint}'
     headers = {
-        'X-CMC_PRO_API_KEY': api_key
+        **REQUEST_HEADERS,
+        'X-CMC_PRO_API_KEY': api_key,
     }
-    
-    response = requests.get(url, headers=headers, timeout=30)
-    response.raise_for_status()  # Raise an exception for bad status codes
-    
+
+    response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
+    response.raise_for_status()
+
     return response.json()
 
 
@@ -45,12 +50,12 @@ def get_historical_btc_price(date):
     # Get BTC price from CryptoCompare (free, no key needed)
     url = f"https://min-api.cryptocompare.com/data/pricehistorical?fsym=BTC&tsyms=USD&ts={timestamp}"
     
-    response = requests.get(url, timeout=30)
+    response = requests.get(url, headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
-    
+
     data = response.json()
     price = data['BTC']['USD']
-    
+
     return float(price)
 
 
@@ -66,7 +71,7 @@ def get_bitcoin_hashrate_and_difficulty():
     """
     url = 'https://mempool.space/api/v1/mining/hashrate/3d'
 
-    response = requests.get(url, timeout=30)
+    response = requests.get(url, headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
 
     data = response.json()
@@ -85,8 +90,8 @@ def get_24h_avg_block_fees():
         float: The 24h average block fees in BTC, rounded to 8 decimal places.
     """
     url = 'https://mempool.space/api/v1/mining/blocks/fees/24h'
-    
-    response = requests.get(url, timeout=30)
+
+    response = requests.get(url, headers=REQUEST_HEADERS, timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
     
     data = response.json()

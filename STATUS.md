@@ -1,7 +1,8 @@
 # Status
 
 ## Recent Changes
-- `PENDING` Add Meta.ordering to Miner model to fix UnorderedObjectListWarning on paginated list views
+- `PENDING` Fix API fetch hanging: add connect+read timeout tuple (10s, 30s) and User-Agent header to all requests in api_utils.py
+- `e68b1e7` Add Meta.ordering to Miner model to fix UnorderedObjectListWarning on paginated list views
 - `602eb16` Split views.py into views/ package: dashboards.py, crud.py, exports.py, imports.py, tasks.py
 - `606a65a` Add db_index=True to Payout.payout_date, Expense.expense_date, Expense.category, Miner.is_active
 - `febde82` Migrate from xlwt/xlrd (.xls) to openpyxl (.xlsx): replace all imports/exports, update templates, update requirements.txt
