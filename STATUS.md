@@ -1,7 +1,8 @@
 # Status
 
 ## Recent Changes
-- `PENDING` Fix topup import/export to use platform ID instead of name, consistent with all other models
+- `PENDING` Add README.md with project description, installation guide, Docker commands, and project structure
+- `084e1bc` Fix topup import/export to use platform ID instead of name, consistent with all other models
 - `e7f20ec` Add tmp_dir/ to .gitignore
 - `2ac4151` Dockerize app: move code to app/, add Dockerfile (Python 3.13 + Gunicorn), docker-compose.yml (web + PostgreSQL 17), entrypoint.sh, switch DB from SQLite to PostgreSQL, configurable GUNICORN_WORKERS/WEB_PORT/ALLOWED_HOSTS
 - `47e91ef` Add optional password protection via APP_PASSWORD in .env: middleware, login/logout views, session-based auth, logout link in navbar
