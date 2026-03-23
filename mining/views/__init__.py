@@ -6,6 +6,8 @@ from .dashboards import (
     forecasting_dashboard,
     api_data_view,
     settings_view,
+    app_login,
+    app_logout,
 )
 from .crud import (
     PlatformListView,

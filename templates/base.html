@@ -106,6 +106,13 @@
                             <i class="fas fa-cog"></i> Settings
                         </a>
                     </li>
+                    {% if app_password_enabled %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'app_logout' %}">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>

@@ -1,3 +1,4 @@
+from django.conf import settings as django_settings
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from decimal import Decimal
@@ -128,7 +129,6 @@ def settings_view(request):
     else:
         form = SettingsForm(instance=settings)
 
-    from django.conf import settings as django_settings
     cmc_key = django_settings.COINMARKETCAP_API_KEY
 
     return render(request, 'mining/settings.html', {
@@ -136,6 +136,26 @@ def settings_view(request):
         'settings': settings,
         'cmc_api_key': cmc_key,
     })
+
+
+def app_login(request):
+    """Password protection login page"""
+    error = None
+    if request.method == 'POST':
+        password = request.POST.get('password', '')
+        if password == django_settings.APP_PASSWORD:
+            request.session['app_authenticated'] = True
+            next_url = request.GET.get('next', '/')
+            return redirect(next_url)
+        error = 'Incorrect password.'
+
+    return render(request, 'mining/login.html', {'error': error})
+
+
+def app_logout(request):
+    """Clear the password protection session and redirect to login"""
+    request.session.flush()
+    return redirect('app_login')
 
 
 # Expense Views

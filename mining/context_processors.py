@@ -13,7 +13,8 @@ def settings_context(request):
         return {
             'settings': settings,
             'cmc_api_key_configured': bool(django_settings.COINMARKETCAP_API_KEY),
+            'app_password_enabled': bool(django_settings.APP_PASSWORD),
         }
     except Exception:
         logger.exception("Failed to load settings context")
-        return {'settings': None, 'cmc_api_key_configured': False}
+        return {'settings': None, 'cmc_api_key_configured': False, 'app_password_enabled': False}

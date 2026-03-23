@@ -32,6 +32,9 @@ DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
 # CoinMarketCap API key (required for BTC price fetching)
 COINMARKETCAP_API_KEY = os.environ.get('COINMARKETCAP_API_KEY', '')
 
+# App-level password protection (leave empty to disable)
+APP_PASSWORD = os.environ.get('APP_PASSWORD', '')
+
 ALLOWED_HOSTS = ['localhost', '127.0.0.1'] + [f'192.168.1.{i}' for i in range(1, 255)]
 
 
@@ -56,6 +59,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'mining.middleware.PasswordProtectionMiddleware',
 ]
 
 ROOT_URLCONF = 'remote_mining_management_platform.urls'
