@@ -7,11 +7,14 @@ from django.db.models import Sum, Q
 from django.db.models.functions import TruncMonth
 import xlwt
 import xlrd
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from datetime import datetime, date, timedelta
 import json
+import logging
 import threading
 import time
+
+logger = logging.getLogger(__name__)
 from .models import RemoteMiningPlatform, Miner, Settings, APIData, Payout, Expense, TopUp
 from .forms import RemoteMiningPlatformForm, MinerForm, SettingsForm, PayoutForm, ExpenseForm, TopUpForm
 from .api_utils import fetch_all_api_data, get_historical_btc_price
@@ -1440,7 +1443,7 @@ def import_miner_data(request):
                                 try:
                                     platform = RemoteMiningPlatform.objects.get(pk=int(float(value)))
                                     miner_data[field] = platform
-                                except:
+                                except (RemoteMiningPlatform.DoesNotExist, ValueError, TypeError):
                                     continue
                             elif field in ['hashrate', 'power', 'efficiency', 'purchase_price'] and value:
                                 miner_data[field] = Decimal(str(value))
@@ -1510,7 +1513,7 @@ def import_payout_data(request):
                                 try:
                                     platform = RemoteMiningPlatform.objects.get(pk=int(float(value)))
                                     payout_data[field] = platform
-                                except:
+                                except (RemoteMiningPlatform.DoesNotExist, ValueError, TypeError):
                                     continue
                             elif field == 'payout_amount' and value:
                                 payout_data[field] = Decimal(str(value))
@@ -1622,14 +1625,15 @@ def import_expense_data(request):
                             else:
                                 # String date
                                 expense_data['expense_date'] = datetime.strptime(str(cell_value), '%Y-%m-%d').date()
-                        except:
+                        except (ValueError, TypeError) as e:
+                            logger.warning("Expense import: bad date at row %d: %s", row, e)
                             continue
                     elif header == 'platform' and cell_value:
                         try:
                             platform_id = int(float(cell_value))
                             platform = RemoteMiningPlatform.objects.get(pk=platform_id)
                             expense_data['platform'] = platform
-                        except:
+                        except (RemoteMiningPlatform.DoesNotExist, ValueError, TypeError):
                             pass
                     elif header == 'category' and cell_value:
                         category_value = str(cell_value).upper().strip()
@@ -1640,7 +1644,7 @@ def import_expense_data(request):
                     elif header == 'expense_amount' and cell_value:
                         try:
                             expense_data['expense_amount'] = Decimal(str(cell_value))
-                        except:
+                        except (ValueError, InvalidOperation):
                             pass
                     elif header == 'invoice_link' and cell_value:
                         expense_data['invoice_link'] = str(cell_value)
@@ -1815,16 +1819,16 @@ def import_topup_data(request):
                         # Handle date conversion
                         if isinstance(cell_value, float):
                             try:
-                                from datetime import datetime, date
                                 dt = xlrd.xldate_as_datetime(cell_value, wb.datemode)
                                 topup_data['topup_date'] = dt.date()
-                            except:
+                            except (ValueError, TypeError) as e:
+                                logger.warning("Top-up import: bad date at row %d: %s", row, e)
                                 continue
                         else:
                             try:
-                                from datetime import datetime
                                 topup_data['topup_date'] = datetime.strptime(str(cell_value), '%Y-%m-%d').date()
-                            except:
+                            except (ValueError, TypeError) as e:
+                                logger.warning("Top-up import: bad date at row %d: %s", row, e)
                                 continue
                     elif header == 'platform' and cell_value:
                         try:
