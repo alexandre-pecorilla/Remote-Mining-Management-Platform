@@ -655,149 +655,155 @@ def fetch_closing_price(request, payout_id):
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 
-# Bulk closing price fetch - background task state
-_bulk_fetch_status = {
-    'running': False,
-    'total': 0,
-    'processed': 0,
-    'updated': 0,
-    'skipped': 0,
-    'errors': 0,
-    'error_details': [],
-    'message': '',
-}
+# Background task state via Django cache (shareable across processes)
+# For multi-process production, configure a shared cache backend (Redis, Memcached, or database)
+# in settings.py. The default LocMemCache works for single-process dev servers.
+from django.core.cache import cache
+
+_BULK_FETCH_CACHE_KEY = 'bulk_fetch_closing_prices_status'
+_API_FETCH_CACHE_KEY = 'api_fetch_status'
+_CACHE_TIMEOUT = 3600  # 1 hour
+
 _bulk_fetch_lock = threading.Lock()
+_api_fetch_lock = threading.Lock()
+
+
+def _get_bulk_fetch_status():
+    return cache.get(_BULK_FETCH_CACHE_KEY, {
+        'running': False, 'total': 0, 'processed': 0,
+        'updated': 0, 'skipped': 0, 'errors': 0,
+        'error_details': [], 'message': '',
+    })
+
+
+def _set_bulk_fetch_status(status):
+    cache.set(_BULK_FETCH_CACHE_KEY, status, _CACHE_TIMEOUT)
+
+
+def _get_api_fetch_status():
+    return cache.get(_API_FETCH_CACHE_KEY, {
+        'running': False, 'message': '', 'success': None,
+    })
+
+
+def _set_api_fetch_status(status):
+    cache.set(_API_FETCH_CACHE_KEY, status, _CACHE_TIMEOUT)
 
 
 def _bulk_fetch_closing_prices_task():
     """Background task: fetch closing prices in sub-batches with delay to respect API rate limits."""
     from .api_utils import get_historical_btc_price as fetch_price
-    
+
     BATCH_SIZE = 5
     DELAY_BETWEEN_BATCHES = 3  # seconds
-    
+
     today = date.today()
-    
-    # Get all payouts that need fetching:
-    # - closing_price_fetched_at is NULL, OR
-    # - closing_price_fetched_at is on the same day as payout_date or before
+
     payouts = list(
         Payout.objects.filter(payout_date__isnull=False).order_by('payout_date')
     )
-    
-    # Filter to only those that need updating
+
     payouts_to_fetch = []
     for p in payouts:
         if p.closing_price_fetched_at is None:
             payouts_to_fetch.append(p)
         elif p.closing_price_fetched_at <= p.payout_date:
             payouts_to_fetch.append(p)
-        # else: fetched_at > payout_date (at least next day), skip
-    
-    with _bulk_fetch_lock:
-        _bulk_fetch_status['total'] = len(payouts_to_fetch)
-        _bulk_fetch_status['processed'] = 0
-        _bulk_fetch_status['updated'] = 0
-        _bulk_fetch_status['skipped'] = 0
-        _bulk_fetch_status['errors'] = 0
-        _bulk_fetch_status['error_details'] = []
-        _bulk_fetch_status['message'] = f'Processing {len(payouts_to_fetch)} payouts...'
-    
-    # Process in sub-batches
+
+    status = _get_bulk_fetch_status()
+    status.update({
+        'total': len(payouts_to_fetch), 'processed': 0,
+        'updated': 0, 'skipped': 0, 'errors': 0,
+        'error_details': [],
+        'message': f'Processing {len(payouts_to_fetch)} payouts...',
+    })
+    _set_bulk_fetch_status(status)
+
     for i in range(0, len(payouts_to_fetch), BATCH_SIZE):
         batch = payouts_to_fetch[i:i + BATCH_SIZE]
-        
+
         for payout in batch:
             try:
                 historical_price = fetch_price(payout.payout_date)
                 payout.closing_price = Decimal(str(historical_price))
                 payout.closing_price_fetched_at = today
                 payout.save()
-                with _bulk_fetch_lock:
-                    _bulk_fetch_status['updated'] += 1
+                status = _get_bulk_fetch_status()
+                status['updated'] += 1
             except Exception as e:
-                with _bulk_fetch_lock:
-                    _bulk_fetch_status['errors'] += 1
-                    _bulk_fetch_status['error_details'].append(
-                        f'Payout #{payout.pk} ({payout.payout_date}): {str(e)}'
-                    )
-            
-            with _bulk_fetch_lock:
-                _bulk_fetch_status['processed'] += 1
-        
-        # Delay between batches (but not after the last one)
+                status = _get_bulk_fetch_status()
+                status['errors'] += 1
+                status['error_details'].append(
+                    f'Payout #{payout.pk} ({payout.payout_date}): {str(e)}'
+                )
+
+            status['processed'] += 1
+            _set_bulk_fetch_status(status)
+
         if i + BATCH_SIZE < len(payouts_to_fetch):
             time.sleep(DELAY_BETWEEN_BATCHES)
-    
-    with _bulk_fetch_lock:
-        skipped = len(payouts) - len(payouts_to_fetch)
-        _bulk_fetch_status['skipped'] = skipped
-        _bulk_fetch_status['message'] = (
-            f'Completed: {_bulk_fetch_status["updated"]} updated, '
-            f'{skipped} skipped, '
-            f'{_bulk_fetch_status["errors"]} errors.'
-        )
-        _bulk_fetch_status['running'] = False
+
+    status = _get_bulk_fetch_status()
+    skipped = len(payouts) - len(payouts_to_fetch)
+    status['skipped'] = skipped
+    status['message'] = (
+        f'Completed: {status["updated"]} updated, '
+        f'{skipped} skipped, '
+        f'{status["errors"]} errors.'
+    )
+    status['running'] = False
+    _set_bulk_fetch_status(status)
 
 
 def bulk_fetch_closing_prices(request):
     """Trigger bulk closing price fetch as a background task."""
     if request.method == 'POST':
         with _bulk_fetch_lock:
-            if _bulk_fetch_status['running']:
+            status = _get_bulk_fetch_status()
+            if status['running']:
                 return JsonResponse({
                     'success': False,
                     'error': 'A bulk fetch is already in progress.'
                 })
-            _bulk_fetch_status['running'] = True
-            _bulk_fetch_status['total'] = 0
-            _bulk_fetch_status['processed'] = 0
-            _bulk_fetch_status['updated'] = 0
-            _bulk_fetch_status['skipped'] = 0
-            _bulk_fetch_status['errors'] = 0
-            _bulk_fetch_status['message'] = 'Starting...'
-            _bulk_fetch_status['error_details'] = []
-        
+            status = {
+                'running': True, 'total': 0, 'processed': 0,
+                'updated': 0, 'skipped': 0, 'errors': 0,
+                'error_details': [], 'message': 'Starting...',
+            }
+            _set_bulk_fetch_status(status)
+
         thread = threading.Thread(target=_bulk_fetch_closing_prices_task, daemon=True)
         thread.start()
-        
+
         return JsonResponse({'success': True, 'message': 'Bulk fetch started.'})
-    
+
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 
 def bulk_fetch_closing_prices_status(request):
     """Return the current status of the bulk closing price fetch task."""
-    with _bulk_fetch_lock:
-        return JsonResponse({
-            'running': _bulk_fetch_status['running'],
-            'total': _bulk_fetch_status['total'],
-            'processed': _bulk_fetch_status['processed'],
-            'updated': _bulk_fetch_status['updated'],
-            'skipped': _bulk_fetch_status['skipped'],
-            'errors': _bulk_fetch_status['errors'],
-            'message': _bulk_fetch_status['message'],
-            'error_details': list(_bulk_fetch_status['error_details']),
-        })
-
-
-# Fetch API Data - background task state
-_api_fetch_status = {
-    'running': False,
-    'message': '',
-    'success': None,
-}
-_api_fetch_lock = threading.Lock()
+    status = _get_bulk_fetch_status()
+    return JsonResponse({
+        'running': status['running'],
+        'total': status['total'],
+        'processed': status['processed'],
+        'updated': status['updated'],
+        'skipped': status['skipped'],
+        'errors': status['errors'],
+        'message': status['message'],
+        'error_details': list(status['error_details']),
+    })
 
 
 def _fetch_api_data_task():
     """Background task: fetch all API data and save to database."""
     try:
-        with _api_fetch_lock:
-            _api_fetch_status['message'] = 'Fetching API data...'
-        
+        status = _get_api_fetch_status()
+        status['message'] = 'Fetching API data...'
+        _set_api_fetch_status(status)
+
         result = fetch_all_api_data()
-        
+
         if result['success']:
             api_data = APIData.get_api_data()
             api_data.bitcoin_price_usd = result['bitcoin_price_usd']
@@ -805,52 +811,53 @@ def _fetch_api_data_task():
             api_data.network_difficulty = result['network_difficulty']
             api_data.avg_block_fees_24h = result['avg_block_fees_24h']
             api_data.save()
-            
-            with _api_fetch_lock:
-                _api_fetch_status['message'] = result['message']
-                _api_fetch_status['success'] = True
+
+            status = _get_api_fetch_status()
+            status['message'] = result['message']
+            status['success'] = True
         else:
-            with _api_fetch_lock:
-                _api_fetch_status['message'] = result['message']
-                _api_fetch_status['success'] = False
+            status = _get_api_fetch_status()
+            status['message'] = result['message']
+            status['success'] = False
     except Exception as e:
-        with _api_fetch_lock:
-            _api_fetch_status['message'] = f'Unexpected error: {str(e)}'
-            _api_fetch_status['success'] = False
+        status = _get_api_fetch_status()
+        status['message'] = f'Unexpected error: {str(e)}'
+        status['success'] = False
     finally:
-        with _api_fetch_lock:
-            _api_fetch_status['running'] = False
+        status['running'] = False
+        _set_api_fetch_status(status)
 
 
 def trigger_fetch_api_data(request):
     """Trigger API data fetch as a background task."""
     if request.method == 'POST':
         with _api_fetch_lock:
-            if _api_fetch_status['running']:
+            status = _get_api_fetch_status()
+            if status['running']:
                 return JsonResponse({
                     'success': False,
                     'error': 'API fetch is already in progress.'
                 })
-            _api_fetch_status['running'] = True
-            _api_fetch_status['message'] = 'Starting...'
-            _api_fetch_status['success'] = None
-        
+            _set_api_fetch_status({
+                'running': True, 'message': 'Starting...', 'success': None,
+            })
+
         thread = threading.Thread(target=_fetch_api_data_task, daemon=True)
         thread.start()
-        
+
         return JsonResponse({'success': True, 'message': 'API fetch started.'})
-    
+
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
 
 def fetch_api_data_status(request):
     """Return the current status of the API data fetch task."""
-    with _api_fetch_lock:
-        return JsonResponse({
-            'running': _api_fetch_status['running'],
-            'message': _api_fetch_status['message'],
-            'success': _api_fetch_status['success'],
-        })
+    status = _get_api_fetch_status()
+    return JsonResponse({
+        'running': status['running'],
+        'message': status['message'],
+        'success': status['success'],
+    })
 
 
 def api_data_view(request):

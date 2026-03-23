@@ -1,7 +1,8 @@
 # Status
 
 ## Recent Changes
-- `PENDING` Fix broken import in import_expense_data: replace nonexistent xldate module with xlrd.xldate_as_datetime
+- `PENDING` Replace module-level mutable dicts for background task state with Django cache framework, making status shareable across processes in production
+- `1470588` Fix broken import in import_expense_data: replace nonexistent xldate module with xlrd.xldate_as_datetime
 - `78f7ce0` Extract shared data-gathering logic into mining/services.py, eliminating ~900 lines of duplication between dashboard views and their export counterparts
 - `42deabb` Fix N+1 query problems: add select_related('platform') to all miner, payout, expense, and topup querysets that access platform fields
 - `028d125` Include CLAUDE.md rules and fix missed staging
