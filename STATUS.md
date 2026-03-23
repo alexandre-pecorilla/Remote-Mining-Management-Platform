@@ -1,7 +1,8 @@
 # Status
 
 ## Recent Changes
-- `PENDING` Add optional password protection via APP_PASSWORD in .env: middleware, login/logout views, session-based auth, logout link in navbar
+- `PENDING` Dockerize app: move code to app/, add Dockerfile (Python 3.13 + Gunicorn), docker-compose.yml (web + PostgreSQL 17), entrypoint.sh, switch DB from SQLite to PostgreSQL, configurable GUNICORN_WORKERS/WEB_PORT/ALLOWED_HOSTS
+- `47e91ef` Add optional password protection via APP_PASSWORD in .env: middleware, login/logout views, session-based auth, logout link in navbar
 - `632bdf8` Move CoinMarketCap API key from DB to .env: remove field from Settings model (migration 0025), add python-dotenv to load .env, show key as read-only in settings page, disable Fetch API Data button when key missing
 - `b0dafb5` Fix tasks.py: broken import path for get_historical_btc_price, missing get_object_or_404 import, duplicate declarations
 - `58f7c28` Fix API fetch hanging: add connect+read timeout tuple (10s, 30s) and User-Agent header to all requests in api_utils.py

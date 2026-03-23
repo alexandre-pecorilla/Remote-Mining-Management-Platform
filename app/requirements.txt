@@ -3,3 +3,5 @@ Pillow==10.4.0
 requests==2.32.4
 openpyxl
 python-dotenv==1.2.2
+gunicorn==23.0.0
+psycopg2-binary==2.9.10

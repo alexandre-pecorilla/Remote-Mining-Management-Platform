@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv(BASE_DIR / '.env')
+load_dotenv(BASE_DIR.parent / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -35,7 +35,8 @@ COINMARKETCAP_API_KEY = os.environ.get('COINMARKETCAP_API_KEY', '')
 # App-level password protection (leave empty to disable)
 APP_PASSWORD = os.environ.get('APP_PASSWORD', '')
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1'] + [f'192.168.1.{i}' for i in range(1, 255)]
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+
 
 
 # Application definition
@@ -88,8 +89,12 @@ WSGI_APPLICATION = 'remote_mining_management_platform.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('POSTGRES_DB', 'mining'),
+        'USER': os.environ.get('POSTGRES_USER', 'mining'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'mining'),
+        'HOST': os.environ.get('POSTGRES_HOST', 'db'),
+        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
     }
 }
 
