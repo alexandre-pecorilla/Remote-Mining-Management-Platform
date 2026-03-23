@@ -1,7 +1,8 @@
 # Status
 
 ## Recent Changes
-- `PENDING` Fix tasks.py: broken import path for get_historical_btc_price, missing get_object_or_404 import, duplicate declarations
+- `PENDING` Move CoinMarketCap API key from DB to .env: remove field from Settings model (migration 0025), add python-dotenv to load .env, show key as read-only in settings page, disable Fetch API Data button when key missing
+- `b0dafb5` Fix tasks.py: broken import path for get_historical_btc_price, missing get_object_or_404 import, duplicate declarations
 - `58f7c28` Fix API fetch hanging: add connect+read timeout tuple (10s, 30s) and User-Agent header to all requests in api_utils.py
 - `e68b1e7` Add Meta.ordering to Miner model to fix UnorderedObjectListWarning on paginated list views
 - `602eb16` Split views.py into views/ package: dashboards.py, crud.py, exports.py, imports.py, tasks.py

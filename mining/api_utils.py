@@ -2,7 +2,7 @@ import requests
 import json
 import math
 from datetime import datetime
-from .models import Settings
+from django.conf import settings as django_settings
 
 # (connect timeout, read timeout) in seconds
 REQUEST_TIMEOUT = (10, 30)
@@ -11,11 +11,10 @@ REQUEST_HEADERS = {'User-Agent': 'MiningDashboard/1.0'}
 
 def fetch_cmc_data(endpoint):
     """Fetch data from CoinMarketCap API"""
-    settings = Settings.get_settings()
-    api_key = settings.coinmarketcap_api_key
+    api_key = django_settings.COINMARKETCAP_API_KEY
 
     if not api_key:
-        raise ValueError("CoinMarketCap API key not configured in settings")
+        raise ValueError("CoinMarketCap API key not configured. Set COINMARKETCAP_API_KEY in .env")
 
     url = f'https://pro-api.coinmarketcap.com/v1/{endpoint}'
     headers = {

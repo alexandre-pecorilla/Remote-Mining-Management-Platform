@@ -118,7 +118,7 @@ def api_data_view(request):
 def settings_view(request):
     """Settings page view"""
     settings = Settings.get_settings()
-    
+
     if request.method == 'POST':
         form = SettingsForm(request.POST, instance=settings)
         if form.is_valid():
@@ -127,8 +127,15 @@ def settings_view(request):
             return redirect('settings')
     else:
         form = SettingsForm(instance=settings)
-    
-    return render(request, 'mining/settings.html', {'form': form, 'settings': settings})
+
+    from django.conf import settings as django_settings
+    cmc_key = django_settings.COINMARKETCAP_API_KEY
+
+    return render(request, 'mining/settings.html', {
+        'form': form,
+        'settings': settings,
+        'cmc_api_key': cmc_key,
+    })
 
 
 # Expense Views

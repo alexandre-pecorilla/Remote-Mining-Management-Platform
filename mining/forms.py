@@ -194,11 +194,8 @@ class TopUpForm(forms.ModelForm):
 class SettingsForm(forms.ModelForm):
     class Meta:
         model = Settings
-        fields = ['coinmarketcap_api_key', 'dark_mode', 'developer_mode', 'pool_fee_percentage', 'block_reward']
+        fields = ['dark_mode', 'developer_mode', 'pool_fee_percentage', 'block_reward']
         widgets = {
-            'coinmarketcap_api_key': forms.PasswordInput(attrs={
-                'class': 'form-control'
-            }, render_value=True),
             'dark_mode': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
             }),
@@ -219,7 +216,6 @@ class SettingsForm(forms.ModelForm):
             }),
         }
         labels = {
-            'coinmarketcap_api_key': 'CoinMarketCap API Key',
             'dark_mode': 'Dark Mode',
             'developer_mode': 'Developer Mode',
             'pool_fee_percentage': 'Pool Fee Percentage (%)',
