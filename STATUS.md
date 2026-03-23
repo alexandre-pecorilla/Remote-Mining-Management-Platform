@@ -1,7 +1,8 @@
 # Status
 
 ## Recent Changes
-- `PENDING` Fix N+1 query problems: add select_related('platform') to all miner, payout, expense, and topup querysets that access platform fields
+- `PENDING` Extract shared data-gathering logic into mining/services.py, eliminating ~900 lines of duplication between dashboard views and their export counterparts
+- `42deabb` Fix N+1 query problems: add select_related('platform') to all miner, payout, expense, and topup querysets that access platform fields
 - `028d125` Include CLAUDE.md rules and fix missed staging
 - `8c83f5f` Fix STATUS.md to follow PENDING/hash commit tracking convention
 - `9459609` Update STATUS.md with commit hashes and security hardening entry

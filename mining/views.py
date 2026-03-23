@@ -15,6 +15,7 @@ import time
 from .models import RemoteMiningPlatform, Miner, Settings, APIData, Payout, Expense, TopUp
 from .forms import RemoteMiningPlatformForm, MinerForm, SettingsForm, PayoutForm, ExpenseForm, TopUpForm
 from .api_utils import fetch_all_api_data, get_historical_btc_price
+from .services import get_capex_opex_data, get_income_data, get_overview_data, get_forecasting_data, resolve_selected_platform
 
 
 # Home Page View
@@ -26,186 +27,25 @@ def home_view(request):
 # CAPEX/OPEX Dashboard View
 def capex_opex_dashboard(request):
     """Dashboard view for CAPEX/OPEX analysis"""
-    
-    # Total Expenses calculations
-    total_expenses = Expense.objects.aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
-    total_capex = Expense.objects.filter(category='CAPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
-    total_opex = Expense.objects.filter(category='OPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
-    
-    # Total Expenses by Platform
-    platforms = RemoteMiningPlatform.objects.all()
-    platform_expenses = []
-    
-    for platform in platforms:
-        platform_total = Expense.objects.filter(platform=platform).aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
-        platform_capex = Expense.objects.filter(platform=platform, category='CAPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
-        platform_opex = Expense.objects.filter(platform=platform, category='OPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
-        
-        if platform_total > 0:  # Only include platforms with expenses
-            platform_expenses.append({
-                'platform': platform,
-                'total': platform_total,
-                'capex': platform_capex,
-                'opex': platform_opex
-            })
-    
-    # Monthly CAPEX calculations
-    monthly_capex = Expense.objects.filter(category='CAPEX').annotate(
-        month=TruncMonth('expense_date')
-    ).values('month').annotate(
-        total=Sum('expense_amount')
-    ).order_by('month')
-    
-    # Monthly CAPEX by platform
-    monthly_capex_by_platform = {}
-    for platform in platforms:
-        platform_monthly_capex = Expense.objects.filter(
-            category='CAPEX', platform=platform
-        ).annotate(
-            month=TruncMonth('expense_date')
-        ).values('month').annotate(
-            total=Sum('expense_amount')
-        ).order_by('month')
-        
-        if platform_monthly_capex:  # Only include platforms with CAPEX expenses
-            monthly_capex_by_platform[platform] = platform_monthly_capex
-    
-    # Monthly OPEX calculations
-    monthly_opex = Expense.objects.filter(category='OPEX').annotate(
-        month=TruncMonth('expense_date')
-    ).values('month').annotate(
-        total=Sum('expense_amount')
-    ).order_by('month')
-    
-    # Monthly OPEX by platform
-    monthly_opex_by_platform = {}
-    for platform in platforms:
-        platform_monthly_opex = Expense.objects.filter(
-            category='OPEX', platform=platform
-        ).annotate(
-            month=TruncMonth('expense_date')
-        ).values('month').annotate(
-            total=Sum('expense_amount')
-        ).order_by('month')
-        
-        if platform_monthly_opex:  # Only include platforms with OPEX expenses
-            monthly_opex_by_platform[platform] = platform_monthly_opex
-    
-    # Get all unique months for table structure
-    all_months = set()
-    for item in monthly_capex:
-        all_months.add(item['month'])
-    for item in monthly_opex:
-        all_months.add(item['month'])
-    for platform_data in monthly_capex_by_platform.values():
-        for item in platform_data:
-            all_months.add(item['month'])
-    for platform_data in monthly_opex_by_platform.values():
-        for item in platform_data:
-            all_months.add(item['month'])
-    
-    all_months = sorted(list(all_months))
-    
-    context = {
-        'total_expenses': total_expenses,
-        'total_capex': total_capex,
-        'total_opex': total_opex,
-        'platform_expenses': platform_expenses,
-        'monthly_capex': monthly_capex,
-        'monthly_capex_by_platform': monthly_capex_by_platform,
-        'monthly_opex': monthly_opex,
-        'monthly_opex_by_platform': monthly_opex_by_platform,
-        'all_months': all_months,
-    }
-    
-    return render(request, 'mining/capex_opex_dashboard.html', context)
+    data = get_capex_opex_data()
+    return render(request, 'mining/capex_opex_dashboard.html', data)
 
 
 def export_capex_opex_data(request):
     """Export CAPEX/OPEX dashboard data to Excel file"""
     
     wb = xlwt.Workbook()
-    
-    # EXACT COPY of capex_opex_dashboard calculations
-    # Total Expenses calculations
-    total_expenses = Expense.objects.aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
-    total_capex = Expense.objects.filter(category='CAPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
-    total_opex = Expense.objects.filter(category='OPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
-    
-    # Total Expenses by Platform
-    platforms = RemoteMiningPlatform.objects.all()
-    platform_expenses = []
-    
-    for platform in platforms:
-        platform_total = Expense.objects.filter(platform=platform).aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
-        platform_capex = Expense.objects.filter(platform=platform, category='CAPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
-        platform_opex = Expense.objects.filter(platform=platform, category='OPEX').aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
-        
-        if platform_total > 0:  # Only include platforms with expenses
-            platform_expenses.append({
-                'platform': platform,
-                'total': platform_total,
-                'capex': platform_capex,
-                'opex': platform_opex
-            })
-    
-    # Monthly CAPEX calculations
-    monthly_capex = Expense.objects.filter(category='CAPEX').annotate(
-        month=TruncMonth('expense_date')
-    ).values('month').annotate(
-        total=Sum('expense_amount')
-    ).order_by('month')
-    
-    # Monthly CAPEX by platform
-    monthly_capex_by_platform = {}
-    for platform in platforms:
-        platform_monthly_capex = Expense.objects.filter(
-            category='CAPEX', platform=platform
-        ).annotate(
-            month=TruncMonth('expense_date')
-        ).values('month').annotate(
-            total=Sum('expense_amount')
-        ).order_by('month')
-        
-        if platform_monthly_capex:  # Only include platforms with CAPEX expenses
-            monthly_capex_by_platform[platform] = platform_monthly_capex
-    
-    # Monthly OPEX calculations
-    monthly_opex = Expense.objects.filter(category='OPEX').annotate(
-        month=TruncMonth('expense_date')
-    ).values('month').annotate(
-        total=Sum('expense_amount')
-    ).order_by('month')
-    
-    # Monthly OPEX by platform
-    monthly_opex_by_platform = {}
-    for platform in platforms:
-        platform_monthly_opex = Expense.objects.filter(
-            category='OPEX', platform=platform
-        ).annotate(
-            month=TruncMonth('expense_date')
-        ).values('month').annotate(
-            total=Sum('expense_amount')
-        ).order_by('month')
-        
-        if platform_monthly_opex:  # Only include platforms with OPEX expenses
-            monthly_opex_by_platform[platform] = platform_monthly_opex
-    
-    # Get all unique months for table structure
-    all_months = set()
-    for item in monthly_capex:
-        all_months.add(item['month'])
-    for item in monthly_opex:
-        all_months.add(item['month'])
-    for platform_data in monthly_capex_by_platform.values():
-        for item in platform_data:
-            all_months.add(item['month'])
-    for platform_data in monthly_opex_by_platform.values():
-        for item in platform_data:
-            all_months.add(item['month'])
-    
-    all_months = sorted(list(all_months))
-    
+    data = get_capex_opex_data()
+    total_expenses = data['total_expenses']
+    total_capex = data['total_capex']
+    total_opex = data['total_opex']
+    platform_expenses = data['platform_expenses']
+    monthly_capex = data['monthly_capex']
+    monthly_capex_by_platform = data['monthly_capex_by_platform']
+    monthly_opex = data['monthly_opex']
+    monthly_opex_by_platform = data['monthly_opex_by_platform']
+    all_months = data['all_months']
+
     # Sheet 1: Total Expenses Summary
     ws_summary = wb.add_sheet('Total Expenses Summary')
     
@@ -327,81 +167,14 @@ def export_capex_opex_data(request):
 # Income Dashboard View
 def income_dashboard(request):
     """Dashboard view for Income analysis"""
-    
-    # Get API data for current market value calculations
-    api_data = APIData.get_api_data()
-    current_btc_price = float(api_data.bitcoin_price_usd) if api_data.bitcoin_price_usd else 0
-    
-    # Total Income calculations
-    total_income_btc = Payout.objects.aggregate(total=Sum('payout_amount'))['total'] or Decimal('0')
-    total_income_usd_then = Payout.objects.aggregate(total=Sum('value_at_payout'))['total'] or Decimal('0')
-    
-    # Calculate total income USD now (current market value)
-    total_income_usd_now = Decimal('0')
-    if current_btc_price > 0:
-        total_income_usd_now = total_income_btc * Decimal(str(current_btc_price))
-    
-    # Total Income by Platform
-    platforms = RemoteMiningPlatform.objects.all()
-    platform_income = []
-    
-    for platform in platforms:
-        platform_btc = Payout.objects.filter(platform=platform).aggregate(total=Sum('payout_amount'))['total'] or Decimal('0')
-        platform_usd_then = Payout.objects.filter(platform=platform).aggregate(total=Sum('value_at_payout'))['total'] or Decimal('0')
-        platform_usd_now = Decimal('0')
-        if current_btc_price > 0:
-            platform_usd_now = platform_btc * Decimal(str(current_btc_price))
-        
-        if platform_btc > 0:  # Only include platforms with income
-            platform_income.append({
-                'platform': platform,
-                'total_btc': platform_btc,
-                'total_usd_then': platform_usd_then,
-                'total_usd_now': platform_usd_now
-            })
-    
-    # Monthly Income BTC calculations
-    monthly_income_btc = Payout.objects.annotate(
-        month=TruncMonth('payout_date')
-    ).values('month').annotate(
-        total_btc=Sum('payout_amount'),
-        total_usd_then=Sum('value_at_payout')
-    ).order_by('month')
-    
-    # Add current market value to monthly income
-    for item in monthly_income_btc:
-        item['total_usd_now'] = item['total_btc'] * Decimal(str(current_btc_price)) if current_btc_price > 0 else Decimal('0')
-    
-    # Monthly Income by platform
-    monthly_income_by_platform = {}
-    for platform in platforms:
-        platform_monthly_income = Payout.objects.filter(
-            platform=platform
-        ).annotate(
-            month=TruncMonth('payout_date')
-        ).values('month').annotate(
-            total_btc=Sum('payout_amount'),
-            total_usd_then=Sum('value_at_payout')
-        ).order_by('month')
-        
-        # Add current market value
-        for item in platform_monthly_income:
-            item['total_usd_now'] = item['total_btc'] * Decimal(str(current_btc_price)) if current_btc_price > 0 else Decimal('0')
-        
-        if platform_monthly_income:  # Only include platforms with income
-            monthly_income_by_platform[platform] = platform_monthly_income
-    
-    # Get all unique months for table structure
-    all_months = set()
-    for item in monthly_income_btc:
-        all_months.add(item['month'])
-    for platform_data in monthly_income_by_platform.values():
-        for item in platform_data:
-            all_months.add(item['month'])
-    
-    all_months = sorted(list(all_months))
-    
-    # Prepare monthly data for template
+    data = get_income_data()
+    current_btc_price = data['current_btc_price']
+    platform_income = data['platform_income']
+    monthly_income_btc = data['monthly_income_btc']
+    monthly_income_by_platform = data['monthly_income_by_platform']
+    all_months = data['all_months']
+
+    # Prepare monthly data for template (dashboard-specific pivot)
     monthly_btc_data = []
     monthly_usd_then_data = []
     monthly_usd_now_data = []
@@ -439,9 +212,9 @@ def income_dashboard(request):
             monthly_usd_now_data.append(usd_now_row)
     
     context = {
-        'total_income_btc': total_income_btc,
-        'total_income_usd_then': total_income_usd_then,
-        'total_income_usd_now': total_income_usd_now,
+        'total_income_btc': data['total_income_btc'],
+        'total_income_usd_then': data['total_income_usd_then'],
+        'total_income_usd_now': data['total_income_usd_now'],
         'platform_income': platform_income,
         'monthly_btc_data': monthly_btc_data,
         'monthly_usd_then_data': monthly_usd_then_data,
@@ -449,7 +222,7 @@ def income_dashboard(request):
         'platforms_with_income': [item['platform'] for item in platform_income],
         'current_btc_price': current_btc_price,
     }
-    
+
     return render(request, 'mining/income_dashboard.html', context)
 
 
@@ -457,81 +230,16 @@ def export_income_data(request):
     """Export Income dashboard data to Excel file"""
     
     wb = xlwt.Workbook()
-    
-    # Get API data for current market value calculations
-    api_data = APIData.get_api_data()
-    current_btc_price = float(api_data.bitcoin_price_usd) if api_data.bitcoin_price_usd else 0
-    
-    # EXACT COPY of income_dashboard calculations
-    # Total Income calculations
-    total_income_btc = Payout.objects.aggregate(total=Sum('payout_amount'))['total'] or Decimal('0')
-    total_income_usd_then = Payout.objects.aggregate(total=Sum('value_at_payout'))['total'] or Decimal('0')
-    
-    # Calculate total income USD now (current market value)
-    total_income_usd_now = Decimal('0')
-    if current_btc_price > 0:
-        total_income_usd_now = total_income_btc * Decimal(str(current_btc_price))
-    
-    # Total Income by Platform
-    platforms = RemoteMiningPlatform.objects.all()
-    platform_income = []
-    
-    for platform in platforms:
-        platform_btc = Payout.objects.filter(platform=platform).aggregate(total=Sum('payout_amount'))['total'] or Decimal('0')
-        platform_usd_then = Payout.objects.filter(platform=platform).aggregate(total=Sum('value_at_payout'))['total'] or Decimal('0')
-        platform_usd_now = Decimal('0')
-        if current_btc_price > 0:
-            platform_usd_now = platform_btc * Decimal(str(current_btc_price))
-        
-        if platform_btc > 0:  # Only include platforms with income
-            platform_income.append({
-                'platform': platform,
-                'total_btc': platform_btc,
-                'total_usd_then': platform_usd_then,
-                'total_usd_now': platform_usd_now
-            })
-    
-    # Monthly Income calculations
-    monthly_income_btc = Payout.objects.annotate(
-        month=TruncMonth('payout_date')
-    ).values('month').annotate(
-        total_btc=Sum('payout_amount'),
-        total_usd_then=Sum('value_at_payout')
-    ).order_by('month')
-    
-    # Add current market value to monthly income
-    for item in monthly_income_btc:
-        item['total_usd_now'] = item['total_btc'] * Decimal(str(current_btc_price)) if current_btc_price > 0 else Decimal('0')
-    
-    # Monthly Income by platform
-    monthly_income_by_platform = {}
-    for platform in platforms:
-        platform_monthly_income = Payout.objects.filter(
-            platform=platform
-        ).annotate(
-            month=TruncMonth('payout_date')
-        ).values('month').annotate(
-            total_btc=Sum('payout_amount'),
-            total_usd_then=Sum('value_at_payout')
-        ).order_by('month')
-        
-        # Add current market value
-        for item in platform_monthly_income:
-            item['total_usd_now'] = item['total_btc'] * Decimal(str(current_btc_price)) if current_btc_price > 0 else Decimal('0')
-        
-        if platform_monthly_income:  # Only include platforms with income
-            monthly_income_by_platform[platform] = platform_monthly_income
-    
-    # Get all unique months for table structure
-    all_months = set()
-    for item in monthly_income_btc:
-        all_months.add(item['month'])
-    for platform_data in monthly_income_by_platform.values():
-        for item in platform_data:
-            all_months.add(item['month'])
-    
-    all_months = sorted(list(all_months))
-    
+    data = get_income_data()
+    current_btc_price = data['current_btc_price']
+    total_income_btc = data['total_income_btc']
+    total_income_usd_then = data['total_income_usd_then']
+    total_income_usd_now = data['total_income_usd_now']
+    platform_income = data['platform_income']
+    monthly_income_btc = data['monthly_income_btc']
+    monthly_income_by_platform = data['monthly_income_by_platform']
+    all_months = data['all_months']
+
     # Sheet 1: Total Income Summary
     ws_summary = wb.add_sheet('Total Income Summary')
     
@@ -1243,178 +951,9 @@ class ExpenseDeleteView(DeleteView):
 # Dashboard Views
 def overview_dashboard(request):
     """Overview Dashboard with comprehensive mining analytics"""
-    from django.db.models import Sum, Avg, Count
-    from decimal import Decimal
-    
-    # Get API data
-    api_data = APIData.get_api_data()
-    
-    # Platform filter
-    platforms = RemoteMiningPlatform.objects.all()
-    selected_platform_id = request.GET.get('platform', '')
-    selected_platform = None
-    if selected_platform_id:
-        try:
-            selected_platform = RemoteMiningPlatform.objects.get(pk=selected_platform_id)
-        except (RemoteMiningPlatform.DoesNotExist, ValueError):
-            selected_platform = None
-    
-    # NETWORK DATA
-    bitcoin_price = api_data.bitcoin_price_usd or 0
-    network_hashrate = api_data.network_hashrate_ehs or 0
-    network_difficulty = api_data.network_difficulty or 0
-    avg_block_fees_24h = api_data.avg_block_fees_24h or 0
-    
-    # FLEET DATA
-    miners = Miner.objects.select_related('platform').filter(hashrate__isnull=False, power__isnull=False)
-    if selected_platform:
-        miners = miners.filter(platform=selected_platform)
-    miner_count = miners.count()
-    total_hashrate = miners.aggregate(total=Sum('hashrate'))['total'] or 0
-    total_power = miners.aggregate(total=Sum('power'))['total'] or 0
-    total_capex = miners.aggregate(total=Sum('purchase_price'))['total'] or 0
-
-    # EFFICIENCY DATA
-    avg_efficiency = miners.aggregate(avg=Avg('efficiency'))['avg'] or 0
-    if avg_efficiency:
-        avg_efficiency = round(float(avg_efficiency), 2)
-
-    # Hashrate weighted average efficiency
-    hashrate_weighted_efficiency = 0
-    if total_hashrate > 0:
-        efficiency_sum = 0
-        for miner in miners.filter(efficiency__isnull=False):
-            efficiency_sum += float(miner.hashrate) * float(miner.efficiency)
-        hashrate_weighted_efficiency = round(efficiency_sum / float(total_hashrate), 2)
-
-    # ENERGY DATA
-    # Get miners with platforms that have energy prices
-    miners_with_energy = miners.filter(platform__energy_price__isnull=False)
-    avg_energy_cost = miners_with_energy.aggregate(avg=Avg('platform__energy_price'))['avg'] or 0
-    if avg_energy_cost:
-        avg_energy_cost = round(float(avg_energy_cost), 6)
-
-    # Hashrate weighted average energy cost
-    hashrate_weighted_energy_cost = 0
-    if total_hashrate > 0:
-        energy_cost_sum = 0
-        total_hashrate_with_energy = 0
-        for miner in miners_with_energy:
-            energy_cost_sum += float(miner.hashrate) * float(miner.platform.energy_price)
-            total_hashrate_with_energy += float(miner.hashrate)
-        if total_hashrate_with_energy > 0:
-            hashrate_weighted_energy_cost = round(energy_cost_sum / total_hashrate_with_energy, 6)
-
-    # HASHRATE DISTRIBUTION DATA
-    hashrate_by_platform = []
-    platform_list = [selected_platform] if selected_platform else RemoteMiningPlatform.objects.all()
-    for platform in platform_list:
-        platform_miners = platform.miners.filter(hashrate__isnull=False, power__isnull=False)
-        platform_hashrate = platform_miners.aggregate(total=Sum('hashrate'))['total'] or 0
-        if platform_hashrate > 0:
-            hashrate_by_platform.append({
-                'platform': platform.name,
-                'hashrate': float(platform_hashrate)
-            })
-    
-    # Hashrate by location
-    hashrate_by_location = []
-    locations = miners.values_list('location', flat=True).distinct()
-    for location in locations:
-        if location:  # Skip empty locations
-            location_hashrate = miners.filter(location=location).aggregate(total=Sum('hashrate'))['total'] or 0
-            if location_hashrate > 0:
-                hashrate_by_location.append({
-                    'location': location,
-                    'hashrate': float(location_hashrate)
-                })
-    
-    # REVENUES DATA
-    payouts = Payout.objects.all()
-    if selected_platform:
-        payouts = payouts.filter(platform=selected_platform)
-    total_btc_mined = payouts.aggregate(total=Sum('payout_amount'))['total'] or 0
-    current_gross_value = float(total_btc_mined) * float(bitcoin_price) if total_btc_mined and bitcoin_price else 0
-    total_payouts = payouts.count()
-    
-    # Calculate Gross Value at Payout (sum of value_at_payout field)
-    gross_value_at_payout = payouts.aggregate(total=Sum('value_at_payout'))['total'] or 0
-    gross_value_at_payout = float(gross_value_at_payout)
-    
-    # Calculate Appreciation (Current Gross Value - Gross Value at Payout)
-    appreciation = current_gross_value - gross_value_at_payout
-    
-    # Calculate Total OPEX (sum of all OPEX expenses)
-    expenses = Expense.objects.filter(category='OPEX')
-    if selected_platform:
-        expenses = expenses.filter(platform=selected_platform)
-    total_opex = expenses.aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
-    total_opex = float(total_opex)
-    
-    # Calculate Current Net Value (Current Gross Value - Total OPEX)
-    current_net_value = current_gross_value - total_opex
-    
-    # REVENUES DISTRIBUTION DATA
-    revenue_by_platform = []
-    rev_platform_list = [selected_platform] if selected_platform else RemoteMiningPlatform.objects.all()
-    for platform in rev_platform_list:
-        platform_btc = platform.payouts.aggregate(total=Sum('payout_amount'))['total'] or 0
-        platform_payouts = platform.payouts.count()
-        if platform_btc > 0:
-            platform_value = float(platform_btc) * float(bitcoin_price) if bitcoin_price else 0
-            platform_gross_value_at_payout = platform.payouts.aggregate(total=Sum('value_at_payout'))['total'] or 0
-            platform_gross_value_at_payout = float(platform_gross_value_at_payout)
-            revenue_by_platform.append({
-                'platform': platform.name,
-                'btc_mined': float(platform_btc),
-                'gross_value': platform_value,
-                'gross_value_at_payout': platform_gross_value_at_payout,
-                'payout_count': platform_payouts
-            })
-    
-    context = {
-        # Platform filter
-        'platforms': platforms,
-        'selected_platform': selected_platform,
-        
-        # Network Data
-        'bitcoin_price': bitcoin_price,
-        'network_hashrate': network_hashrate,
-        'network_difficulty': network_difficulty,
-        'avg_block_fees_24h': avg_block_fees_24h,
-        
-        # Fleet Data
-        'miner_count': miner_count,
-        'total_hashrate': total_hashrate,
-        'total_power': round(float(total_power), 2),  # Power already stored in kW in database
-        'total_capex': total_capex,
-        
-        # Efficiency Data
-        'avg_efficiency': avg_efficiency,
-        'hashrate_weighted_efficiency': hashrate_weighted_efficiency,
-        
-        # Energy Data
-        'avg_energy_cost': avg_energy_cost,
-        'hashrate_weighted_energy_cost': hashrate_weighted_energy_cost,
-        
-        # Hashrate Distribution
-        'hashrate_by_platform': hashrate_by_platform,
-        'hashrate_by_location': hashrate_by_location,
-        
-        # Revenues Data
-        'total_btc_mined': total_btc_mined,
-        'current_gross_value': current_gross_value,
-        'gross_value_at_payout': gross_value_at_payout,
-        'appreciation': appreciation,
-        'total_opex': total_opex,
-        'current_net_value': current_net_value,
-        'total_payouts': total_payouts,
-        
-        # Revenue Distribution
-        'revenue_by_platform': revenue_by_platform,
-    }
-    
-    return render(request, 'mining/overview_dashboard.html', context)
+    selected_platform = resolve_selected_platform(request.GET.get('platform', ''))
+    data = get_overview_data(selected_platform)
+    return render(request, 'mining/overview_dashboard.html', data)
 
 
 # Import Template Download Views
@@ -1581,95 +1120,30 @@ def export_payout_data(request):
 
 def export_overview_data(request):
     """Export overview dashboard data to Excel file"""
-    from django.db.models import Sum, Avg, Count
-    from decimal import Decimal
-    
     wb = xlwt.Workbook()
-    
-    # Get API data
-    api_data = APIData.get_api_data()
-    
-    # Platform filter
-    selected_platform_id = request.GET.get('platform', '')
-    selected_platform = None
-    selected_platform_name = 'All Platforms'
-    if selected_platform_id:
-        try:
-            selected_platform = RemoteMiningPlatform.objects.get(pk=selected_platform_id)
-            selected_platform_name = selected_platform.name
-        except (RemoteMiningPlatform.DoesNotExist, ValueError):
-            selected_platform = None
-    
-    # NETWORK DATA
-    bitcoin_price = api_data.bitcoin_price_usd or 0
-    network_hashrate = api_data.network_hashrate_ehs or 0
-    network_difficulty = api_data.network_difficulty or 0
-    avg_block_fees_24h = api_data.avg_block_fees_24h or 0
-    
-    # FLEET DATA
-    miners = Miner.objects.select_related('platform').filter(hashrate__isnull=False, power__isnull=False)
-    if selected_platform:
-        miners = miners.filter(platform=selected_platform)
-    miner_count = miners.count()
-    total_hashrate = miners.aggregate(total=Sum('hashrate'))['total'] or 0
-    total_power = miners.aggregate(total=Sum('power'))['total'] or 0
-    total_capex = miners.aggregate(total=Sum('purchase_price'))['total'] or 0
+    selected_platform = resolve_selected_platform(request.GET.get('platform', ''))
+    data = get_overview_data(selected_platform)
+    selected_platform_name = selected_platform.name if selected_platform else 'All Platforms'
+    bitcoin_price = data['bitcoin_price']
+    network_hashrate = data['network_hashrate']
+    network_difficulty = data['network_difficulty']
+    avg_block_fees_24h = data['avg_block_fees_24h']
+    miner_count = data['miner_count']
+    total_hashrate = data['total_hashrate']
+    total_power = data['total_power']
+    total_capex = data['total_capex']
+    avg_efficiency = data['avg_efficiency']
+    hashrate_weighted_efficiency = data['hashrate_weighted_efficiency']
+    avg_energy_cost = data['avg_energy_cost']
+    hashrate_weighted_energy_cost = data['hashrate_weighted_energy_cost']
+    total_btc_mined = data['total_btc_mined']
+    current_gross_value = data['current_gross_value']
+    gross_value_at_payout = data['gross_value_at_payout']
+    appreciation = data['appreciation']
+    total_opex = data['total_opex']
+    current_net_value = data['current_net_value']
+    total_payouts = data['total_payouts']
 
-    # EFFICIENCY DATA
-    avg_efficiency = miners.aggregate(avg=Avg('efficiency'))['avg'] or 0
-    if avg_efficiency:
-        avg_efficiency = round(float(avg_efficiency), 2)
-
-    # Hashrate weighted average efficiency
-    hashrate_weighted_efficiency = 0
-    if total_hashrate > 0:
-        efficiency_sum = 0
-        for miner in miners.filter(efficiency__isnull=False):
-            efficiency_sum += float(miner.hashrate) * float(miner.efficiency)
-        hashrate_weighted_efficiency = round(efficiency_sum / float(total_hashrate), 2)
-
-    # ENERGY DATA
-    miners_with_energy = miners.filter(platform__energy_price__isnull=False)
-    avg_energy_cost = miners_with_energy.aggregate(avg=Avg('platform__energy_price'))['avg'] or 0
-    if avg_energy_cost:
-        avg_energy_cost = round(float(avg_energy_cost), 6)
-
-    # Hashrate weighted average energy cost
-    hashrate_weighted_energy_cost = 0
-    if total_hashrate > 0:
-        energy_cost_sum = 0
-        total_hashrate_with_energy = 0
-        for miner in miners_with_energy:
-            energy_cost_sum += float(miner.hashrate) * float(miner.platform.energy_price)
-            total_hashrate_with_energy += float(miner.hashrate)
-        if total_hashrate_with_energy > 0:
-            hashrate_weighted_energy_cost = round(energy_cost_sum / total_hashrate_with_energy, 6)
-
-    # REVENUES DATA
-    payouts = Payout.objects.all()
-    if selected_platform:
-        payouts = payouts.filter(platform=selected_platform)
-    total_btc_mined = payouts.aggregate(total=Sum('payout_amount'))['total'] or 0
-    current_gross_value = float(total_btc_mined) * float(bitcoin_price) if total_btc_mined and bitcoin_price else 0
-    total_payouts = payouts.count()
-    
-    # Calculate Gross Value at Payout (sum of value_at_payout field)
-    gross_value_at_payout = payouts.aggregate(total=Sum('value_at_payout'))['total'] or 0
-    gross_value_at_payout = float(gross_value_at_payout)
-    
-    # Calculate Appreciation (Current Gross Value - Gross Value at Payout)
-    appreciation = current_gross_value - gross_value_at_payout
-    
-    # Calculate Total OPEX (sum of all OPEX expenses)
-    expenses = Expense.objects.filter(category='OPEX')
-    if selected_platform:
-        expenses = expenses.filter(platform=selected_platform)
-    total_opex = expenses.aggregate(total=Sum('expense_amount'))['total'] or Decimal('0')
-    total_opex = float(total_opex)
-    
-    # Calculate Current Net Value (Current Gross Value - Total OPEX)
-    current_net_value = current_gross_value - total_opex
-    
     # Sheet 1: Overview Summary
     ws_summary = wb.add_sheet('Overview Summary')
     
@@ -1812,32 +1286,24 @@ def export_overview_data(request):
     ws_hashrate_platform = wb.add_sheet('Hashrate by Platform')
     ws_hashrate_platform.write(0, 0, 'Platform')
     ws_hashrate_platform.write(0, 1, 'Hashrate (TH/s)')
-    
+
     platform_row = 1
-    export_platform_list = [selected_platform] if selected_platform else RemoteMiningPlatform.objects.all()
-    for platform in export_platform_list:
-        platform_miners = platform.miners.filter(hashrate__isnull=False, power__isnull=False)
-        platform_hashrate = platform_miners.aggregate(total=Sum('hashrate'))['total'] or 0
-        if platform_hashrate > 0:
-            ws_hashrate_platform.write(platform_row, 0, platform.name)
-            ws_hashrate_platform.write(platform_row, 1, float(platform_hashrate))
-            platform_row += 1
-    
+    for item in data['hashrate_by_platform']:
+        ws_hashrate_platform.write(platform_row, 0, item['platform'])
+        ws_hashrate_platform.write(platform_row, 1, item['hashrate'])
+        platform_row += 1
+
     # Sheet 3: Hashrate by Location
     ws_hashrate_location = wb.add_sheet('Hashrate by Location')
     ws_hashrate_location.write(0, 0, 'Location')
     ws_hashrate_location.write(0, 1, 'Hashrate (TH/s)')
-    
+
     location_row = 1
-    locations = miners.values_list('location', flat=True).distinct()
-    for location in locations:
-        if location:
-            location_hashrate = miners.filter(location=location).aggregate(total=Sum('hashrate'))['total'] or 0
-            if location_hashrate > 0:
-                ws_hashrate_location.write(location_row, 0, location)
-                ws_hashrate_location.write(location_row, 1, float(location_hashrate))
-                location_row += 1
-    
+    for item in data['hashrate_by_location']:
+        ws_hashrate_location.write(location_row, 0, item['location'])
+        ws_hashrate_location.write(location_row, 1, item['hashrate'])
+        location_row += 1
+
     # Sheet 4: Revenue by Platform
     ws_revenue_platform = wb.add_sheet('Revenue by Platform')
     ws_revenue_platform.write(0, 0, 'Platform')
@@ -1845,21 +1311,15 @@ def export_overview_data(request):
     ws_revenue_platform.write(0, 2, 'Gross Value (USD)')
     ws_revenue_platform.write(0, 3, 'Gross Value at Payout (USD)')
     ws_revenue_platform.write(0, 4, 'Payout Count')
-    
+
     revenue_row = 1
-    for platform in export_platform_list:
-        platform_btc = platform.payouts.aggregate(total=Sum('payout_amount'))['total'] or 0
-        platform_payouts = platform.payouts.count()
-        if platform_btc > 0:
-            platform_value = float(platform_btc) * float(bitcoin_price) if bitcoin_price else 0
-            platform_gross_value_at_payout = platform.payouts.aggregate(total=Sum('value_at_payout'))['total'] or 0
-            platform_gross_value_at_payout = float(platform_gross_value_at_payout)
-            ws_revenue_platform.write(revenue_row, 0, platform.name)
-            ws_revenue_platform.write(revenue_row, 1, float(platform_btc))
-            ws_revenue_platform.write(revenue_row, 2, round(float(platform_value), 2))
-            ws_revenue_platform.write(revenue_row, 3, round(float(platform_gross_value_at_payout), 2))
-            ws_revenue_platform.write(revenue_row, 4, platform_payouts)
-            revenue_row += 1
+    for item in data['revenue_by_platform']:
+        ws_revenue_platform.write(revenue_row, 0, item['platform'])
+        ws_revenue_platform.write(revenue_row, 1, item['btc_mined'])
+        ws_revenue_platform.write(revenue_row, 2, round(item['gross_value'], 2))
+        ws_revenue_platform.write(revenue_row, 3, round(item['gross_value_at_payout'], 2))
+        ws_revenue_platform.write(revenue_row, 4, item['payout_count'])
+        revenue_row += 1
     
     response = HttpResponse(
         content_type='application/vnd.ms-excel'
@@ -2398,401 +1858,44 @@ def import_topup_data(request):
 
 def forecasting_dashboard(request):
     """Forecasting Dashboard with BTC mining profitability calculations"""
-    from decimal import Decimal
-    from django.db.models import Sum, Avg
-    
-    # Gather all required data from database models
-    api_data = APIData.get_api_data()
-    settings = Settings.get_settings()
-    
-    # Platform filter
-    platforms = RemoteMiningPlatform.objects.all()
-    selected_platform_id = request.GET.get('platform', '')
-    selected_platform = None
-    if selected_platform_id:
-        try:
-            selected_platform = RemoteMiningPlatform.objects.get(pk=selected_platform_id)
-        except (RemoteMiningPlatform.DoesNotExist, ValueError):
-            selected_platform = None
-    
-    # Get miners with valid hashrate and power data, only active miners
-    total_miner_count = Miner.objects.count()
-    miners = Miner.objects.select_related('platform').filter(hashrate__isnull=False, power__isnull=False, is_active=True)
-    if selected_platform:
-        miners = miners.filter(platform=selected_platform)
-
-    # Get total hashrate
-    total_hashrate = miners.aggregate(total=Sum('hashrate'))['total'] or Decimal('0')
-
-    # Get miner count (accounted for on dashboard)
-    miner_count = miners.count()
-
-    # Get total hardware cost (sum of miner purchase prices)
-    total_capex = miners.aggregate(total=Sum('purchase_price'))['total'] or Decimal('0')
-
-    # Calculate hashrate weighted average efficiency
-    hashrate_weighted_efficiency = Decimal('0')
-    if total_hashrate > 0:
-        total_weighted = Decimal('0')
-        for miner in miners.filter(efficiency__isnull=False):
-            total_weighted += miner.hashrate * miner.efficiency
-        hashrate_weighted_efficiency = total_weighted / total_hashrate if total_weighted > 0 else Decimal('0')
-
-    # Calculate hashrate weighted average energy cost (denominator = only miners with energy prices)
-    hashrate_weighted_energy_cost = Decimal('0')
-    if total_hashrate > 0:
-        total_weighted = Decimal('0')
-        total_hashrate_with_energy = Decimal('0')
-        for miner in miners.filter(platform__energy_price__isnull=False):
-            total_weighted += miner.hashrate * miner.platform.energy_price
-            total_hashrate_with_energy += miner.hashrate
-        if total_hashrate_with_energy > 0:
-            hashrate_weighted_energy_cost = total_weighted / total_hashrate_with_energy
-
-    # Simple average efficiency
-    avg_efficiency = miners.filter(efficiency__isnull=False).aggregate(avg=Avg('efficiency'))['avg'] or Decimal('0')
-    if avg_efficiency:
-        avg_efficiency = round(float(avg_efficiency), 2)
-
-    # Simple average energy cost
-    miners_with_energy = miners.filter(platform__energy_price__isnull=False)
-    avg_energy_cost = miners_with_energy.aggregate(avg=Avg('platform__energy_price'))['avg'] or Decimal('0')
-    if avg_energy_cost:
-        avg_energy_cost = round(float(avg_energy_cost), 6)
-
-    # Get data from API and settings
-    network_difficulty = api_data.network_difficulty or 0
-    network_hashrate_ehs = float(api_data.network_hashrate_ehs or Decimal('0'))
-    avg_tx_fees = float(api_data.avg_block_fees_24h or Decimal('0'))
-    pool_fee = float(settings.pool_fee_percentage)
-    btc_price_usd = float(api_data.bitcoin_price_usd or Decimal('0'))
-    price_per_kwh = float(hashrate_weighted_energy_cost)
-    efficiency_w_th = float(hashrate_weighted_efficiency)
-    hardware_cost_usd = float(total_capex)
-
-    # Perform calculations using difficulty-based formula
-    results = None
-    if total_hashrate > 0 and network_difficulty > 0 and btc_price_usd > 0:
-        # Convert hashrate to H/s
-        miner_hashrate_hs = float(total_hashrate) * 1e12  # TH/s to H/s
-        
-        # Hashrate share for display purposes only
-        network_hashrate_hs = network_hashrate_ehs * 1e18 if network_hashrate_ehs > 0 else 0  # EH/s to H/s
-        hashrate_share_percent = (miner_hashrate_hs / network_hashrate_hs * 100) if network_hashrate_hs > 0 else 0
-        
-        # Daily mining calculations using difficulty-based formula
-        # Expected blocks per day = (hashrate * 86400) / (difficulty * 2^32)
-        block_reward = float(settings.block_reward) + avg_tx_fees
-        expected_blocks_per_day = (miner_hashrate_hs * 86400) / (network_difficulty * 2**32)
-        daily_btc_gross_before_fee = expected_blocks_per_day * block_reward
-        pool_fee_btc = daily_btc_gross_before_fee * (pool_fee / 100)
-        daily_btc_after_fee = daily_btc_gross_before_fee - pool_fee_btc
-        
-        # Power and energy calculations
-        miner_hashrate_ths = miner_hashrate_hs / 1e12
-        power_watts = miner_hashrate_ths * efficiency_w_th
-        daily_energy_kwh = (power_watts * 24) / 1000
-        daily_electricity_cost_usd = daily_energy_kwh * price_per_kwh
-        daily_electricity_cost_btc = daily_electricity_cost_usd / btc_price_usd if btc_price_usd > 0 else 0
-        
-        # Calculate electricity cost as percentage of mined BTC
-        energy_cost_percentage = (daily_electricity_cost_btc / daily_btc_after_fee * 100) if daily_btc_after_fee > 0 else 0
-        
-        # USD calculations
-        daily_usd_gross = daily_btc_gross_before_fee * btc_price_usd
-        daily_usd_after_fee = daily_btc_after_fee * btc_price_usd
-        daily_usd_net = daily_usd_after_fee - daily_electricity_cost_usd
-        daily_btc_net = daily_usd_net / btc_price_usd if btc_price_usd > 0 else 0
-        
-        # Cost basis calculation
-        total_cost_usd = (pool_fee_btc * btc_price_usd) + daily_electricity_cost_usd
-        cost_basis_usd_per_btc = total_cost_usd / daily_btc_after_fee if daily_btc_after_fee > 0 else 0
-        discount_vs_market_pct = -1 * ((btc_price_usd - cost_basis_usd_per_btc) / btc_price_usd * 100) if btc_price_usd > 0 else 0
-        
-        # Net profit margin
-        margin = (daily_usd_net / daily_usd_gross * 100) if daily_usd_gross > 0 else 0
-        
-        # Time calculations (using BTC after pool fee but before electricity, matching original script)
-        days_to_mine_1_btc = 1 / daily_btc_after_fee if daily_btc_after_fee > 0 else float('inf')
-        days_to_mine_small_btc = 0.005 / daily_btc_after_fee if daily_btc_after_fee > 0 else float('inf')
-        
-        # ROI calculation
-        roi_data = None
-        if hardware_cost_usd > 0:
-            if daily_usd_net > 0:
-                days_to_roi = hardware_cost_usd / daily_usd_net
-                years_roi = days_to_roi / 365
-                months_roi = (years_roi - int(years_roi)) * 12
-                days_roi = (months_roi - int(months_roi)) * 30
-                roi_data = {
-                    'days_to_roi': days_to_roi,
-                    'time_breakdown': {
-                        'years': int(years_roi),
-                        'months': int(months_roi),
-                        'days': int(days_roi)
-                    }
-                }
-            else:
-                roi_data = {
-                    'days_to_roi': float('inf'),
-                    'time_breakdown': {
-                        'years': 0,
-                        'months': 0,
-                        'days': 0
-                    }
-                }
-        
-        results = {
-            'network_hashrate_ehs': network_hashrate_ehs,
-            'hashrate_share_percent': hashrate_share_percent,
-            'power_consumption_watts': power_watts,
-            'power_consumption_kw': power_watts / 1000,
-            'daily_energy_kwh': daily_energy_kwh,
-            'energy_cost_percentage': energy_cost_percentage,
-            'margin': margin,
-            'days_to_mine_1_btc': days_to_mine_1_btc,
-            'time_to_mine_1_btc': {
-                'years': int(days_to_mine_1_btc / 365) if days_to_mine_1_btc != float('inf') else 0,
-                'months': int((days_to_mine_1_btc % 365) / 30) if days_to_mine_1_btc != float('inf') else 0,
-                'days': int(days_to_mine_1_btc % 30) if days_to_mine_1_btc != float('inf') else 0
-            },
-            'days_to_mine_small_btc': days_to_mine_small_btc,
-            'time_to_mine_small_btc': {
-                'years': int(days_to_mine_small_btc / 365) if days_to_mine_small_btc != float('inf') else 0,
-                'months': int((days_to_mine_small_btc % 365) / 30) if days_to_mine_small_btc != float('inf') else 0,
-                'days': int(days_to_mine_small_btc % 30) if days_to_mine_small_btc != float('inf') else 0
-            },
-            'roi_data': roi_data,
-            'daily': {
-                'btc_gross': daily_btc_gross_before_fee,
-                'btc_fee': pool_fee_btc,
-                'btc_after_fee': daily_btc_after_fee,
-                'btc_net': daily_btc_net,
-                'usd_gross': daily_usd_gross,
-                'usd_fee': daily_usd_gross - daily_usd_after_fee,
-                'usd_after_fee': daily_usd_after_fee,
-                'usd_net': daily_usd_net,
-                'electricity_cost_usd': daily_electricity_cost_usd,
-                'electricity_cost_btc': daily_electricity_cost_btc
-            },
-            'monthly': {
-                'btc_gross': daily_btc_gross_before_fee * 30,
-                'btc_fee': pool_fee_btc * 30,
-                'btc_after_fee': daily_btc_after_fee * 30,
-                'btc_net': daily_btc_net * 30,
-                'usd_gross': daily_usd_gross * 30,
-                'usd_fee': (daily_usd_gross - daily_usd_after_fee) * 30,
-                'usd_after_fee': daily_usd_after_fee * 30,
-                'usd_net': daily_usd_net * 30,
-                'electricity_cost_usd': daily_electricity_cost_usd * 30,
-                'electricity_cost_btc': daily_electricity_cost_btc * 30
-            },
-            'yearly': {
-                'btc_gross': daily_btc_gross_before_fee * 365,
-                'btc_fee': pool_fee_btc * 365,
-                'btc_after_fee': daily_btc_after_fee * 365,
-                'btc_net': daily_btc_net * 365,
-                'usd_gross': daily_usd_gross * 365,
-                'usd_fee': (daily_usd_gross - daily_usd_after_fee) * 365,
-                'usd_after_fee': daily_usd_after_fee * 365,
-                'usd_net': daily_usd_net * 365,
-                'electricity_cost_usd': daily_electricity_cost_usd * 365,
-                'electricity_cost_btc': daily_electricity_cost_btc * 365
-            },
-            'cost_basis': {
-                'cost_basis_usd_per_btc': cost_basis_usd_per_btc,
-                'discount_vs_market_pct': discount_vs_market_pct
-            }
-        }
-    
-    context = {
-        # Platform filter
-        'platforms': platforms,
-        'selected_platform': selected_platform,
-        # Input parameters
-        'total_hashrate': total_hashrate,
-        'miner_count': miner_count,
-        'total_miner_count': total_miner_count,
-        'network_difficulty': network_difficulty,
-        'network_hashrate_ehs': network_hashrate_ehs,
-        'avg_tx_fees': avg_tx_fees,
-        'pool_fee': pool_fee,
-        'btc_price_usd': btc_price_usd,
-        'price_per_kwh': price_per_kwh,
-        'efficiency_w_th': efficiency_w_th,
-        'hardware_cost_usd': hardware_cost_usd,
-        # Efficiency & Energy KPIs
-        'avg_efficiency': avg_efficiency,
-        'hashrate_weighted_efficiency': round(float(hashrate_weighted_efficiency), 2),
-        'avg_energy_cost': avg_energy_cost,
-        'hashrate_weighted_energy_cost': round(float(hashrate_weighted_energy_cost), 6),
-        # Calculation results
-        'results': results,
-    }
-    
-    return render(request, 'mining/forecasting_dashboard.html', context)
+    selected_platform = resolve_selected_platform(request.GET.get('platform', ''))
+    data = get_forecasting_data(selected_platform)
+    return render(request, 'mining/forecasting_dashboard.html', data)
 
 
 def export_forecasting_data(request):
-    """Export forecasting dashboard data to Excel file - EXACT COPY of dashboard calculations"""
-    from decimal import Decimal
-    from django.db.models import Sum, Avg
-    import xlwt
-    
+    """Export forecasting dashboard data to Excel file"""
     wb = xlwt.Workbook()
-    
-    # EXACT COPY of forecasting_dashboard function logic
-    api_data = APIData.get_api_data()
-    settings = Settings.get_settings()
-    
-    # Platform filter
-    selected_platform_id = request.GET.get('platform', '')
-    selected_platform = None
-    selected_platform_name = 'All Platforms'
-    if selected_platform_id:
-        try:
-            selected_platform = RemoteMiningPlatform.objects.get(pk=selected_platform_id)
-            selected_platform_name = selected_platform.name
-        except (RemoteMiningPlatform.DoesNotExist, ValueError):
-            selected_platform = None
-    
-    # Get miners with valid hashrate and power data, only active miners
-    total_miner_count = Miner.objects.count()
-    miners = Miner.objects.select_related('platform').filter(hashrate__isnull=False, power__isnull=False, is_active=True)
-    if selected_platform:
-        miners = miners.filter(platform=selected_platform)
+    selected_platform = resolve_selected_platform(request.GET.get('platform', ''))
+    data = get_forecasting_data(selected_platform)
+    selected_platform_name = selected_platform.name if selected_platform else 'All Platforms'
+    total_hashrate = data['total_hashrate']
+    miner_count = data['miner_count']
+    total_miner_count = data['total_miner_count']
+    network_difficulty = data['network_difficulty']
+    network_hashrate_ehs = data['network_hashrate_ehs']
+    avg_tx_fees = data['avg_tx_fees']
+    pool_fee = data['pool_fee']
+    btc_price_usd = data['btc_price_usd']
+    avg_efficiency = data['avg_efficiency']
+    hashrate_weighted_efficiency = data['hashrate_weighted_efficiency']
+    avg_energy_cost = data['avg_energy_cost']
+    hashrate_weighted_energy_cost = data['hashrate_weighted_energy_cost']
+    results = data['results']
 
-    # Get total hashrate
-    total_hashrate = miners.aggregate(total=Sum('hashrate'))['total'] or Decimal('0')
-
-    # Get miner count (accounted for on dashboard)
-    miner_count = miners.count()
-
-    # Get total hardware cost (sum of miner purchase prices)
-    total_capex = miners.aggregate(total=Sum('purchase_price'))['total'] or Decimal('0')
-
-    # Calculate hashrate weighted average efficiency
-    hashrate_weighted_efficiency = Decimal('0')
-    if total_hashrate > 0:
-        total_weighted = Decimal('0')
-        for miner in miners.filter(efficiency__isnull=False):
-            total_weighted += miner.hashrate * miner.efficiency
-        hashrate_weighted_efficiency = total_weighted / total_hashrate if total_weighted > 0 else Decimal('0')
-
-    # Calculate hashrate weighted average energy cost (denominator = only miners with energy prices)
-    hashrate_weighted_energy_cost = Decimal('0')
-    if total_hashrate > 0:
-        total_weighted = Decimal('0')
-        total_hashrate_with_energy = Decimal('0')
-        for miner in miners.filter(platform__energy_price__isnull=False):
-            total_weighted += miner.hashrate * miner.platform.energy_price
-            total_hashrate_with_energy += miner.hashrate
-        if total_hashrate_with_energy > 0:
-            hashrate_weighted_energy_cost = total_weighted / total_hashrate_with_energy
-
-    # Simple average efficiency
-    avg_efficiency = miners.filter(efficiency__isnull=False).aggregate(avg=Avg('efficiency'))['avg'] or Decimal('0')
-    if avg_efficiency:
-        avg_efficiency = round(float(avg_efficiency), 2)
-
-    # Simple average energy cost
-    miners_with_energy = miners.filter(platform__energy_price__isnull=False)
-    avg_energy_cost = miners_with_energy.aggregate(avg=Avg('platform__energy_price'))['avg'] or Decimal('0')
-    if avg_energy_cost:
-        avg_energy_cost = round(float(avg_energy_cost), 6)
-    
-    # Get data from API and settings
-    network_difficulty = api_data.network_difficulty or 0
-    network_hashrate_ehs = float(api_data.network_hashrate_ehs or Decimal('0'))
-    avg_tx_fees = float(api_data.avg_block_fees_24h or Decimal('0'))
-    pool_fee = float(settings.pool_fee_percentage)
-    btc_price_usd = float(api_data.bitcoin_price_usd or Decimal('0'))
-    price_per_kwh = float(hashrate_weighted_energy_cost)
-    efficiency_w_th = float(hashrate_weighted_efficiency)
-    hardware_cost_usd = float(total_capex)
-    
     # Check if we have required data
-    if not api_data:
+    if results is None:
         ws = wb.add_sheet('Error')
-        ws.write(0, 0, 'Error: API data not available')
-    elif total_hashrate == 0:
-        ws = wb.add_sheet('Error')
-        ws.write(0, 0, 'Error: No miners with hashrate data available')
-    elif network_difficulty <= 0 or btc_price_usd <= 0:
-        ws = wb.add_sheet('Error')
-        ws.write(0, 0, 'Error: Invalid network difficulty or price data')
+        ws.write(0, 0, 'Error: Insufficient data (missing miners, API data, or network difficulty)')
     else:
-        # EXACT SAME CALCULATIONS AS DASHBOARD
-        # Convert hashrate to H/s
-        miner_hashrate_hs = float(total_hashrate) * 1e12  # TH/s to H/s
-        
-        # Hashrate share for display purposes only
-        network_hashrate_hs = network_hashrate_ehs * 1e18 if network_hashrate_ehs > 0 else 0  # EH/s to H/s
-        hashrate_share_percent = (miner_hashrate_hs / network_hashrate_hs * 100) if network_hashrate_hs > 0 else 0
-        
-        # Daily mining calculations using difficulty-based formula
-        # Expected blocks per day = (hashrate * 86400) / (difficulty * 2^32)
-        block_reward = float(settings.block_reward) + avg_tx_fees
-        expected_blocks_per_day = (miner_hashrate_hs * 86400) / (network_difficulty * 2**32)
-        daily_btc_gross_before_fee = expected_blocks_per_day * block_reward
-        pool_fee_btc = daily_btc_gross_before_fee * (pool_fee / 100)
-        daily_btc_after_fee = daily_btc_gross_before_fee - pool_fee_btc
-        
-        # Power and energy calculations
-        miner_hashrate_ths = miner_hashrate_hs / 1e12
-        power_watts = miner_hashrate_ths * efficiency_w_th
-        daily_energy_kwh = (power_watts * 24) / 1000
-        daily_electricity_cost_usd = daily_energy_kwh * price_per_kwh
-        daily_electricity_cost_btc = daily_electricity_cost_usd / btc_price_usd if btc_price_usd > 0 else 0
-        
-        # Calculate electricity cost as percentage of mined BTC
-        energy_cost_percentage = (daily_electricity_cost_btc / daily_btc_after_fee * 100) if daily_btc_after_fee > 0 else 0
-        
-        # USD calculations
-        daily_usd_gross = daily_btc_gross_before_fee * btc_price_usd
-        daily_usd_after_fee = daily_btc_after_fee * btc_price_usd
-        daily_usd_net = daily_usd_after_fee - daily_electricity_cost_usd
-        daily_btc_net = daily_usd_net / btc_price_usd if btc_price_usd > 0 else 0
-        
-        # Cost basis calculation
-        total_cost_usd = (pool_fee_btc * btc_price_usd) + daily_electricity_cost_usd
-        cost_basis_usd_per_btc = total_cost_usd / daily_btc_after_fee if daily_btc_after_fee > 0 else 0
-        discount_vs_market_pct = -1 * ((btc_price_usd - cost_basis_usd_per_btc) / btc_price_usd * 100) if btc_price_usd > 0 else 0
-        
-        # Net profit margin
-        margin = (daily_usd_net / daily_usd_gross * 100) if daily_usd_gross > 0 else 0
-        
-        # Time calculations (using BTC after pool fee but before electricity, matching original script)
-        days_to_mine_1_btc = 1 / daily_btc_after_fee if daily_btc_after_fee > 0 else float('inf')
-        days_to_mine_small_btc = 0.005 / daily_btc_after_fee if daily_btc_after_fee > 0 else float('inf')
-        
-        # ROI calculation
-        roi_data = None
-        if hardware_cost_usd > 0:
-            if daily_usd_net > 0:
-                days_to_roi = hardware_cost_usd / daily_usd_net
-                years_roi = days_to_roi / 365
-                months_roi = (years_roi - int(years_roi)) * 12
-                days_roi = (months_roi - int(months_roi)) * 30
-                roi_data = {
-                    'days_to_roi': days_to_roi,
-                    'time_breakdown': {
-                        'years': int(years_roi),
-                        'months': int(months_roi),
-                        'days': int(days_roi)
-                    }
-                }
-            else:
-                roi_data = {
-                    'days_to_roi': float('inf'),
-                    'time_breakdown': {
-                        'years': 0,
-                        'months': 0,
-                        'days': 0
-                    }
-                }
-        
-        # Time formatting function
+        power_watts = results['power_consumption_watts']
+        margin = results['margin']
+        energy_cost_percentage = results['energy_cost_percentage']
+        hashrate_share_percent = results['hashrate_share_percent']
+        days_to_mine_1_btc = results['days_to_mine_1_btc']
+        days_to_mine_small_btc = results['days_to_mine_small_btc']
+        roi_data = results['roi_data']
+
         def format_time_breakdown(days_total):
             if days_total == float('inf'):
                 return 'Never (not profitable)'
@@ -2800,10 +1903,10 @@ def export_forecasting_data(request):
             months = int((days_total % 365) / 30)
             remaining_days = int(days_total % 30)
             return f"{years} years, {months} months, {remaining_days} days"
-        
+
         time_to_mine_1_btc = format_time_breakdown(days_to_mine_1_btc)
         time_to_mine_small_btc = format_time_breakdown(days_to_mine_small_btc)
-        
+
         # Sheet 1: Forecasting Summary
         ws_summary = wb.add_sheet('Forecasting Summary')
         ws_summary.write(0, 0, 'Metric Category')
