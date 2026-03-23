@@ -1,7 +1,8 @@
 # Status
 
 ## Recent Changes
-- `PENDING` Switch staticfiles from named Docker volume to bind mount, remove manual copy steps from DEPLOYMENT.md
+- `PENDING` Fix step numbering in DEPLOYMENT.md after removing collectstatic sections
+- `6ef5549` Switch staticfiles from named Docker volume to bind mount, remove manual copy steps from DEPLOYMENT.md
 - `bc6d9aa` Add DEPLOYMENT.md (VPS + LAN deployment with Nginx, Certbot, self-signed certs) and update README.md with git pull update instructions
 - `19e4ced` Add README.md with project description, installation guide, Docker commands, and project structure
 - `e7f20ec` Add tmp_dir/ to .gitignore

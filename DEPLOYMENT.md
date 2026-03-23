@@ -137,7 +137,7 @@ Verify auto-renewal is working:
 sudo certbot renew --dry-run
 ```
 
-### 4. Verify
+### 3. Verify
 
 Open `https://mining.example.com` in your browser. You should see a valid HTTPS connection with the Let's Encrypt certificate.
 
@@ -335,7 +335,7 @@ Firefox uses its own certificate store and does not use the OS store.
 
 Safari uses the macOS system keychain. Follow the same macOS steps described above for Chrome.
 
-### 5. Verify
+### 4. Verify
 
 Open `https://192.168.1.50` (your server's LAN IP) in your browser. After importing the CA certificate, you should see a valid HTTPS connection with no warnings.
 
