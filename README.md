@@ -58,6 +58,8 @@ A self-hosted Django web application for managing and analyzing a Bitcoin mining
 
 ## Installation
 
+The steps below cover a **local installation** for development or personal use. For deploying to a **VPS or LAN server** with Nginx and HTTPS, see the [Deployment Guide](DEPLOYMENT.md).
+
 ### 1. Clone the repository
 
 ```bash
