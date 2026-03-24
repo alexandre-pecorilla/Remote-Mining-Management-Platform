@@ -1,7 +1,8 @@
 # Status
 
 ## Recent Changes
-- `PENDING` Update homepage subtitle, add GitHub link in footer, collectstatic fix for theme.css
+- `PENDING` Serve static/media files regardless of DEBUG setting so Gunicorn serves them without Nginx
+- `3b573c2` Update homepage subtitle, add GitHub link in footer
 - `ade27c6` Full frontend redesign: dark-only crypto/Web3 theme, remove dark_mode toggle, new theme.css, redesign all 28 templates, fix static file serving with Gunicorn, fix middleware blocking static/media requests
 - `3e461f7` Add deployment guide link to README, remove Quick Info section from homepage
 - `ffe80a9` Add CSRF_TRUSTED_ORIGINS to DEPLOYMENT.md and README.md examples and variable tables
