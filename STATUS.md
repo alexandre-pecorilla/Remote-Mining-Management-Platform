@@ -1,7 +1,8 @@
 # Status
 
 ## Recent Changes
-- `PENDING` Full frontend redesign: dark-only crypto/Web3 theme, remove dark_mode toggle, new theme.css, redesign all 28 templates, fix static file serving with Gunicorn, fix middleware blocking static/media requests
+- `PENDING` Update homepage subtitle, add GitHub link in footer, collectstatic fix for theme.css
+- `ade27c6` Full frontend redesign: dark-only crypto/Web3 theme, remove dark_mode toggle, new theme.css, redesign all 28 templates, fix static file serving with Gunicorn, fix middleware blocking static/media requests
 - `3e461f7` Add deployment guide link to README, remove Quick Info section from homepage
 - `ffe80a9` Add CSRF_TRUSTED_ORIGINS to DEPLOYMENT.md and README.md examples and variable tables
 - `ea7a3dc` Add CSRF_TRUSTED_ORIGINS env var for HTTPS reverse proxy, add sudo to all openssl commands in DEPLOYMENT.md, fix curl verification, fix secret key generation command in README
