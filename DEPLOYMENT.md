@@ -55,6 +55,16 @@ WEB_PORT=8000
 > python3 -c "import secrets; print(secrets.token_urlsafe(50))"
 > ```
 
+**`DJANGO_ALLOWED_HOSTS` must include every hostname or IP that clients will use to reach the app.** Django rejects requests with unrecognized `Host` headers. Examples:
+
+```env
+# VPS with a domain
+DJANGO_ALLOWED_HOSTS=mining.example.com
+
+# LAN with the server's IP
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.50
+```
+
 Build and start the application:
 
 ```bash
@@ -64,8 +74,10 @@ docker compose up -d --build
 Verify it's running:
 
 ```bash
-curl -s http://localhost:8000 | head -5
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8000
 ```
+
+A `200` or `302` response means the app is up. A `302` is expected if `APP_PASSWORD` is set (redirect to login).
 
 ---
 
@@ -159,10 +171,10 @@ Generate a Certificate Authority (CA) key and certificate. This CA will sign you
 
 ```bash
 # Generate CA private key
-openssl genrsa -out /etc/nginx/ssl/ca.key 4096
+sudo openssl genrsa -out /etc/nginx/ssl/ca.key 4096
 
 # Generate CA certificate (valid 10 years)
-openssl req -x509 -new -nodes \
+sudo openssl req -x509 -new -nodes \
     -key /etc/nginx/ssl/ca.key \
     -sha256 -days 3650 \
     -out /etc/nginx/ssl/ca.crt \
@@ -173,10 +185,10 @@ Generate the server certificate signed by your CA:
 
 ```bash
 # Generate server private key
-openssl genrsa -out /etc/nginx/ssl/server.key 2048
+sudo openssl genrsa -out /etc/nginx/ssl/server.key 2048
 
 # Create a config file for the certificate with Subject Alternative Names
-cat > /etc/nginx/ssl/server.cnf << 'EOF'
+sudo tee /etc/nginx/ssl/server.cnf > /dev/null << 'EOF'
 [req]
 default_bits = 2048
 prompt = no
@@ -206,13 +218,13 @@ EOF
 
 ```bash
 # Generate Certificate Signing Request (CSR)
-openssl req -new \
+sudo openssl req -new \
     -key /etc/nginx/ssl/server.key \
     -out /etc/nginx/ssl/server.csr \
     -config /etc/nginx/ssl/server.cnf
 
 # Sign the server certificate with your CA (valid 2 years)
-openssl x509 -req \
+sudo openssl x509 -req \
     -in /etc/nginx/ssl/server.csr \
     -CA /etc/nginx/ssl/ca.crt \
     -CAkey /etc/nginx/ssl/ca.key \

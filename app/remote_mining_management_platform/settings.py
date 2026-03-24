@@ -37,6 +37,10 @@ APP_PASSWORD = os.environ.get('APP_PASSWORD', '')
 
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
+# Trusted origins for CSRF protection (required when behind a reverse proxy with HTTPS)
+_csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_origins.split(',') if o.strip()]
+
 
 
 # Application definition

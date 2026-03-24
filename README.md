@@ -96,7 +96,7 @@ WEB_PORT=8000
 
 | Variable                | Description                                                                 |
 | ----------------------- | --------------------------------------------------------------------------- |
-| `DJANGO_SECRET_KEY`     | Django secret key. Generate one with `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"` |
+| `DJANGO_SECRET_KEY`     | Django secret key. Generate one with `python3 -c "import secrets; print(secrets.token_urlsafe(50))"` |
 | `DJANGO_DEBUG`          | Set to `False` in production                                                |
 | `DJANGO_ALLOWED_HOSTS`  | Comma-separated list of allowed hostnames                                   |
 | `COINMARKETCAP_API_KEY` | Your CoinMarketCap API key                                                  |
