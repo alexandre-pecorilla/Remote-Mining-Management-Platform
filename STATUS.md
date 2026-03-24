@@ -1,7 +1,8 @@
 # Status
 
 ## Recent Changes
-- `PENDING` Add CSRF_TRUSTED_ORIGINS env var for HTTPS reverse proxy, add sudo to all openssl commands in DEPLOYMENT.md, fix curl verification, fix secret key generation command in README
+- `PENDING` Add CSRF_TRUSTED_ORIGINS to DEPLOYMENT.md and README.md examples and variable tables
+- `ea7a3dc` Add CSRF_TRUSTED_ORIGINS env var for HTTPS reverse proxy, add sudo to all openssl commands in DEPLOYMENT.md, fix curl verification, fix secret key generation command in README
 - `980b742` Fix step numbering in DEPLOYMENT.md after removing collectstatic sections
 - `6ef5549` Switch staticfiles from named Docker volume to bind mount, remove manual copy steps from DEPLOYMENT.md
 - `bc6d9aa` Add DEPLOYMENT.md (VPS + LAN deployment with Nginx, Certbot, self-signed certs) and update README.md with git pull update instructions

@@ -43,6 +43,7 @@ Edit `.env` with production values:
 DJANGO_SECRET_KEY=<generate-a-random-key>
 DJANGO_DEBUG=False
 DJANGO_ALLOWED_HOSTS=your-domain.com,your-server-ip
+CSRF_TRUSTED_ORIGINS=https://your-domain.com,https://your-server-ip
 COINMARKETCAP_API_KEY=your-api-key
 APP_PASSWORD=your-password
 POSTGRES_PASSWORD=a-strong-random-password
@@ -60,10 +61,14 @@ WEB_PORT=8000
 ```env
 # VPS with a domain
 DJANGO_ALLOWED_HOSTS=mining.example.com
+CSRF_TRUSTED_ORIGINS=https://mining.example.com
 
-# LAN with the server's IP
-DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.50
+# LAN with the server's IP and hostname
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.50,myserver,myserver.lan
+CSRF_TRUSTED_ORIGINS=https://192.168.1.50,https://myserver,https://myserver.lan
 ```
+
+`CSRF_TRUSTED_ORIGINS` is required when serving over HTTPS behind a reverse proxy (Nginx). Each entry must include the `https://` prefix.
 
 Build and start the application:
 

@@ -77,6 +77,7 @@ Edit `.env` with your values:
 DJANGO_SECRET_KEY=your-random-secret-key
 DJANGO_DEBUG=True
 DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+CSRF_TRUSTED_ORIGINS=
 COINMARKETCAP_API_KEY=your-cmc-api-key
 APP_PASSWORD=
 
@@ -98,7 +99,8 @@ WEB_PORT=8000
 | ----------------------- | --------------------------------------------------------------------------- |
 | `DJANGO_SECRET_KEY`     | Django secret key. Generate one with `python3 -c "import secrets; print(secrets.token_urlsafe(50))"` |
 | `DJANGO_DEBUG`          | Set to `False` in production                                                |
-| `DJANGO_ALLOWED_HOSTS`  | Comma-separated list of allowed hostnames                                   |
+| `DJANGO_ALLOWED_HOSTS`  | Comma-separated list of allowed hostnames/IPs                               |
+| `CSRF_TRUSTED_ORIGINS`  | Required for HTTPS. Comma-separated origins with `https://` prefix          |
 | `COINMARKETCAP_API_KEY` | Your CoinMarketCap API key                                                  |
 | `APP_PASSWORD`          | Set a password to protect the app. Leave empty to disable                   |
 | `POSTGRES_PASSWORD`     | PostgreSQL password. Change from default                                    |
