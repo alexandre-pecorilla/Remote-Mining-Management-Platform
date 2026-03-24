@@ -1,233 +1,126 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load humanize %}
 
-{% block title %}Remote Mining Management Platform{% endblock %}
+{% block title %}Mining Manager{% endblock %}
 
 {% block content %}
+<!-- Hero Section -->
 <div class="text-center mb-5">
-    <h1 class="display-4 mb-3">
-        <i class="fas fa-coins text-warning"></i> 
-        Remote Mining Management Platform
-    </h1>
-    <p class="lead text-muted">Comprehensive Bitcoin mining operations management system</p>
+    <h1 class="display-4 hero-gradient-text">Mining Manager</h1>
+    <p class="lead text-secondary">Bitcoin Mining Operations Dashboard</p>
 </div>
 
-<!-- Dashboard Section -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h4><i class="fas fa-chart-bar text-info"></i> Dashboards</h4>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-lg-3 col-md-6 mb-3">
-                        <a href="{% url 'overview_dashboard' %}" class="btn btn-outline-info btn-lg w-100 h-100 d-flex flex-column justify-content-center">
-                            <i class="fas fa-tachometer-alt fa-2x mb-2"></i>
-                            <h5 class="mb-1">Overview Dashboard</h5>
-                            <small class="text-muted">Analytics, metrics, and insights</small>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6 mb-3">
-                        <a href="{% url 'forecasting_dashboard' %}" class="btn btn-outline-success btn-lg w-100 h-100 d-flex flex-column justify-content-center">
-                            <i class="fas fa-chart-line fa-2x mb-2"></i>
-                            <h5 class="mb-1">Forecasting Dashboard</h5>
-                            <small class="text-muted">BTC mining profitability analysis</small>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6 mb-3">
-                        <a href="{% url 'capex_opex_dashboard' %}" class="btn btn-outline-warning btn-lg w-100 h-100 d-flex flex-column justify-content-center">
-                            <i class="fas fa-chart-pie fa-2x mb-2"></i>
-                            <h5 class="mb-1">CAPEX/OPEX Dashboard</h5>
-                            <small class="text-muted">Expense analysis and financial insights</small>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6 mb-3">
-                        <a href="{% url 'income_dashboard' %}" class="btn btn-outline-primary btn-lg w-100 h-100 d-flex flex-column justify-content-center">
-                            <i class="fas fa-chart-area fa-2x mb-2"></i>
-                            <h5 class="mb-1">Income Dashboard</h5>
-                            <small class="text-muted">Mining income and revenue analysis</small>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- Dashboards Section -->
+<h5 class="text-secondary mb-3"><i class="fas fa-chart-bar me-2"></i>Dashboards</h5>
+<div class="row mb-5">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <a href="{% url 'overview_dashboard' %}" class="home-tile home-tile-cyan">
+            <i class="fas fa-tachometer-alt fa-2x tile-icon tile-icon-cyan"></i>
+            <h6 class="tile-title">Overview Dashboard</h6>
+            <small class="text-secondary">Fleet analytics and KPIs</small>
+        </a>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <a href="{% url 'forecasting_dashboard' %}" class="home-tile home-tile-green">
+            <i class="fas fa-chart-line fa-2x tile-icon tile-icon-green"></i>
+            <h6 class="tile-title">Forecasting</h6>
+            <small class="text-secondary">Profitability projections</small>
+        </a>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <a href="{% url 'capex_opex_dashboard' %}" class="home-tile home-tile-orange">
+            <i class="fas fa-chart-pie fa-2x tile-icon tile-icon-orange"></i>
+            <h6 class="tile-title">CAPEX/OPEX</h6>
+            <small class="text-secondary">Expense analysis</small>
+        </a>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <a href="{% url 'income_dashboard' %}" class="home-tile home-tile-purple">
+            <i class="fas fa-chart-area fa-2x tile-icon tile-icon-purple"></i>
+            <h6 class="tile-title">Income</h6>
+            <small class="text-secondary">Revenue breakdown</small>
+        </a>
     </div>
 </div>
 
 <!-- Master Data Section -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h4><i class="fas fa-database text-primary"></i> Master Data</h4>
-            </div>
-            <div class="card-body">
-                <!-- First row: 3 items -->
-                <div class="row">
-                    <div class="col-lg-4 col-md-6 mb-3">
-                        <a href="{% url 'platform_list' %}" class="btn btn-outline-primary btn-lg w-100 h-100 d-flex flex-column justify-content-center">
-                            <i class="fas fa-server fa-2x mb-2"></i>
-                            <h5 class="mb-1">Platforms</h5>
-                            <small class="text-muted">Mining platforms and hosting providers</small>
-                        </a>
-                    </div>
-                    <div class="col-lg-4 col-md-6 mb-3">
-                        <a href="{% url 'miner_list' %}" class="btn btn-outline-success btn-lg w-100 h-100 d-flex flex-column justify-content-center">
-                            <i class="fas fa-microchip fa-2x mb-2"></i>
-                            <h5 class="mb-1">Miners</h5>
-                            <small class="text-muted">ASIC miners and hardware</small>
-                        </a>
-                    </div>
-                    <div class="col-lg-4 col-md-6 mb-3">
-                        <a href="{% url 'payout_list' %}" class="btn btn-outline-warning btn-lg w-100 h-100 d-flex flex-column justify-content-center">
-                            <i class="fas fa-coins fa-2x mb-2"></i>
-                            <h5 class="mb-1">Payouts</h5>
-                            <small class="text-muted">Bitcoin mining payouts and earnings</small>
-                        </a>
-                    </div>
-                </div>
-                <!-- Second row: 2 items -->
-                <div class="row">
-                    <div class="col-lg-6 col-md-6 mb-3">
-                        <a href="{% url 'expense_list' %}" class="btn btn-outline-danger btn-lg w-100 h-100 d-flex flex-column justify-content-center">
-                            <i class="fas fa-receipt fa-2x mb-2"></i>
-                            <h5 class="mb-1">Expenses</h5>
-                            <small class="text-muted">CAPEX/OPEX expense tracking</small>
-                        </a>
-                    </div>
-                    <div class="col-lg-6 col-md-6 mb-3">
-                        <a href="{% url 'topup_list' %}" class="btn btn-outline-info btn-lg w-100 h-100 d-flex flex-column justify-content-center">
-                            <i class="fas fa-plus-circle fa-2x mb-2"></i>
-                            <h5 class="mb-1">Top-Ups</h5>
-                            <small class="text-muted">Platform account top-ups and deposits</small>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
+<h5 class="text-secondary mb-3"><i class="fas fa-database me-2"></i>Master Data</h5>
+<div class="row mb-2">
+    <div class="col-lg-4 col-md-6 mb-3">
+        <a href="{% url 'platform_list' %}" class="home-tile home-tile-cyan">
+            <i class="fas fa-server fa-2x tile-icon tile-icon-cyan"></i>
+            <h6 class="tile-title">Platforms</h6>
+            <small class="text-secondary">Hosting providers</small>
+        </a>
+    </div>
+    <div class="col-lg-4 col-md-6 mb-3">
+        <a href="{% url 'miner_list' %}" class="home-tile home-tile-green">
+            <i class="fas fa-microchip fa-2x tile-icon tile-icon-green"></i>
+            <h6 class="tile-title">Miners</h6>
+            <small class="text-secondary">ASIC hardware</small>
+        </a>
+    </div>
+    <div class="col-lg-4 col-md-6 mb-3">
+        <a href="{% url 'payout_list' %}" class="home-tile home-tile-orange">
+            <i class="fas fa-coins fa-2x tile-icon tile-icon-orange"></i>
+            <h6 class="tile-title">Payouts</h6>
+            <small class="text-secondary">BTC earnings</small>
+        </a>
+    </div>
+</div>
+<div class="row mb-5">
+    <div class="col-lg-4 col-md-6 mb-3">
+        <a href="{% url 'expense_list' %}" class="home-tile home-tile-red">
+            <i class="fas fa-receipt fa-2x tile-icon tile-icon-red"></i>
+            <h6 class="tile-title">Expenses</h6>
+            <small class="text-secondary">CAPEX/OPEX tracking</small>
+        </a>
+    </div>
+    <div class="col-lg-4 col-md-6 mb-3">
+        <a href="{% url 'topup_list' %}" class="home-tile home-tile-purple">
+            <i class="fas fa-plus-circle fa-2x tile-icon tile-icon-purple"></i>
+            <h6 class="tile-title">Top-Ups</h6>
+            <small class="text-secondary">Platform deposits</small>
+        </a>
     </div>
 </div>
 
 <!-- External Data Section -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h4><i class="fas fa-globe text-info"></i> External Data</h4>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-lg-6 col-md-6 mb-3">
-                        <a href="{% url 'api_data' %}" class="btn btn-outline-info btn-lg w-100 h-100 d-flex flex-column justify-content-center">
-                            <i class="fas fa-chart-line fa-2x mb-2"></i>
-                            <h5 class="mb-1">API Data</h5>
-                            <small class="text-muted">Bitcoin prices, network stats, and market data</small>
-                        </a>
-                    </div>
-                    <div class="col-lg-6 col-md-6 mb-3">
-                        <div class="btn btn-outline-secondary btn-lg w-100 h-100 d-flex flex-column justify-content-center" style="cursor: default;">
-                            <i class="fas fa-plug fa-2x mb-2 text-muted"></i>
-                            <h5 class="mb-1 text-muted">More APIs</h5>
-                            <small class="text-muted">Coming soon...</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<h5 class="text-secondary mb-3"><i class="fas fa-globe me-2"></i>External Data</h5>
+<div class="row mb-5">
+    <div class="col-lg-4 col-md-6 mb-3">
+        <a href="{% url 'api_data' %}" class="home-tile home-tile-cyan">
+            <i class="fas fa-satellite-dish fa-2x tile-icon tile-icon-cyan"></i>
+            <h6 class="tile-title">API Data</h6>
+            <small class="text-secondary">Prices, hashrate, difficulty</small>
+        </a>
+    </div>
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="home-tile home-tile-disabled">
+            <i class="fas fa-plug fa-2x tile-icon tile-icon-muted"></i>
+            <h6 class="tile-title text-muted">More APIs</h6>
+            <small class="text-secondary">Coming soon</small>
         </div>
     </div>
 </div>
 
 <!-- System Section -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h4><i class="fas fa-cog text-secondary"></i> System</h4>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-lg-6 col-md-6 mb-3">
-                        <a href="{% url 'settings' %}" class="btn btn-outline-secondary btn-lg w-100 h-100 d-flex flex-column justify-content-center">
-                            <i class="fas fa-cogs fa-2x mb-2"></i>
-                            <h5 class="mb-1">Settings</h5>
-                            <small class="text-muted">Application configuration and preferences</small>
-                        </a>
-                    </div>
-                    <div class="col-lg-6 col-md-6 mb-3">
-                        <div class="btn btn-outline-secondary btn-lg w-100 h-100 d-flex flex-column justify-content-center" style="cursor: default;">
-                            <i class="fas fa-tools fa-2x mb-2 text-muted"></i>
-                            <h5 class="mb-1 text-muted">Admin Tools</h5>
-                            <small class="text-muted">Coming soon...</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<h5 class="text-secondary mb-3"><i class="fas fa-cog me-2"></i>System</h5>
+<div class="row mb-5">
+    <div class="col-lg-4 col-md-6 mb-3">
+        <a href="{% url 'settings' %}" class="home-tile home-tile-cyan">
+            <i class="fas fa-cogs fa-2x tile-icon tile-icon-cyan"></i>
+            <h6 class="tile-title">Settings</h6>
+            <small class="text-secondary">App configuration</small>
+        </a>
+    </div>
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="home-tile home-tile-disabled">
+            <i class="fas fa-tools fa-2x tile-icon tile-icon-muted"></i>
+            <h6 class="tile-title text-muted">Admin Tools</h6>
+            <small class="text-secondary">Coming soon</small>
         </div>
     </div>
 </div>
-
-
-<style>
-/* Custom styles for home page */
-.btn-lg {
-    padding: 1.5rem;
-    min-height: 140px;
-    transition: all 0.3s ease;
-}
-
-.btn-lg:hover:not([style*="cursor: default"]) {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-.card {
-    border: none;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    transition: box-shadow 0.2s ease-in-out;
-}
-
-.card:hover {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-}
-
-.card-header {
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.display-4 {
-    font-weight: 600;
-}
-
-@media (max-width: 768px) {
-    .btn-lg {
-        min-height: 120px;
-        padding: 1rem;
-    }
-    
-    .display-4 {
-        font-size: 2.5rem;
-    }
-    
-    .card-body .row > div {
-        margin-bottom: 1rem;
-    }
-}
-
-@media (max-width: 576px) {
-    .btn-lg {
-        min-height: 100px;
-        padding: 0.75rem;
-    }
-    
-    .btn-lg h5 {
-        font-size: 1rem;
-    }
-    
-    .btn-lg small {
-        font-size: 0.75rem;
-    }
-}
-</style>
 {% endblock %}

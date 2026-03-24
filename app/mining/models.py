@@ -250,7 +250,6 @@ class APIData(models.Model):
 
 class Settings(models.Model):
     """Application settings - singleton model"""
-    dark_mode = models.BooleanField(default=False, help_text="Enable dark mode theme")
     developer_mode = models.BooleanField(default=False, help_text="Enable developer mode to show database IDs")
     pool_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=2.5, help_text="Pool fee percentage (e.g. 2.5 for 2.5%)")
     block_reward = models.DecimalField(max_digits=10, decimal_places=8, default=3.125, help_text="Bitcoin block reward (BTC per block)")

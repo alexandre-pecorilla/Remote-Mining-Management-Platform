@@ -14,7 +14,10 @@ class PasswordProtectionMiddleware:
 
         if app_password and not request.session.get('app_authenticated'):
             login_url = reverse('app_login')
-            if request.path != login_url and not request.path.startswith('/admin/'):
+            if (request.path != login_url
+                    and not request.path.startswith('/admin/')
+                    and not request.path.startswith('/static/')
+                    and not request.path.startswith('/media/')):
                 return redirect(f'{login_url}?next={request.get_full_path()}')
 
         return self.get_response(request)

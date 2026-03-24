@@ -194,11 +194,8 @@ class TopUpForm(forms.ModelForm):
 class SettingsForm(forms.ModelForm):
     class Meta:
         model = Settings
-        fields = ['dark_mode', 'developer_mode', 'pool_fee_percentage', 'block_reward']
+        fields = ['developer_mode', 'pool_fee_percentage', 'block_reward']
         widgets = {
-            'dark_mode': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
-            }),
             'developer_mode': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
             }),
@@ -216,7 +213,6 @@ class SettingsForm(forms.ModelForm):
             }),
         }
         labels = {
-            'dark_mode': 'Dark Mode',
             'developer_mode': 'Developer Mode',
             'pool_fee_percentage': 'Pool Fee Percentage (%)',
             'block_reward': 'Block Reward (BTC)',

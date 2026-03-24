@@ -1,95 +1,82 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="{% if settings.dark_mode %}dark{% else %}light{% endif %}">
+<html lang="en" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Remote Mining Management Platform{% endblock %}</title>
+    <title>{% block title %}Mining Manager{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="{% static 'css/dark-mode.css' %}" rel="stylesheet">
-    <style>
-        .navbar-brand {
-            font-weight: bold;
-        }
-        .card {
-            transition: transform 0.2s;
-        }
-        .card:hover {
-            transform: translateY(-2px);
-        }
-        .energy-price {
-            color: #28a745;
-            font-weight: bold;
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{% static 'css/theme.css' %}" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-glass">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'home' %}">
-                <i class="fas fa-mining"></i> Mining Manager
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'home' %}">
+                <i class="fab fa-bitcoin me-2"></i> Mining Manager
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="masterDataDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-database"></i> Master Data
+                        <a class="nav-link dropdown-toggle" href="#" id="dataDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-database me-1"></i> Data
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="masterDataDropdown">
+                        <ul class="dropdown-menu dropdown-menu-glass" aria-labelledby="dataDropdown">
                             <li>
                                 <a class="dropdown-item" href="{% url 'platform_list' %}">
-                                    <i class="fas fa-server"></i> Platforms
+                                    <i class="fas fa-server me-2"></i> Platforms
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item" href="{% url 'miner_list' %}">
-                                    <i class="fas fa-microchip"></i> Miners
+                                    <i class="fas fa-microchip me-2"></i> Miners
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item" href="{% url 'payout_list' %}">
-                                    <i class="fas fa-coins"></i> Payouts
+                                    <i class="fas fa-coins me-2"></i> Payouts
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item" href="{% url 'expense_list' %}">
-                                    <i class="fas fa-receipt"></i> Expenses
+                                    <i class="fas fa-receipt me-2"></i> Expenses
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item" href="{% url 'topup_list' %}">
-                                    <i class="fas fa-plus-circle"></i> Top-Ups
+                                    <i class="fas fa-plus-circle me-2"></i> Top-Ups
                                 </a>
                             </li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="dashboardDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-chart-bar"></i> Dashboards
+                            <i class="fas fa-chart-bar me-1"></i> Dashboards
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="dashboardDropdown">
+                        <ul class="dropdown-menu dropdown-menu-glass" aria-labelledby="dashboardDropdown">
                             <li>
                                 <a class="dropdown-item" href="{% url 'overview_dashboard' %}">
-                                    <i class="fas fa-tachometer-alt"></i> Overview Dashboard
+                                    <i class="fas fa-tachometer-alt me-2"></i> Overview
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item" href="{% url 'forecasting_dashboard' %}">
-                                    <i class="fas fa-chart-line"></i> Forecasting Dashboard
+                                    <i class="fas fa-chart-line me-2"></i> Forecasting
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item" href="{% url 'capex_opex_dashboard' %}">
-                                    <i class="fas fa-chart-pie"></i> CAPEX/OPEX Dashboard
+                                    <i class="fas fa-chart-pie me-2"></i> CAPEX/OPEX
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item" href="{% url 'income_dashboard' %}">
-                                    <i class="fas fa-chart-line"></i> Income Dashboard
+                                    <i class="fas fa-chart-area me-2"></i> Income
                                 </a>
                             </li>
                         </ul>
@@ -98,18 +85,18 @@
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'api_data' %}">
-                            <i class="fas fa-chart-line"></i> API Data
+                            <i class="fas fa-satellite-dish me-1"></i> API Data
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'settings' %}">
-                            <i class="fas fa-cog"></i> Settings
+                            <i class="fas fa-cog me-1"></i> Settings
                         </a>
                     </li>
                     {% if app_password_enabled %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'app_logout' %}">
-                            <i class="fas fa-sign-out-alt"></i> Logout
+                            <i class="fas fa-sign-out-alt me-1"></i> Logout
                         </a>
                     </li>
                     {% endif %}
@@ -123,7 +110,7 @@
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
                     {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             {% endfor %}
         {% endif %}
@@ -132,6 +119,7 @@
         {% endblock %}
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

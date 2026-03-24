@@ -28,7 +28,7 @@
         <h3><i class="fas fa-calculator"></i> Total Income</h3>
     </div>
     <div class="col-md-4 mb-3">
-        <div class="card bg-primary text-white">
+        <div class="card">
             <div class="card-body text-center">
                 <h4><i class="fab fa-bitcoin"></i> Total Income BTC</h4>
                 <h2>{{ total_income_btc|floatformat:8 }} BTC</h2>
@@ -36,7 +36,7 @@
         </div>
     </div>
     <div class="col-md-4 mb-3">
-        <div class="card bg-info text-white">
+        <div class="card">
             <div class="card-body text-center">
                 <h4><i class="fas fa-clock"></i> Total Income USD (then)</h4>
                 <h2>${{ total_income_usd_then|floatformat:2|intcomma }}</h2>
@@ -44,7 +44,7 @@
         </div>
     </div>
     <div class="col-md-4 mb-3">
-        <div class="card bg-success text-white">
+        <div class="card">
             <div class="card-body text-center">
                 <h4><i class="fas fa-dollar-sign"></i> Total Income USD (now)</h4>
                 <h2>${{ total_income_usd_now|floatformat:2|intcomma }}</h2>

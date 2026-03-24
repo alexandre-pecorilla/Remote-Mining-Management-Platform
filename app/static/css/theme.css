@@ -1,0 +1,1501 @@
+/* ==========================================================================
+   theme.css — Dark-only crypto/Web3 theme for Bitcoin Mining Dashboard
+   Replaces dark-mode.css. Designed for Bootstrap 5.3 with data-bs-theme="dark".
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ==========================================================================
+   1. ROOT VARIABLES & BODY
+   ========================================================================== */
+
+:root {
+    /* Backgrounds */
+    --bg-primary: #0a0e17;
+    --bg-secondary: #111827;
+    --bg-tertiary: #1a2332;
+    --bg-surface: #1f2937;
+
+    /* Borders */
+    --border-color: #2d3748;
+    --border-accent: #374151;
+
+    /* Text */
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+
+    /* Accents */
+    --accent-cyan: #06b6d4;
+    --accent-purple: #8b5cf6;
+    --accent-green: #10b981;
+    --accent-orange: #f59e0b;
+    --accent-red: #ef4444;
+    --accent-blue: #3b82f6;
+
+    /* Glows */
+    --glow-cyan: rgba(6, 182, 212, 0.15);
+    --glow-purple: rgba(139, 92, 246, 0.1);
+
+    /* Bootstrap overrides */
+    --bs-body-bg: var(--bg-primary);
+    --bs-body-color: var(--text-primary);
+    --bs-border-color: var(--border-color);
+    --bs-card-bg: var(--bg-secondary);
+    --bs-emphasis-color: var(--text-primary);
+    --bs-secondary-color: var(--text-secondary);
+    --bs-tertiary-bg: var(--bg-tertiary);
+    --bs-link-color: var(--accent-cyan);
+    --bs-link-hover-color: #22d3ee;
+}
+
+*,
+*::before,
+*::after {
+    border-color: var(--border-color);
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+}
+
+/* Custom scrollbar — WebKit */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-accent);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Custom scrollbar — Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-accent) var(--bg-primary);
+}
+
+/* ==========================================================================
+   2. SELECTION STYLING
+   ========================================================================== */
+
+::selection {
+    background-color: var(--accent-cyan);
+    color: var(--bg-primary);
+}
+
+::-moz-selection {
+    background-color: var(--accent-cyan);
+    color: var(--bg-primary);
+}
+
+/* ==========================================================================
+   3. NAVBAR
+   ========================================================================== */
+
+.navbar {
+    background: rgba(10, 14, 23, 0.85) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-color) !important;
+    box-shadow: 0 1px 12px rgba(6, 182, 212, 0.06);
+    padding: 0.6rem 1rem;
+    z-index: 1030;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+}
+
+.navbar-nav .nav-link {
+    color: var(--text-secondary) !important;
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 0.5rem 0.85rem !important;
+    border-radius: 0.5rem;
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link:focus {
+    color: var(--accent-cyan) !important;
+    background-color: rgba(6, 182, 212, 0.08);
+}
+
+.navbar-nav .nav-link.active {
+    color: var(--accent-cyan) !important;
+}
+
+.navbar-toggler {
+    border-color: var(--border-color);
+    padding: 0.35rem 0.6rem;
+}
+
+.navbar-toggler-icon {
+    filter: invert(1) brightness(2);
+}
+
+.navbar .dropdown-menu {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    border-radius: 0.5rem;
+    margin-top: 0.35rem;
+}
+
+/* ==========================================================================
+   4. CARDS
+   ========================================================================== */
+
+.card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    color: var(--text-primary);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    overflow: hidden;
+}
+
+.card:hover {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 16px var(--glow-cyan);
+}
+
+.card-header {
+    background-color: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-weight: 600;
+    padding: 0.85rem 1.15rem;
+}
+
+.card-body {
+    padding: 1.15rem;
+}
+
+.card-footer {
+    background-color: var(--bg-tertiary);
+    border-top: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.card-title {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   5. TABLES
+   ========================================================================== */
+
+.table {
+    color: var(--text-primary);
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--text-primary);
+    --bs-table-striped-bg: var(--bg-surface);
+    --bs-table-striped-color: var(--text-primary);
+    --bs-table-hover-bg: rgba(6, 182, 212, 0.05);
+    --bs-table-hover-color: var(--text-primary);
+    --bs-table-border-color: var(--border-color);
+    margin-bottom: 0;
+    border-color: var(--border-color);
+}
+
+.table > thead {
+    background-color: var(--bg-tertiary);
+}
+
+.table > thead th {
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    border-bottom: 2px solid var(--border-accent);
+    padding: 0.75rem;
+    white-space: nowrap;
+}
+
+.table > tbody > tr {
+    border-bottom-color: var(--border-color);
+    transition: background-color 0.15s ease;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > td,
+.table-striped > tbody > tr:nth-of-type(odd) > th {
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+}
+
+.table-hover > tbody > tr:hover > td,
+.table-hover > tbody > tr:hover > th {
+    background-color: rgba(6, 182, 212, 0.05);
+    color: var(--text-primary);
+}
+
+.table-success,
+.table-success > td,
+.table-success > th {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+    color: var(--accent-green) !important;
+    --bs-table-bg: rgba(16, 185, 129, 0.15);
+    --bs-table-color: var(--accent-green);
+}
+
+.table-danger,
+.table-danger > td,
+.table-danger > th {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+    color: var(--accent-red) !important;
+    --bs-table-bg: rgba(239, 68, 68, 0.15);
+    --bs-table-color: var(--accent-red);
+}
+
+.table-warning,
+.table-warning > td,
+.table-warning > th {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+    color: var(--accent-orange) !important;
+    --bs-table-bg: rgba(245, 158, 11, 0.15);
+    --bs-table-color: var(--accent-orange);
+}
+
+.table-responsive {
+    border-radius: 0.75rem;
+}
+
+.table > tbody > tr > td {
+    padding: 0.7rem 0.75rem;
+    white-space: nowrap;
+    vertical-align: middle;
+    color: var(--text-primary);
+}
+
+.table td.text-muted,
+.table span.text-muted {
+    color: var(--text-secondary) !important;
+}
+
+.table-dark {
+    --bs-table-bg: var(--bg-tertiary);
+    --bs-table-color: var(--text-primary);
+    --bs-table-border-color: var(--border-color);
+}
+
+.table-responsive {
+    border-radius: 0.5rem;
+}
+
+/* ==========================================================================
+   6. FORMS
+   ========================================================================== */
+
+.form-control,
+.form-select {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    border-radius: 0.5rem;
+    padding: 0.55rem 0.85rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--bg-surface);
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 0 0.2rem var(--glow-cyan);
+    color: var(--text-primary);
+    outline: none;
+}
+
+.form-control:disabled,
+.form-control[readonly],
+.form-select:disabled {
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+.form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+.form-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 0.85rem;
+    margin-bottom: 0.35rem;
+}
+
+.form-text {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.form-check-input {
+    background-color: var(--bg-surface);
+    border-color: var(--border-accent);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.form-check-input:checked {
+    background-color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+}
+
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.2rem var(--glow-cyan);
+    border-color: var(--accent-cyan);
+}
+
+.form-check-label {
+    color: var(--text-primary);
+}
+
+.input-group-text {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+/* ==========================================================================
+   7. BUTTONS
+   ========================================================================== */
+
+.btn {
+    font-weight: 500;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    padding: 0.45rem 1rem;
+    transition: all 0.2s ease;
+    letter-spacing: 0.01em;
+}
+
+/* Primary — cyan */
+.btn-primary {
+    background-color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    color: #0a0e17;
+    font-weight: 600;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: #22d3ee;
+    border-color: #22d3ee;
+    color: #0a0e17;
+    box-shadow: 0 0 16px var(--glow-cyan);
+}
+
+.btn-primary:active {
+    background-color: #06b6d4;
+    border-color: #06b6d4;
+    color: #0a0e17;
+}
+
+/* Success — green */
+.btn-success {
+    background-color: var(--accent-green);
+    border-color: var(--accent-green);
+    color: #0a0e17;
+    font-weight: 600;
+}
+
+.btn-success:hover,
+.btn-success:focus {
+    background-color: #34d399;
+    border-color: #34d399;
+    color: #0a0e17;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+
+/* Danger — red */
+.btn-danger {
+    background-color: var(--accent-red);
+    border-color: var(--accent-red);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.btn-danger:hover,
+.btn-danger:focus {
+    background-color: #f87171;
+    border-color: #f87171;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+}
+
+/* Warning — orange */
+.btn-warning {
+    background-color: var(--accent-orange);
+    border-color: var(--accent-orange);
+    color: #0a0e17;
+    font-weight: 600;
+}
+
+.btn-warning:hover,
+.btn-warning:focus {
+    background-color: #fbbf24;
+    border-color: #fbbf24;
+    color: #0a0e17;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+}
+
+/* Info — blue */
+.btn-info {
+    background-color: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.btn-info:hover,
+.btn-info:focus {
+    background-color: #60a5fa;
+    border-color: #60a5fa;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.2);
+}
+
+/* Secondary — tertiary bg */
+.btn-secondary {
+    background-color: var(--bg-tertiary);
+    border-color: var(--border-accent);
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.btn-secondary:hover,
+.btn-secondary:focus {
+    background-color: var(--bg-surface);
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+}
+
+/* Outline Primary */
+.btn-outline-primary {
+    color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    font-weight: 500;
+    background-color: transparent;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+    background-color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    color: #0a0e17;
+    box-shadow: 0 0 12px var(--glow-cyan);
+}
+
+/* Outline Success */
+.btn-outline-success {
+    color: var(--accent-green);
+    border-color: var(--accent-green);
+    font-weight: 500;
+    background-color: transparent;
+}
+
+.btn-outline-success:hover,
+.btn-outline-success:focus {
+    background-color: var(--accent-green);
+    border-color: var(--accent-green);
+    color: #0a0e17;
+}
+
+/* Outline Danger */
+.btn-outline-danger {
+    color: var(--accent-red);
+    border-color: var(--accent-red);
+    font-weight: 500;
+    background-color: transparent;
+}
+
+.btn-outline-danger:hover,
+.btn-outline-danger:focus {
+    background-color: var(--accent-red);
+    border-color: var(--accent-red);
+    color: #ffffff;
+}
+
+/* Outline Warning */
+.btn-outline-warning {
+    color: var(--accent-orange);
+    border-color: var(--accent-orange);
+    font-weight: 500;
+    background-color: transparent;
+}
+
+.btn-outline-warning:hover,
+.btn-outline-warning:focus {
+    background-color: var(--accent-orange);
+    border-color: var(--accent-orange);
+    color: #0a0e17;
+}
+
+/* Outline Info */
+.btn-outline-info {
+    color: var(--accent-blue);
+    border-color: var(--accent-blue);
+    font-weight: 500;
+    background-color: transparent;
+}
+
+.btn-outline-info:hover,
+.btn-outline-info:focus {
+    background-color: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #ffffff;
+}
+
+/* Outline Secondary */
+.btn-outline-secondary {
+    color: var(--text-secondary);
+    border-color: var(--border-accent);
+    font-weight: 500;
+    background-color: transparent;
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+    background-color: var(--bg-tertiary);
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+}
+
+/* Link button */
+.btn-link {
+    color: var(--accent-cyan);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.btn-link:hover {
+    color: #22d3ee;
+    text-decoration: underline;
+}
+
+/* Button sizes */
+.btn-sm {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 0.4rem;
+}
+
+.btn-lg {
+    font-size: 1rem;
+    padding: 0.6rem 1.4rem;
+    border-radius: 0.6rem;
+}
+
+/* Close button */
+.btn-close {
+    filter: invert(1) brightness(2);
+    opacity: 0.6;
+}
+
+.btn-close:hover {
+    opacity: 1;
+}
+
+/* ==========================================================================
+   8. ALERTS
+   ========================================================================== */
+
+.alert {
+    border-radius: 0.6rem;
+    font-size: 0.9rem;
+    border-width: 1px;
+}
+
+.alert-info {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.25);
+    color: #93c5fd;
+}
+
+.alert-warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.25);
+    color: #fcd34d;
+}
+
+.alert-danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #fca5a5;
+}
+
+.alert-error {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #fca5a5;
+    border-radius: 0.6rem;
+    padding: 0.75rem 1.25rem;
+}
+
+.alert-success {
+    background-color: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.25);
+    color: #6ee7b7;
+}
+
+.alert .btn-close {
+    filter: invert(1) brightness(2);
+    opacity: 0.5;
+}
+
+.alert .btn-close:hover {
+    opacity: 1;
+}
+
+/* ==========================================================================
+   9. BADGES
+   ========================================================================== */
+
+.badge {
+    font-weight: 500;
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+    border-radius: 0.4rem;
+    letter-spacing: 0.02em;
+}
+
+.badge.bg-primary,
+.badge.text-bg-primary {
+    background-color: var(--accent-cyan) !important;
+    color: #0a0e17 !important;
+}
+
+.badge.bg-success,
+.badge.text-bg-success {
+    background-color: var(--accent-green) !important;
+    color: #0a0e17 !important;
+}
+
+.badge.bg-danger,
+.badge.text-bg-danger {
+    background-color: var(--accent-red) !important;
+    color: #ffffff !important;
+}
+
+.badge.bg-warning,
+.badge.text-bg-warning {
+    background-color: var(--accent-orange) !important;
+    color: #0a0e17 !important;
+}
+
+.badge.bg-info,
+.badge.text-bg-info {
+    background-color: var(--accent-blue) !important;
+    color: #ffffff !important;
+}
+
+.badge.bg-secondary,
+.badge.text-bg-secondary {
+    background-color: var(--bg-surface) !important;
+    color: var(--text-secondary) !important;
+}
+
+.badge.bg-dark,
+.badge.text-bg-dark {
+    background-color: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+
+.badge.bg-light,
+.badge.text-bg-light {
+    background-color: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+}
+
+/* ==========================================================================
+   10. PAGINATION
+   ========================================================================== */
+
+.page-link {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    padding: 0.45rem 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.page-link:hover {
+    background-color: var(--bg-tertiary);
+    border-color: var(--border-accent);
+    color: var(--text-primary);
+}
+
+.page-item.active .page-link {
+    background-color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    color: #0a0e17;
+    font-weight: 600;
+}
+
+.page-item.disabled .page-link {
+    background-color: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+
+/* ==========================================================================
+   11. TEXT UTILITIES
+   ========================================================================== */
+
+.text-btc {
+    color: var(--accent-orange) !important;
+}
+
+.payout-amount {
+    color: var(--accent-orange) !important;
+    font-weight: 600;
+}
+
+.text-muted {
+    color: var(--text-secondary) !important;
+}
+
+.text-success {
+    color: var(--accent-green) !important;
+}
+
+.text-danger {
+    color: var(--accent-red) !important;
+}
+
+.text-warning {
+    color: var(--accent-orange) !important;
+}
+
+.text-info {
+    color: var(--accent-blue) !important;
+}
+
+.text-primary {
+    color: var(--accent-cyan) !important;
+}
+
+.text-secondary {
+    color: var(--text-secondary) !important;
+}
+
+.text-white {
+    color: #ffffff !important;
+}
+
+.text-body {
+    color: var(--text-primary) !important;
+}
+
+/* ==========================================================================
+   12. LINKS
+   ========================================================================== */
+
+a {
+    color: var(--accent-cyan);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+a:hover {
+    color: #22d3ee;
+}
+
+a:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+/* ==========================================================================
+   13. CODE BLOCKS
+   ========================================================================== */
+
+code {
+    background-color: var(--bg-surface);
+    color: var(--accent-purple);
+    padding: 0.15em 0.4em;
+    border-radius: 0.3rem;
+    font-size: 0.85em;
+}
+
+pre {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    overflow-x: auto;
+    color: var(--text-primary);
+}
+
+pre code {
+    background-color: transparent;
+    padding: 0;
+    color: inherit;
+}
+
+/* ==========================================================================
+   14. DROPDOWNS
+   ========================================================================== */
+
+.dropdown-menu {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    padding: 0.35rem;
+}
+
+.dropdown-item {
+    color: var(--text-primary);
+    border-radius: 0.35rem;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.9rem;
+    transition: background-color 0.15s ease;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.dropdown-item.active,
+.dropdown-item:active {
+    background-color: var(--accent-cyan);
+    color: #0a0e17;
+}
+
+.dropdown-divider {
+    border-color: var(--border-color);
+}
+
+.dropdown-header {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* ==========================================================================
+   15. LIST GROUP
+   ========================================================================== */
+
+.list-group-item {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    transition: background-color 0.15s ease;
+}
+
+.list-group-item:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.list-group-item.active {
+    background-color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    color: #0a0e17;
+}
+
+.list-group-item.disabled {
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+.list-group-item-action:hover {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* ==========================================================================
+   16. MODALS
+   ========================================================================== */
+
+.modal-content {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 0.75rem;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    border-bottom-color: var(--border-color);
+    padding: 1rem 1.25rem;
+}
+
+.modal-header .modal-title {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.modal-footer {
+    border-top-color: var(--border-color);
+    padding: 0.85rem 1.25rem;
+}
+
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* ==========================================================================
+   17. BORDERS
+   ========================================================================== */
+
+.border {
+    border-color: var(--border-color) !important;
+}
+
+.border-top,
+.border-bottom,
+.border-start,
+.border-end {
+    border-color: var(--border-color) !important;
+}
+
+.border-danger {
+    border-color: var(--accent-red) !important;
+}
+
+.border-success {
+    border-color: var(--accent-green) !important;
+}
+
+.border-warning {
+    border-color: var(--accent-orange) !important;
+}
+
+.border-primary {
+    border-color: var(--accent-cyan) !important;
+}
+
+.border-info {
+    border-color: var(--accent-blue) !important;
+}
+
+/* ==========================================================================
+   18. ENERGY PRICE
+   ========================================================================== */
+
+.energy-price {
+    color: var(--accent-green);
+    font-weight: 700;
+}
+
+/* ==========================================================================
+   19. PROGRESS BARS
+   ========================================================================== */
+
+.progress {
+    background-color: var(--bg-surface);
+    border-radius: 0.5rem;
+    height: 0.6rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background-color: var(--accent-cyan);
+    border-radius: 0.5rem;
+    transition: width 0.4s ease;
+}
+
+.progress-bar.bg-success {
+    background-color: var(--accent-green) !important;
+}
+
+.progress-bar.bg-danger {
+    background-color: var(--accent-red) !important;
+}
+
+.progress-bar.bg-warning {
+    background-color: var(--accent-orange) !important;
+}
+
+.progress-bar.bg-info {
+    background-color: var(--accent-blue) !important;
+}
+
+/* ==========================================================================
+   20. BG-LIGHT OVERRIDE
+   ========================================================================== */
+
+.bg-light {
+    background-color: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+
+.bg-dark {
+    background-color: var(--bg-primary) !important;
+}
+
+.bg-white {
+    background-color: var(--bg-secondary) !important;
+}
+
+.bg-body {
+    background-color: var(--bg-primary) !important;
+}
+
+.bg-transparent {
+    background-color: transparent !important;
+}
+
+/* ==========================================================================
+   21. KPI CARDS
+   ========================================================================== */
+
+.kpi-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--border-accent);
+    border-radius: 0.75rem;
+    padding: 1.15rem;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.kpi-card:hover {
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
+}
+
+.kpi-card--cyan {
+    border-left-color: var(--accent-cyan);
+}
+
+.kpi-card--cyan:hover {
+    box-shadow: 0 0 16px var(--glow-cyan);
+}
+
+.kpi-card--green {
+    border-left-color: var(--accent-green);
+}
+
+.kpi-card--green:hover {
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.15);
+}
+
+.kpi-card--orange {
+    border-left-color: var(--accent-orange);
+}
+
+.kpi-card--orange:hover {
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.15);
+}
+
+.kpi-card--purple {
+    border-left-color: var(--accent-purple);
+}
+
+.kpi-card--purple:hover {
+    box-shadow: 0 0 16px var(--glow-purple);
+}
+
+.kpi-card--red {
+    border-left-color: var(--accent-red);
+}
+
+.kpi-card--red:hover {
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.15);
+}
+
+/* ==========================================================================
+   22. HOME PAGE TILES
+   ========================================================================== */
+
+.home-tile {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+    text-decoration: none;
+    color: var(--text-primary);
+}
+
+.home-tile:hover {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 20px var(--glow-cyan);
+    color: var(--text-primary);
+    text-decoration: none;
+    transform: translateY(-2px);
+}
+
+.home-tile-cyan:hover {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 20px var(--glow-cyan);
+}
+
+.home-tile-green:hover {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+}
+
+.home-tile-orange:hover {
+    border-color: var(--accent-orange);
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
+}
+
+.home-tile-purple:hover {
+    border-color: var(--accent-purple);
+    box-shadow: 0 0 20px var(--glow-purple);
+}
+
+.home-tile-red:hover {
+    border-color: var(--accent-red);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
+}
+
+.home-tile-blue:hover {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+}
+
+.home-tile-disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.home-tile-disabled:hover {
+    transform: none;
+    border-color: var(--border-color);
+    box-shadow: none;
+}
+
+/* Tile icon colors */
+.tile-icon { margin-bottom: 0.5rem; }
+.tile-icon-cyan { color: var(--accent-cyan); }
+.tile-icon-green { color: var(--accent-green); }
+.tile-icon-orange { color: var(--accent-orange); }
+.tile-icon-purple { color: var(--accent-purple); }
+.tile-icon-red { color: var(--accent-red); }
+.tile-icon-blue { color: var(--accent-blue); }
+.tile-icon-muted { color: var(--text-secondary); }
+
+/* Hero gradient text */
+.hero-gradient-text {
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
+
+@media (max-width: 767.98px) {
+    .home-tile {
+        min-height: 100px;
+        padding: 1rem;
+    }
+}
+
+/* ==========================================================================
+   23. GLASS CARD
+   ========================================================================== */
+
+.glass-card {
+    background: rgba(17, 24, 39, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(45, 55, 72, 0.5);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.glass-card:hover {
+    border-color: rgba(6, 182, 212, 0.3);
+    box-shadow: 0 0 20px var(--glow-cyan);
+}
+
+/* ==========================================================================
+   ADDITIONAL BOOTSTRAP COMPONENT OVERRIDES
+   ========================================================================== */
+
+/* Breadcrumbs */
+.breadcrumb {
+    background-color: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb-item a {
+    color: var(--accent-cyan);
+}
+
+.breadcrumb-item.active {
+    color: var(--text-secondary);
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    color: var(--text-secondary);
+}
+
+/* Tooltips */
+.tooltip-inner {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    font-size: 0.82rem;
+    border-radius: 0.4rem;
+    padding: 0.4rem 0.7rem;
+}
+
+.tooltip .tooltip-arrow::before {
+    border-top-color: var(--bg-tertiary);
+}
+
+/* Popovers */
+.popover {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+.popover-header {
+    background-color: var(--bg-tertiary);
+    border-bottom-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.popover-body {
+    color: var(--text-primary);
+}
+
+/* Tabs & Nav pills */
+.nav-tabs {
+    border-bottom-color: var(--border-color);
+}
+
+.nav-tabs .nav-link {
+    color: var(--text-secondary);
+    border-color: transparent;
+    border-radius: 0.5rem 0.5rem 0 0;
+    font-weight: 500;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--text-primary);
+    border-color: var(--border-accent) var(--border-accent) transparent;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color) var(--border-color) var(--bg-secondary);
+    color: var(--accent-cyan);
+    font-weight: 600;
+}
+
+.nav-pills .nav-link {
+    color: var(--text-secondary);
+    font-weight: 500;
+    border-radius: 0.5rem;
+    transition: all 0.15s ease;
+}
+
+.nav-pills .nav-link:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-tertiary);
+}
+
+.nav-pills .nav-link.active {
+    background-color: var(--accent-cyan);
+    color: #0a0e17;
+    font-weight: 600;
+}
+
+/* Accordion */
+.accordion-item {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+.accordion-button {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 500;
+    box-shadow: none;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: var(--bg-tertiary);
+    color: var(--accent-cyan);
+    box-shadow: none;
+}
+
+.accordion-button::after {
+    filter: invert(1) brightness(2);
+}
+
+.accordion-body {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* Toast */
+.toast {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    border-radius: 0.5rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.toast-header {
+    background-color: var(--bg-tertiary);
+    border-bottom-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+/* Spinner */
+.spinner-border {
+    color: var(--accent-cyan);
+}
+
+.spinner-grow {
+    color: var(--accent-cyan);
+}
+
+/* Offcanvas */
+.offcanvas {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.offcanvas-header {
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Horizontal rule */
+hr {
+    border-color: var(--border-color);
+    opacity: 0.5;
+}
+
+/* Figure / images */
+figure {
+    color: var(--text-secondary);
+}
+
+img {
+    border-radius: 0.35rem;
+}
+
+/* Placeholder / skeleton loaders */
+.placeholder {
+    background-color: var(--bg-surface);
+    opacity: 0.5;
+}
+
+/* ==========================================================================
+   RESPONSIVE UTILITIES
+   ========================================================================== */
+
+@media (max-width: 575.98px) {
+    .card-body {
+        padding: 0.85rem;
+    }
+
+    .card-header {
+        padding: 0.7rem 0.85rem;
+    }
+
+    .table > thead th {
+        font-size: 0.75rem;
+        padding: 0.55rem;
+    }
+
+    .table > tbody > tr > td {
+        font-size: 0.85rem;
+        padding: 0.55rem;
+    }
+
+    .btn {
+        font-size: 0.82rem;
+        padding: 0.4rem 0.75rem;
+    }
+
+    .kpi-card {
+        padding: 0.85rem;
+    }
+
+    .navbar-brand {
+        font-size: 1.05rem;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .navbar-collapse {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        margin-top: 0.5rem;
+        padding: 0.75rem;
+    }
+}
+
+/* ==========================================================================
+   ANIMATION UTILITIES
+   ========================================================================== */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 8px var(--glow-cyan);
+    }
+    50% {
+        box-shadow: 0 0 20px var(--glow-cyan);
+    }
+}
+
+.pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+}
